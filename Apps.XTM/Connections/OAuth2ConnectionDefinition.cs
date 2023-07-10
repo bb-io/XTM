@@ -1,6 +1,5 @@
 ﻿using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Connections;
-using System.Text;
 
 namespace Apps.XTM.Connections
 {
@@ -8,22 +7,23 @@ namespace Apps.XTM.Connections
     {
         public IEnumerable<ConnectionPropertyGroup> ConnectionPropertyGroups => new List<ConnectionPropertyGroup>()
         {
-            new ConnectionPropertyGroup
+            new()
             {
                 Name = "Credentials",
                 AuthenticationType = ConnectionAuthenticationType.Undefined,
                 ConnectionUsage = ConnectionUsage.Actions,
                 ConnectionProperties = new List<ConnectionProperty>()
                 {
-                    new ConnectionProperty("client"),
-                    new ConnectionProperty("username"),
-                    new ConnectionProperty("password"),
-                    new ConnectionProperty("api_endpoint"),
+                    new("client") { DisplayName = "Client" },
+                    new("user_id") { DisplayName = "User id" },
+                    new("password") { DisplayName = "Password" },
+                    new("url") { DisplayName = "Url" },
                 }
             },
         };
 
-        public IEnumerable<AuthenticationCredentialsProvider> CreateAuthorizationCredentialsProviders(Dictionary<string, string> values)
+        public IEnumerable<AuthenticationCredentialsProvider> CreateAuthorizationCredentialsProviders(
+            Dictionary<string, string> values)
         {
             var client = values.First(v => v.Key == "client");
             yield return new AuthenticationCredentialsProvider(
@@ -31,10 +31,10 @@ namespace Apps.XTM.Connections
                 "client",
                 client.Value
             );
-            var username = values.First(v => v.Key == "username");
+            var username = values.First(v => v.Key == "user_id");
             yield return new AuthenticationCredentialsProvider(
                 AuthenticationCredentialsRequestLocation.None,
-                "username",
+                "user_id",
                 username.Value
             );
             var password = values.First(v => v.Key == "password");
@@ -43,10 +43,10 @@ namespace Apps.XTM.Connections
                 "password",
                 password.Value
             );
-            var url = values.First(v => v.Key == "api_endpoint").Value.TrimEnd('/') + "/project-manager-api/services/v2/customer/XTMWebService";
+            var url = values.First(v => v.Key == "url").Value.TrimEnd('/') + "/project-manager-api-rest";
             yield return new AuthenticationCredentialsProvider(
                 AuthenticationCredentialsRequestLocation.None,
-                "api_endpoint",
+                "url",
                 url
             );
         }
