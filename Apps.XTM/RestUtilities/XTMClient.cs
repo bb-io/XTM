@@ -72,7 +72,6 @@ namespace Apps.XTM.RestUtilities
             }, token);
 
             body.ToList().ForEach(x => request.AddParameter(x.Key, x.Value, false));
-            //request.AddHeader("Content-Type", "multipart/form-data");
             request.AlwaysMultipartFormData = true;
 
             return await ExecuteXtm<T>(request);
@@ -92,7 +91,7 @@ namespace Apps.XTM.RestUtilities
 
         #region Utils
 
-        private async Task<string> GetToken(AuthenticationCredentialsProvider[] creds)
+        public async Task<string> GetToken(AuthenticationCredentialsProvider[] creds)
         {
             var url = creds.Get("url");
 
@@ -112,7 +111,7 @@ namespace Apps.XTM.RestUtilities
         {
             var error = JsonConvert.DeserializeObject<ErrorResponse>(response.Content);
 
-            return new(error.Reason);
+            return new(error?.Reason ?? response.StatusCode.ToString());
         }
 
         #endregion
