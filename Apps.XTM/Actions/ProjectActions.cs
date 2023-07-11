@@ -10,6 +10,7 @@ using Blackbird.Applications.Sdk.Common.Authentication;
 using Apps.XTM.RestUtilities;
 using Newtonsoft.Json;
 using RestSharp;
+using System.Net.Http.Headers;
 
 namespace Apps.XTM.Actions
 {
@@ -190,100 +191,101 @@ namespace Apps.XTM.Actions
 
             return new(response.RawBytes);
         }
-        //
-        // [Action("Upload source file", Description = "Upload source files for a project")]
-        // public async Task<CreateProjectResponse> UploadSourceFile(
-        //     IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-        //     [ActionParameter] [Display("Project id")]
-        //     int projectId,
-        //     [ActionParameter] UploadSourceFileRequest input)
-        // {
-        //     var url = $"{ApiEndpoints.Projects}/{projectId}/files/sources/upload";
-        //     var creds = authenticationCredentialsProviders.ToArray();
-        //
-        //     var token = await _client.GetToken(creds);
-        //
-        //     var request = new XTMRequest(new()
-        //     {
-        //         Url = creds.Get("url") + url,
-        //         Method = Method.Post
-        //     }, token);
-        //
-        //     //request.AddObject(input, "File", "Name");
-        //     request.AddParameter("files", JsonConvert.SerializeObject(input), ParameterType.RequestBody);
-        //     request.AlwaysMultipartFormData = true;
-        //
-        //     return await _client.ExecuteXtm<CreateProjectResponse>(request);
-        // }
-        //
-        // [Action("Upload translation file", Description = "Upload translation file to project")]
-        // public async Task<CreateProjectResponse> UploadTranslationFile(
-        //     IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-        //     [ActionParameter] [Display("Project id")]
-        //     int projectId,
-        //     [ActionParameter] UploadTranslationFileInput input)
-        // {
-        //     var url = $"{ApiEndpoints.Projects}/{projectId}/files/translations/upload";
-        //     var creds = authenticationCredentialsProviders.ToArray();
-        //
-        //     var token = await _client.GetToken(creds);
-        //
-        //     var params2 = new Dictionary<string, string>()
-        //     {
-        //         { "fileType", input.FileType },
-        //         { "jobId", input.JobId.ToString() },
-        //         { "workflowStepName", input.WorkflowStepName },
-        //         // {"translationFile", JsonConvert.SerializeObject(new TranslationFile()
-        //         // {
-        //         //     Name = input.Name,
-        //         //     File = input.File
-        //         // })},
-        //         // {"xliffOptions", JsonConvert.SerializeObject(new XliffOptions()
-        //         // {
-        //         //     Autopopulation = input.Autopopulation ? "ENABLED" : "DISABLED",
-        //         //     SegmentStatusApproving = input.SegmentStatusApproving,
-        //         // }) },
-        //     };
-        //     // var obj = new UploadTranslationFileRequest()
-        //     // {
-        //     //     FileType = input.FileType,
-        //     //     JobId = input.JobId,
-        //     //     WorkflowStepName = input.WorkflowStepName,
-        //     //     TranslationFile = new()
-        //     //     {
-        //     //         Name = input.Name,
-        //     //        // File = input.File
-        //     //     },
-        //     //     XliffOptions = new()
-        //     //     {
-        //     //         Autopopulation = input.Autopopulation ? "ENABLED" : "DISABLED",
-        //     //         SegmentStatusApproving = input.SegmentStatusApproving
-        //     //     }
-        //     // };
-        //     var request = new XTMRequest(new()
-        //     {
-        //         Url = creds.Get("url") + url,
-        //         Method = Method.Post
-        //     }, token);
-        //
-        //     // request.AddParameter(JsonConvert.SerializeObject(obj), ParameterType.RequestBody);
-        //     params2.ToList().ForEach(x => request.AddParameter(x.Key, x.Value, encode: false));
-        //     request.AddParameter(new BodyParameter("translationFile", JsonConvert.SerializeObject(new TranslationFile()
-        //     {
-        //         Name = input.Name,
-        //         File = input.File
-        //     }), ContentType.Json));
-        //
-        //     request.AddParameter(new BodyParameter("xliffOptions", JsonConvert.SerializeObject(new XliffOptions()
-        //     {
-        //         Autopopulation = input.Autopopulation ? "ENABLED" : "DISABLED",
-        //         SegmentStatusApproving = input.SegmentStatusApproving,
-        //     }), ContentType.Json));
-        //
-        //     request.AlwaysMultipartFormData = true;
-        //
-        //     return await _client.ExecuteXtm<CreateProjectResponse>(request);
-        // }
+
+        [Action("Upload source file", Description = "Upload source files for a project")]
+        public async Task<CreateProjectResponse> UploadSourceFile(
+            IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
+            [ActionParameter] [Display("Project id")]
+             int projectId,
+            [ActionParameter] UploadSourceFileRequest input)
+        {
+            var url = $"{ApiEndpoints.Projects}/{projectId}/files/sources/upload";
+            var creds = authenticationCredentialsProviders.ToArray();
+
+            var token = await _client.GetToken(creds);
+
+            var request = new XTMRequest(new()
+            {
+                Url = creds.Get("url") + url,
+                Method = Method.Post
+            }, token);
+
+            request.AddParameter("files[0].name", input.Name);
+            request.AddFile("files[0].file", input.File, input.Name, ContentType.Plain);            
+            request.AlwaysMultipartFormData = true;
+
+
+            return await _client.ExecuteXtm<CreateProjectResponse>(request);
+        }
+
+        [Action("Upload translation file", Description = "Upload translation file to project")]
+        public async Task<CreateProjectResponse> UploadTranslationFile(
+            IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
+            [ActionParameter] [Display("Project id")]
+             int projectId,
+            [ActionParameter] UploadTranslationFileInput input)
+        {
+            var url = $"{ApiEndpoints.Projects}/{projectId}/files/translations/upload";
+            var creds = authenticationCredentialsProviders.ToArray();
+
+            var token = await _client.GetToken(creds);
+
+            var params2 = new Dictionary<string, string>()
+             {
+                 { "fileType", input.FileType },
+                 { "jobId", input.JobId.ToString() },
+                 { "workflowStepName", input.WorkflowStepName },
+                 // {"translationFile", JsonConvert.SerializeObject(new TranslationFile()
+                 // {
+                 //     Name = input.Name,
+                 //     File = input.File
+                 // })},
+                 // {"xliffOptions", JsonConvert.SerializeObject(new XliffOptions()
+                 // {
+                 //     Autopopulation = input.Autopopulation ? "ENABLED" : "DISABLED",
+                 //     SegmentStatusApproving = input.SegmentStatusApproving,
+                 // }) },
+             };
+            // var obj = new UploadTranslationFileRequest()
+            // {
+            //     FileType = input.FileType,
+            //     JobId = input.JobId,
+            //     WorkflowStepName = input.WorkflowStepName,
+            //     TranslationFile = new()
+            //     {
+            //         Name = input.Name,
+            //        // File = input.File
+            //     },
+            //     XliffOptions = new()
+            //     {
+            //         Autopopulation = input.Autopopulation ? "ENABLED" : "DISABLED",
+            //         SegmentStatusApproving = input.SegmentStatusApproving
+            //     }
+            // };
+            var request = new XTMRequest(new()
+            {
+                Url = creds.Get("url") + url,
+                Method = Method.Post
+            }, token);
+
+            // request.AddParameter(JsonConvert.SerializeObject(obj), ParameterType.RequestBody);
+            params2.ToList().ForEach(x => request.AddParameter(x.Key, x.Value, encode: false));
+            request.AddParameter(new BodyParameter("translationFile", JsonConvert.SerializeObject(new TranslationFile()
+            {
+                Name = input.Name,
+                File = input.File
+            }), ContentType.Json));
+
+            request.AddParameter(new BodyParameter("xliffOptions", JsonConvert.SerializeObject(new XliffOptions()
+            {
+                Autopopulation = input.Autopopulation ? "ENABLED" : "DISABLED",
+                SegmentStatusApproving = input.SegmentStatusApproving,
+            }), ContentType.Json));
+
+            request.AlwaysMultipartFormData = true;
+
+            return await _client.ExecuteXtm<CreateProjectResponse>(request);
+        }
 
         #endregion
     }
