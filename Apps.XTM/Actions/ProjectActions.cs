@@ -196,9 +196,14 @@ namespace Apps.XTM.Actions
         public async Task<CreateProjectResponse> UploadSourceFile(
             IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
             [ActionParameter] [Display("Project id")]
-             int projectId,
+            int projectId,
             [ActionParameter] UploadSourceFileRequest input)
         {
+            var translationType = input.TranslationType;
+            if (!ParametersValues.TranslationType.Contains(translationType))
+                throw new(
+                    $"Wrong translation type value, it should be one of {string.Join(',', ParametersValues.TranslationType)}");
+            
             var url = $"{ApiEndpoints.Projects}/{projectId}/files/sources/upload";
             var creds = authenticationCredentialsProviders.ToArray();
 
@@ -210,10 +215,37 @@ namespace Apps.XTM.Actions
                 Method = Method.Post
             }, token);
 
-            request.AddParameter("files[0].name", input.Name);
-            request.AddFile("files[0].file", input.File, input.Name, ContentType.Plain);            
-            request.AlwaysMultipartFormData = true;
+            var parameters = new Dictionary<string, string>()
+            {
+                { "files[0].name", input.Name },
+                { "files[0].workflowId", input.WorkflowId?.ToString() },
+                { "files[0].translationType", translationType },
+            };
 
+            if (input.Metadata != null)
+            {
+                parameters.Add("files[0].metadata", input.Metadata);
+                parameters.Add("files[0].metadataType", input.MetadataType);
+            }
+
+            if (input.TagIds is not null)
+            {
+                var tags = input.TagIds.ToArray();
+                for (var i = 0; i < tags.Length; i++)
+                    parameters.Add($"files[0].tagIds[{i}]", tags[i].ToString());
+            }
+
+            if (input.TargetLanguages is not null)
+            {
+                var langs = input.TargetLanguages.ToArray();
+                for (var i = 0; i < langs.Length; i++)
+                    parameters.Add($"files[0].targetLanguages[{i}]", langs[i]);
+            }
+
+            parameters.ToList().ForEach(x
+                => request.AddParameter(x.Key, x.Value));
+            request.AddFile("files[0].file", input.File, input.Name);
+            request.AlwaysMultipartFormData = true;
 
             return await _client.ExecuteXtm<CreateProjectResponse>(request);
         }
@@ -222,66 +254,41 @@ namespace Apps.XTM.Actions
         public async Task<CreateProjectResponse> UploadTranslationFile(
             IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
             [ActionParameter] [Display("Project id")]
-             int projectId,
+            int projectId,
             [ActionParameter] UploadTranslationFileInput input)
         {
+            var segmentStatus = input.SegmentStatusApproving.ToUpper();
+
+            if (!ParametersValues.SegmentStatusApproving.Contains(segmentStatus))
+                throw new(
+                    $"Wrong segment status approving value, it should be one of {string.Join(',', ParametersValues.SegmentStatusApproving)}");
+
             var url = $"{ApiEndpoints.Projects}/{projectId}/files/translations/upload";
             var creds = authenticationCredentialsProviders.ToArray();
 
             var token = await _client.GetToken(creds);
 
-            var params2 = new Dictionary<string, string>()
-             {
-                 { "fileType", input.FileType },
-                 { "jobId", input.JobId.ToString() },
-                 { "workflowStepName", input.WorkflowStepName },
-                 // {"translationFile", JsonConvert.SerializeObject(new TranslationFile()
-                 // {
-                 //     Name = input.Name,
-                 //     File = input.File
-                 // })},
-                 // {"xliffOptions", JsonConvert.SerializeObject(new XliffOptions()
-                 // {
-                 //     Autopopulation = input.Autopopulation ? "ENABLED" : "DISABLED",
-                 //     SegmentStatusApproving = input.SegmentStatusApproving,
-                 // }) },
-             };
-            // var obj = new UploadTranslationFileRequest()
-            // {
-            //     FileType = input.FileType,
-            //     JobId = input.JobId,
-            //     WorkflowStepName = input.WorkflowStepName,
-            //     TranslationFile = new()
-            //     {
-            //         Name = input.Name,
-            //        // File = input.File
-            //     },
-            //     XliffOptions = new()
-            //     {
-            //         Autopopulation = input.Autopopulation ? "ENABLED" : "DISABLED",
-            //         SegmentStatusApproving = input.SegmentStatusApproving
-            //     }
-            // };
+            var parameters = new Dictionary<string, string>()
+            {
+                { "fileType", input.FileType },
+                { "jobId", input.JobId.ToString() },
+                { "translationFile.name", input.Name },
+                { "xliffOptions.autopopulation", input.Autopopulation ? "ENABLED" : "DISABLED" },
+                { "xliffOptions.segmentStatusApproving", segmentStatus },
+            };
+
+            if (!input.Autopopulation)
+                parameters.Add("workflowStepName", input.WorkflowStepName);
+
             var request = new XTMRequest(new()
             {
                 Url = creds.Get("url") + url,
                 Method = Method.Post
             }, token);
 
-            // request.AddParameter(JsonConvert.SerializeObject(obj), ParameterType.RequestBody);
-            params2.ToList().ForEach(x => request.AddParameter(x.Key, x.Value, encode: false));
-            request.AddParameter(new BodyParameter("translationFile", JsonConvert.SerializeObject(new TranslationFile()
-            {
-                Name = input.Name,
-                File = input.File
-            }), ContentType.Json));
-
-            request.AddParameter(new BodyParameter("xliffOptions", JsonConvert.SerializeObject(new XliffOptions()
-            {
-                Autopopulation = input.Autopopulation ? "ENABLED" : "DISABLED",
-                SegmentStatusApproving = input.SegmentStatusApproving,
-            }), ContentType.Json));
-
+            parameters.ToList().ForEach(x
+                => request.AddParameter(x.Key, x.Value, encode: false));
+            request.AddFile("translationFile.file", input.File, input.Name);
             request.AlwaysMultipartFormData = true;
 
             return await _client.ExecuteXtm<CreateProjectResponse>(request);
