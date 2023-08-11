@@ -1,7 +1,6 @@
 ﻿using Apps.XTM.Constants;
 using Apps.XTM.Models.Request.TranslationMemory;
 using Apps.XTM.Models.Response;
-using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.Models.Response.TranslationMemory;
 using Apps.XTM.RestUtilities;
 using Blackbird.Applications.Sdk.Common;

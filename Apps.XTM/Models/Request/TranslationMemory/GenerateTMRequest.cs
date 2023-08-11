@@ -1,11 +1,22 @@
-﻿using Blackbird.Applications.Sdk.Common;
+﻿using Apps.XTM.DataSourceHandlers;
+using Apps.XTM.DataSourceHandlers.EnumHandlers;
+using Apps.XTM.Models.Request.Customers;
+using Blackbird.Applications.Sdk.Common;
+using Blackbird.Applications.Sdk.Common.Dynamic;
 
 namespace Apps.XTM.Models.Request.TranslationMemory;
 
-public class GenerateTMRequest
+public class GenerateTMRequest : CustomerRequest
 {
-    [Display("Customer id")] public int CustomerId { get; set; }
-    [Display("Project id")] public int? ProjectId { get; set; }
-    [Display("Source language")] public string? SourceLanguage { get; set; }
-    [Display("Target language")] public string? TargetLanguage { get; set; }
+    [Display("Project")] 
+    [DataSource(typeof(ProjectDataHandler))]
+    public string? ProjectId { get; set; }
+    
+    [Display("Source language")]
+    [DataSource(typeof(LanguageDataHandler))]
+    public string? SourceLanguage { get; set; }
+    
+    [Display("Target language")]
+    [DataSource(typeof(LanguageDataHandler))]
+    public string? TargetLanguage { get; set; }
 }

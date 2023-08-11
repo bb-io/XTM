@@ -8,9 +8,7 @@ using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Apps.XTM.RestUtilities;
-using Newtonsoft.Json;
 using RestSharp;
-using System.Net.Http.Headers;
 
 namespace Apps.XTM.Actions
 {
@@ -34,13 +32,24 @@ namespace Apps.XTM.Actions
 
         #region Project actions
 
+        [Action("List projects", Description = "List all projects")]
+        public async Task<ListProjectsResponse> ListProjects(
+            IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders)
+        {
+            var response = await _client.ExecuteXtm<List<SimpleProject>>(ApiEndpoints.Projects,
+                Method.Get,
+                bodyObj: null,
+                authenticationCredentialsProviders.ToArray());
+
+            return new(response);
+        }
+        
         [Action("Get project", Description = "Get project by id")]
         public Task<FullProject> GetProject(
             IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-            [ActionParameter] [Display("Project id")]
-            long projectId)
+            [ActionParameter] ProjectRequest project)
         {
-            return _client.ExecuteXtm<FullProject>($"{ApiEndpoints.Projects}/{projectId}",
+            return _client.ExecuteXtm<FullProject>($"{ApiEndpoints.Projects}/{project.ProjectId}",
                 Method.Get,
                 bodyObj: null,
                 authenticationCredentialsProviders.ToArray());
@@ -76,7 +85,7 @@ namespace Apps.XTM.Actions
             var parameters = new Dictionary<string, string>()
             {
                 { "name", input.Name },
-                { "originId", input.OriginId.ToString() },
+                { "originId", input.OriginId },
             };
 
             return _client.ExecuteXtm<CreateProjectResponse>($"{ApiEndpoints.Projects}/clone",
@@ -88,11 +97,10 @@ namespace Apps.XTM.Actions
         [Action("Update project", Description = "Update specific project")]
         public Task<ManageEntityResponse> UpdateProject(
             IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-            [ActionParameter] [Display("Project id")]
-            long projectId,
+            [ActionParameter] ProjectRequest project,
             [ActionParameter] UpdateProjectRequest input)
         {
-            return _client.ExecuteXtm<ManageEntityResponse>($"{ApiEndpoints.Projects}/{projectId}",
+            return _client.ExecuteXtm<ManageEntityResponse>($"{ApiEndpoints.Projects}/{project.ProjectId}",
                 Method.Put,
                 bodyObj: input,
                 authenticationCredentialsProviders.ToArray());
@@ -101,10 +109,9 @@ namespace Apps.XTM.Actions
         [Action("Delete project", Description = "Delete specific project")]
         public Task DeleteProject(
             IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-            [ActionParameter] [Display("Project id")]
-            long projectId)
+            [ActionParameter] ProjectRequest project)
         {
-            return _client.ExecuteXtm($"{ApiEndpoints.Projects}/{projectId}",
+            return _client.ExecuteXtm($"{ApiEndpoints.Projects}/{project.ProjectId}",
                 Method.Delete,
                 bodyObj: null,
                 authenticationCredentialsProviders.ToArray());
@@ -113,10 +120,9 @@ namespace Apps.XTM.Actions
         [Action("Get project estimates", Description = "Get specific project estimates")]
         public Task<ProjectEstimates> GetProjectEstimates(
             IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-            [ActionParameter] [Display("Project id")]
-            long projectId)
+            [ActionParameter] ProjectRequest project)
         {
-            return _client.ExecuteXtm<ProjectEstimates>($"{ApiEndpoints.Projects}/{projectId}/proposal",
+            return _client.ExecuteXtm<ProjectEstimates>($"{ApiEndpoints.Projects}/{project.ProjectId}/proposal",
                 Method.Get,
                 bodyObj: null,
                 authenticationCredentialsProviders.ToArray());
@@ -130,11 +136,10 @@ namespace Apps.XTM.Actions
             Description = "Download the source files for project or specific jobs as ZIP")]
         public async Task<FileResponse> DownloadSourceFilesAsZip(
             IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-            [ActionParameter] [Display("Project id")]
-            int projectId,
+            [ActionParameter] ProjectRequest project,
             [ActionParameter] [Display("Job ids")] int[]? jobIds)
         {
-            var url = $"{ApiEndpoints.Projects}/{projectId}/files/sources/download";
+            var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/sources/download";
 
             if (jobIds != null)
                 url += $"?{string.Join("&", jobIds.Select(x => $"jobIds={x}"))}";
@@ -150,11 +155,10 @@ namespace Apps.XTM.Actions
         [Action("Download source files", Description = "Download the source files for project or specific jobs")]
         public async Task<SourceFilesResponse> DownloadSourceFiles(
             IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-            [ActionParameter] [Display("Project id")]
-            int projectId,
+            [ActionParameter] ProjectRequest project,
             [ActionParameter] [Display("Job ids")] int[]? jobIds)
         {
-            var zipFile = await DownloadSourceFilesAsZip(authenticationCredentialsProviders, projectId, jobIds);
+            var zipFile = await DownloadSourceFilesAsZip(authenticationCredentialsProviders, project, jobIds);
 
             var files = new List<FileData>();
 
@@ -178,11 +182,10 @@ namespace Apps.XTM.Actions
         [Action("Download project file", Description = "Download a single, generated project file based on its ID")]
         public async Task<FileResponse> DownloadProjectFile(
             IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-            [ActionParameter] [Display("Project id")]
-            int projectId,
+            [ActionParameter] ProjectRequest project,
             [ActionParameter] [Display("File id")] int fileId)
         {
-            var url = $"{ApiEndpoints.Projects}/{projectId}/files/{fileId}/download?fileScope=JOB";
+            var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/{fileId}/download?fileScope=JOB";
 
             var response = await _client.ExecuteXtm(url,
                 Method.Get,
@@ -195,8 +198,7 @@ namespace Apps.XTM.Actions
         [Action("Upload source file", Description = "Upload source files for a project")]
         public async Task<CreateProjectResponse> UploadSourceFile(
             IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-            [ActionParameter] [Display("Project id")]
-            int projectId,
+            [ActionParameter] ProjectRequest project,
             [ActionParameter] UploadSourceFileRequest input)
         {
             var translationType = input.TranslationType;
@@ -204,7 +206,7 @@ namespace Apps.XTM.Actions
                 throw new(
                     $"Wrong translation type value, it should be one of {string.Join(',', ParametersValues.TranslationType)}");
             
-            var url = $"{ApiEndpoints.Projects}/{projectId}/files/sources/upload";
+            var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/sources/upload";
             var creds = authenticationCredentialsProviders.ToArray();
 
             var token = await _client.GetToken(creds);
@@ -253,8 +255,7 @@ namespace Apps.XTM.Actions
         [Action("Upload translation file", Description = "Upload translation file to project")]
         public async Task<CreateProjectResponse> UploadTranslationFile(
             IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-            [ActionParameter] [Display("Project id")]
-            int projectId,
+            [ActionParameter] ProjectRequest project,
             [ActionParameter] UploadTranslationFileInput input)
         {
             var segmentStatus = input.SegmentStatusApproving.ToUpper();
@@ -263,7 +264,7 @@ namespace Apps.XTM.Actions
                 throw new(
                     $"Wrong segment status approving value, it should be one of {string.Join(',', ParametersValues.SegmentStatusApproving)}");
 
-            var url = $"{ApiEndpoints.Projects}/{projectId}/files/translations/upload";
+            var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/translations/upload";
             var creds = authenticationCredentialsProviders.ToArray();
 
             var token = await _client.GetToken(creds);

@@ -4,11 +4,9 @@ using Blackbird.Applications.Sdk.Common.Dynamic;
 
 namespace Apps.XTM.Models.Request.Projects;
 
-public class CloneProjectRequest
+public class ProjectRequest
 {
-    public string? Name { get; set; }
-    
-    [Display("Origin")] 
+    [Display("Project")]
     [DataSource(typeof(ProjectDataHandler))]
-    public string OriginId { get; set; }
+    public string ProjectId { get; set; }
 }

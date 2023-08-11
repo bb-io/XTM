@@ -1,4 +1,7 @@
-﻿using Blackbird.Applications.Sdk.Common;
+﻿using Apps.XTM.DataSourceHandlers;
+using Apps.XTM.DataSourceHandlers.EnumHandlers;
+using Blackbird.Applications.Sdk.Common;
+using Blackbird.Applications.Sdk.Common.Dynamic;
 using Newtonsoft.Json;
 
 namespace Apps.XTM.Models.Request.Projects;
@@ -10,9 +13,17 @@ public class UploadSourceFileRequest
     [JsonProperty("name")]
     public string Name { get; set; }
     [Display("Target languages")] public IEnumerable<string>? TargetLanguages { get; set; }
-    [Display("Workflow id")] public int? WorkflowId { get; set; }
+    
+    [Display("Workflow id")] 
+    [DataSource(typeof(WorkflowDataHandler))]
+    public string? WorkflowId { get; set; }
+    
     [Display("Tag ids")] public IEnumerable<int>? TagIds { get; set; }
-    [Display("Translation type")] public string? TranslationType { get; set; }
+    
+    [Display("Translation type")]
+    [DataSource(typeof(TranslationTypeDataHandler))]
+    public string? TranslationType { get; set; }
+    
     public string? Metadata { get; set; }
     [Display("Metadata type")] public string? MetadataType { get; set; }
 }

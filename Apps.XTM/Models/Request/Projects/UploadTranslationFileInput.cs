@@ -1,4 +1,6 @@
-﻿using Blackbird.Applications.Sdk.Common;
+﻿using Apps.XTM.DataSourceHandlers.EnumHandlers;
+using Blackbird.Applications.Sdk.Common;
+using Blackbird.Applications.Sdk.Common.Dynamic;
 
 namespace Apps.XTM.Models.Request.Projects;
 
@@ -10,5 +12,8 @@ public class UploadTranslationFileInput
     public byte[] File { get; set; }
     public string Name { get; set; }
     [Display("Enable autopopulation?")] public bool Autopopulation { get; set; }
-    [Display("Segment status approving")] public string SegmentStatusApproving { get; set; }
+    
+    [Display("Segment status approving")] 
+    [DataSource(typeof(SegmentStatusApprovingDataHandler))]
+    public string SegmentStatusApproving { get; set; }
 }
