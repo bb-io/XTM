@@ -3,15 +3,16 @@ using Apps.XTM.DataSourceHandlers.EnumHandlers;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Newtonsoft.Json;
+using File = Blackbird.Applications.Sdk.Common.Files.File;
 
 namespace Apps.XTM.Models.Request.Projects;
 
 public class UploadSourceFileRequest
 {
     [JsonProperty("file")]
-    public byte[] File { get; set; }
+    public File File { get; set; }
     [JsonProperty("name")]
-    public string Name { get; set; }
+    public string? Name { get; set; }
     [Display("Target languages")] public IEnumerable<string>? TargetLanguages { get; set; }
     
     [Display("Workflow")] 

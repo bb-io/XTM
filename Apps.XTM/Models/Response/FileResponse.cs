@@ -1,3 +1,5 @@
-﻿namespace Apps.XTM.Models.Response;
+﻿using File = Blackbird.Applications.Sdk.Common.Files.File;
 
-public record FileResponse(byte[] File);
+namespace Apps.XTM.Models.Response;
+
+public record FileResponse(File File);

@@ -1,4 +1,5 @@
-﻿using Apps.XTM.Constants;
+﻿using System.Net.Mime;
+using Apps.XTM.Constants;
 using Apps.XTM.Models.Request.TranslationMemory;
 using Apps.XTM.Models.Response;
 using Apps.XTM.Models.Response.TranslationMemory;
@@ -51,7 +52,11 @@ public class TranslationMemoryActions
             bodyObj: null,
             authenticationCredentialsProviders.ToArray());
 
-        return new(response.RawBytes);
+        return new(new(response.RawBytes)
+        {
+            Name = $"TMFile-{fileId}",
+            ContentType = response.ContentType ?? MediaTypeNames.Application.Octet
+        });
     }
 
     #endregion

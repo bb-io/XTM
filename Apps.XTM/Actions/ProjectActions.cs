@@ -1,4 +1,5 @@
 ﻿using System.IO.Compression;
+using System.Net.Mime;
 using Apps.XTM.Constants;
 using Apps.XTM.Extensions;
 using Apps.XTM.Models.Request.Projects;
@@ -9,6 +10,7 @@ using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Apps.XTM.RestUtilities;
 using RestSharp;
+using File = Blackbird.Applications.Sdk.Common.Files.File;
 
 namespace Apps.XTM.Actions
 {
@@ -64,8 +66,8 @@ namespace Apps.XTM.Actions
             {
                 { "name", input.Name },
                 { "description", input.Description },
-                { "customerId", input.CustomerId.ToString() },
-                { "workflowId", input.WorkflowId.ToString() },
+                { "customerId", input.CustomerId },
+                { "workflowId", input.WorkflowId },
                 { "sourceLanguage", input.SourceLanguge },
                 { "targetLanguages", input.TargetLanguage },
             };
@@ -167,7 +169,11 @@ namespace Apps.XTM.Actions
                 bodyObj: null,
                 authenticationCredentialsProviders.ToArray());
 
-            return new(response.RawBytes);
+            return new(new(response.RawBytes)
+            {
+                Name = $"Project-{project.ProjectId}SourceFiles.zip",
+                ContentType = response.ContentType ?? MediaTypeNames.Application.Octet
+            });
         }
 
         [Action("Download source files", Description = "Download the source files for project or specific jobs")]
@@ -178,9 +184,9 @@ namespace Apps.XTM.Actions
         {
             var zipFile = await DownloadSourceFilesAsZip(authenticationCredentialsProviders, project, jobIds);
 
-            var files = new List<FileData>();
+            var files = new List<File>();
 
-            using var zipStream = new MemoryStream(zipFile.File);
+            using var zipStream = new MemoryStream(zipFile.File.Bytes);
             using var zipArchive = new ZipArchive(zipStream);
             foreach (var entry in zipArchive.Entries)
             {
@@ -189,7 +195,11 @@ namespace Apps.XTM.Actions
                 entryStream.CopyTo(memoryStream);
                 var fileBytes = memoryStream.ToArray();
 
-                var fileData = new FileData(entry.Name, fileBytes);
+                var fileData = new File(fileBytes)
+                {
+                    Name = entry.Name,
+                    ContentType = MediaTypeNames.Application.Octet
+                };
 
                 files.Add(fileData);
             }
@@ -210,7 +220,11 @@ namespace Apps.XTM.Actions
                 bodyObj: null,
                 authenticationCredentialsProviders.ToArray());
 
-            return new(response.RawBytes);
+            return new(new(response.RawBytes)
+            {
+                Name = $"Project-{project.ProjectId} File-{fileId}",
+                ContentType = response.ContentType ?? MediaTypeNames.Application.Octet
+            });
         }
 
         [Action("Upload source file", Description = "Upload source files for a project")]
@@ -237,7 +251,7 @@ namespace Apps.XTM.Actions
 
             var parameters = new Dictionary<string, string>()
             {
-                { "files[0].name", input.Name },
+                { "files[0].name", input.Name ?? input.File.Name },
                 { "files[0].workflowId", input.WorkflowId.ToString() },
                 { "files[0].translationType", translationType },
             };
@@ -264,7 +278,7 @@ namespace Apps.XTM.Actions
 
             parameters.ToList().ForEach(x
                 => request.AddParameter(x.Key, x.Value));
-            request.AddFile("files[0].file", input.File, input.Name);
+            request.AddFile("files[0].file", input.File.Bytes, input.Name ?? input.File.Name);
             request.AlwaysMultipartFormData = true;
 
             return await _client.ExecuteXtm<CreateProjectResponse>(request);
@@ -291,7 +305,7 @@ namespace Apps.XTM.Actions
             {
                 { "fileType", input.FileType },
                 { "jobId", input.JobId.ToString() },
-                { "translationFile.name", input.Name },
+                { "translationFile.name", input.Name ?? input.File.Name },
                 { "xliffOptions.autopopulation", input.Autopopulation ? "ENABLED" : "DISABLED" },
                 { "xliffOptions.segmentStatusApproving", segmentStatus },
             };
@@ -307,7 +321,7 @@ namespace Apps.XTM.Actions
 
             parameters.ToList().ForEach(x
                 => request.AddParameter(x.Key, x.Value, encode: false));
-            request.AddFile("translationFile.file", input.File, input.Name);
+            request.AddFile("translationFile.file", input.File.Bytes, input.Name ?? input.File.Name);
             request.AlwaysMultipartFormData = true;
 
             return await _client.ExecuteXtm<CreateProjectResponse>(request);

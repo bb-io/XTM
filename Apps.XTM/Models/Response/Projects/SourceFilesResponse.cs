@@ -1,3 +1,5 @@
-﻿namespace Apps.XTM.Models.Response.Projects;
+﻿using File = Blackbird.Applications.Sdk.Common.Files.File;
 
-public record SourceFilesResponse(List<FileData> Files);
+namespace Apps.XTM.Models.Response.Projects;
+
+public record SourceFilesResponse(List<File> Files);
