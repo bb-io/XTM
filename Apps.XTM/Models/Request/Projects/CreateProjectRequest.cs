@@ -19,6 +19,9 @@ namespace Apps.XTM.Models.Request.Projects
         [DataSource(typeof(LanguageDataHandler))]
         public string SourceLanguge { get; set; }
 
-        [Display("Target languages")] public IEnumerable<string> TargetLanguges { get; set; }
+        // Todo, update back to multiple languages once array inputs are better
+        [Display("Target language")]
+        [DataSource(typeof(LanguageDataHandler))]
+        public string TargetLanguage { get; set; }
     }
 }

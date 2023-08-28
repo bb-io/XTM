@@ -67,9 +67,27 @@ namespace Apps.XTM.Actions
                 { "customerId", input.CustomerId.ToString() },
                 { "workflowId", input.WorkflowId.ToString() },
                 { "sourceLanguage", input.SourceLanguge },
+                { "targetLanguages", input.TargetLanguage },
             };
 
-            input.TargetLanguges.ToList().ForEach(x => parameters.Add("targetLanguages", x));
+            return _client.ExecuteXtm<CreateProjectResponse>(ApiEndpoints.Projects,
+                Method.Post,
+                parameters,
+                authenticationCredentialsProviders.ToArray());
+        }
+
+        [Action("Create new project from template", Description = "Create a new project using an existing project template")]
+        public Task<CreateProjectResponse> CreateProjectFromTemplate(
+            IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
+            [ActionParameter] CreateProjectFromTemplateRequest input)
+        {
+            var parameters = new Dictionary<string, string>()
+            {
+                { "name", input.Name },
+                { "description", input.Description },
+                { "customerId", input.CustomerId.ToString() },
+                { "templateId", input.TemplateId }
+            };
 
             return _client.ExecuteXtm<CreateProjectResponse>(ApiEndpoints.Projects,
                 Method.Post,
