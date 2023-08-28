@@ -238,7 +238,7 @@ namespace Apps.XTM.Actions
             var parameters = new Dictionary<string, string>()
             {
                 { "files[0].name", input.Name },
-                { "files[0].workflowId", input.WorkflowId?.ToString() },
+                { "files[0].workflowId", input.WorkflowId.ToString() },
                 { "files[0].translationType", translationType },
             };
 
