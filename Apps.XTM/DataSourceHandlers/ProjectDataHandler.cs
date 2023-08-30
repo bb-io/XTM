@@ -1,26 +1,26 @@
-﻿using Apps.XTM.Actions;
-using Blackbird.Applications.Sdk.Common;
-using Blackbird.Applications.Sdk.Common.Authentication;
+﻿using Apps.XTM.Constants;
+using Apps.XTM.Invocables;
+using Apps.XTM.Models.Response.Projects;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using RestSharp;
 
 namespace Apps.XTM.DataSourceHandlers;
 
-public class ProjectDataHandler : BaseInvocable, IAsyncDataSourceHandler
+public class ProjectDataHandler : XtmInvocable, IAsyncDataSourceHandler
 {
-    private IEnumerable<AuthenticationCredentialsProvider> Creds =>
-        InvocationContext.AuthenticationCredentialsProviders;
-
     public ProjectDataHandler(InvocationContext invocationContext) : base(invocationContext)
     {
     }
 
     public async Task<Dictionary<string, string>> GetDataAsync(DataSourceContext context, CancellationToken cancellationToken)
     {
-        var actions = new ProjectActions();
-        var customers = await actions.ListProjects(Creds);
+        var response = await Client.ExecuteXtmWithJson<List<SimpleProject>>(ApiEndpoints.Projects,
+            Method.Get,
+            null,
+            Creds);
 
-        return customers.Projects
+        return response
             .Where(x => context.SearchString == null || x.Name.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase))
             .Take(20)
             .ToDictionary(x => x.Id, x => x.Name);

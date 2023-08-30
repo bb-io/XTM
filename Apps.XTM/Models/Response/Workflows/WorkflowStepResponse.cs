@@ -1,8 +1,11 @@
-﻿namespace Apps.XTM.Models.Response.Workflows;
+﻿using Blackbird.Applications.Sdk.Common;
+
+namespace Apps.XTM.Models.Response.Workflows;
 
 public class WorkflowStepResponse
 {
-    public int Id { get; set; }
+    [Display("Workflow step ID")]
+    public string Id { get; set; }
+    
     public string Name { get; set; }
-    public int OrderNumber { get; set; }
 }

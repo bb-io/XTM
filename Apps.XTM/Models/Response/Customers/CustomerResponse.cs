@@ -4,7 +4,10 @@ namespace Apps.XTM.Models.Response.Customers;
 
 public class CustomerResponse
 {
-    public long Id { get; set; }
+    [Display("Customer ID")]
+    public string Id { get; set; }
+    
     public string Name { get; set; }
-    [Display("Project manager id")] public int ProjectManagerId { get; set; }
+    
+    [Display("Project manager ID")] public string ProjectManagerId { get; set; }
 }

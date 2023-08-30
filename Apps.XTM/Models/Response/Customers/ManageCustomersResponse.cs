@@ -1,7 +1,10 @@
-﻿namespace Apps.XTM.Models.Response.Customers;
+﻿using Blackbird.Applications.Sdk.Common;
+
+namespace Apps.XTM.Models.Response.Customers;
 
 public class ManageCustomersResponse
 {
-    public long Id { get; set; }
+    [Display("Customer ID")]
+    public string Id { get; set; }
     public string Name { get; set; }
 }

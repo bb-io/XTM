@@ -1,56 +1,41 @@
 ﻿using System.Net.Mime;
 using Apps.XTM.Constants;
+using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request.TranslationMemory;
 using Apps.XTM.Models.Response;
 using Apps.XTM.Models.Response.TranslationMemory;
-using Apps.XTM.RestUtilities;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
-using Blackbird.Applications.Sdk.Common.Authentication;
+using Blackbird.Applications.Sdk.Common.Invocation;
 using RestSharp;
 
 namespace Apps.XTM.Actions;
 
 [ActionList]
-public class TranslationMemoryActions
+public class TranslationMemoryActions : XtmInvocable
 {
-    #region Fields
-
-    private static XTMClient _client;
-
-    #endregion
-
-    #region Constructors
-
-    static TranslationMemoryActions()
+    public TranslationMemoryActions(InvocationContext invocationContext) : base(invocationContext)
     {
-        _client = new();
     }
-
-    #endregion
 
     #region Actions
 
     [Action("Generate TM file", Description = "Generate translation memory file")]
-    public Task<TranslationMemoryResponse> GenerateTMFile(
-        IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-        [ActionParameter] GenerateTMRequest input)
+    public Task<TranslationMemoryResponse> GenerateTMFile([ActionParameter] GenerateTMRequest input)
     {
-        return _client.ExecuteXtm<TranslationMemoryResponse>($"{ApiEndpoints.TMFiles}/generate",
+        return Client.ExecuteXtmWithJson<TranslationMemoryResponse>($"{ApiEndpoints.TMFiles}/generate",
             Method.Post,
-            bodyObj: input,
-            authenticationCredentialsProviders.ToArray());
+            input,
+            Creds);
     }
 
     [Action("Download TM file", Description = "Download generated translation memory file")]
-    public async Task<FileResponse> DownloadTMFile(
-        IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
-        [ActionParameter] [Display("File id")] int fileId)
+    public async Task<FileResponse> DownloadTMFile([ActionParameter] [Display("File ID")] string fileId)
     {
-        var response = await _client.ExecuteXtm($"{ApiEndpoints.TMFiles}/{fileId}/download",
+        var response = await Client.ExecuteXtmWithJson($"{ApiEndpoints.TMFiles}/{fileId}/download",
             Method.Get,
-            bodyObj: null,
-            authenticationCredentialsProviders.ToArray());
+            null,
+            Creds);
 
         return new(new(response.RawBytes)
         {

@@ -1,39 +1,39 @@
 ﻿using Apps.XTM.Constants;
+using Apps.XTM.Invocables;
 using Apps.XTM.Models.Response.Workflows;
-using Apps.XTM.RestUtilities;
 using Blackbird.Applications.Sdk.Common.Actions;
-using Blackbird.Applications.Sdk.Common.Authentication;
+using Blackbird.Applications.Sdk.Common.Invocation;
 using RestSharp;
 
 namespace Apps.XTM.Actions;
 
-public class WorkflowActions
+public class WorkflowActions : XtmInvocable
 {
-    #region Fields
-
-    private static XTMClient _client;
-
-    #endregion
-
-    #region Constructors
-
-    static WorkflowActions()
+    public WorkflowActions(InvocationContext invocationContext) : base(invocationContext)
     {
-        _client = new();
     }
-
-    #endregion
 
     #region Actions
 
     [Action("List workflows", Description = "List all workflows")]
-    public async Task<AllWorkflowsResponse> ListWorkflows(
-        IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders)
+    public async Task<AllWorkflowsResponse> ListWorkflows()
     {
-        var response = await _client.ExecuteXtm<List<WorkflowResponse>>($"{ApiEndpoints.Workflows}",
+        var response = await Client.ExecuteXtmWithJson<List<WorkflowResponse>>($"{ApiEndpoints.Workflows}",
             Method.Get,
-            bodyObj: null,
-            authenticationCredentialsProviders.ToArray());
+            null,
+            Creds);
+
+        return new(response);
+    }
+    
+    [Action("List workflow steps", Description = "List all workflow steps")]
+    public async Task<AllWorkflowStepsResponse> ListWorkflowSteps()
+    {
+        var endpoint = $"{ApiEndpoints.Workflows}{ApiEndpoints.Steps}";
+        var response = await Client.ExecuteXtmWithJson<List<WorkflowStepResponse>>(endpoint,
+            Method.Get,
+            null,
+            Creds);
 
         return new(response);
     }

@@ -4,7 +4,11 @@ public static class ApiEndpoints
 {
     public const string Token = "/auth/token";
     public const string Projects = "/projects";
+    public const string Templates = "/templates";
+    public const string System = "/system";
     public const string Customers = "/customers";
     public const string Workflows = "/workflows";
+    public const string Steps = "/steps";
+    public const string Users = "/users";
     public const string TMFiles = "/translation-memory/files";
 }

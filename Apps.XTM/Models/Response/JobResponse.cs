@@ -1,11 +1,24 @@
-﻿namespace Apps.XTM.Models.Response;
+﻿using Blackbird.Applications.Sdk.Common;
+
+namespace Apps.XTM.Models.Response;
 
 public class JobResponse
 {
-    public int JobId { get; set; }
+    [Display("Job ID")]
+    public string JobId { get; set; }
+    
+    [Display("File name")]
     public string FileName { get; set; }
-    public int SourceFileId { get; set; }
+    
+    [Display("Source file ID")]
+    public string SourceFileId { get; set; }
+    
+    [Display("Source language")]
     public string SourceLanguage { get; set; }
+    
+    [Display("Target language")]
     public string TargetLanguage { get; set; }
+    
+    [Display("Join files type")]
     public string JoinFilesType { get; set; }
 }

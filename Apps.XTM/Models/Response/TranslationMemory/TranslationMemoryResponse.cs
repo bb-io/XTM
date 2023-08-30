@@ -4,5 +4,5 @@ namespace Apps.XTM.Models.Response.TranslationMemory;
 
 public class TranslationMemoryResponse
 {
-    [Display("File id")] public int FileId { get; set; }
+    [Display("File ID")] public string FileId { get; set; }
 }
