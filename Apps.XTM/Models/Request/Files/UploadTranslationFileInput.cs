@@ -2,9 +2,8 @@
 using Apps.XTM.DataSourceHandlers.EnumHandlers;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
-using File = Blackbird.Applications.Sdk.Common.Files.File;
 
-namespace Apps.XTM.Models.Request.Projects;
+namespace Apps.XTM.Models.Request.Files;
 
 public class UploadTranslationFileInput
 {
@@ -17,7 +16,7 @@ public class UploadTranslationFileInput
     [DataSource(typeof(WorkflowStepDataHandler))]
     public string WorkflowStepName { get; set; }
 
-    public File File { get; set; }
+    public Blackbird.Applications.Sdk.Common.Files.File File { get; set; }
 
     public string? Name { get; set; }
 

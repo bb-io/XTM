@@ -10,5 +10,6 @@ public static class ApiEndpoints
     public const string Workflows = "/workflows";
     public const string Steps = "/steps";
     public const string Users = "/users";
+    public const string SubjectMatters = "/subject-matters";
     public const string TMFiles = "/translation-memory/files";
 }

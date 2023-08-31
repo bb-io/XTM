@@ -4,14 +4,13 @@ using Apps.XTM.Utils.Converters;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Newtonsoft.Json;
-using File = Blackbird.Applications.Sdk.Common.Files.File;
 
-namespace Apps.XTM.Models.Request.Projects;
+namespace Apps.XTM.Models.Request.Files;
 
 public class UploadSourceFileRequest
 {
     [JsonProperty("file")]
-    public File File { get; set; }
+    public Blackbird.Applications.Sdk.Common.Files.File File { get; set; }
     
     [JsonProperty("name")]
     public string? Name { get; set; }

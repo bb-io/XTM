@@ -3,7 +3,7 @@ using Apps.XTM.DataSourceHandlers.EnumHandlers;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 
-namespace Apps.XTM.Models.Request.Projects;
+namespace Apps.XTM.Models.Request.Templates;
 
 public class CreateProjectTemplateRequest
 {

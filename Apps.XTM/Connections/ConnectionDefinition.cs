@@ -4,7 +4,7 @@ using Blackbird.Applications.Sdk.Common.Connections;
 
 namespace Apps.XTM.Connections;
 
-public class OAuth2ConnectionDefinition : IConnectionDefinition
+public class ConnectionDefinition : IConnectionDefinition
 {
     public IEnumerable<ConnectionPropertyGroup> ConnectionPropertyGroups => new List<ConnectionPropertyGroup>()
     {

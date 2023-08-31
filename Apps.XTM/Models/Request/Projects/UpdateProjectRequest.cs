@@ -1,4 +1,5 @@
-﻿using Apps.XTM.DataSourceHandlers.EnumHandlers;
+﻿using Apps.XTM.DataSourceHandlers;
+using Apps.XTM.DataSourceHandlers.EnumHandlers;
 using Apps.XTM.Utils.Converters;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
@@ -28,6 +29,7 @@ public class UpdateProjectRequest
     
     [Display("Subject matter ID")]
     [JsonConverter(typeof(StringToIntConverter), nameof(SubjectMatterId))]
+    [DataSource(typeof(SubjectMatterDataHandler))]
     public string? SubjectMatterId { get; set; }
     
     [Display("Segment locking type")]

@@ -2,7 +2,7 @@
 using Apps.XTM.Constants;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request.TranslationMemory;
-using Apps.XTM.Models.Response;
+using Apps.XTM.Models.Response.Files;
 using Apps.XTM.Models.Response.TranslationMemory;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;

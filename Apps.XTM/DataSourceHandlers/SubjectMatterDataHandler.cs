@@ -1,27 +1,28 @@
-﻿using Blackbird.Applications.Sdk.Common.Dynamic;
-using Blackbird.Applications.Sdk.Common.Invocation;
-using Apps.XTM.Constants;
+﻿using Apps.XTM.Constants;
 using Apps.XTM.Invocables;
+using Apps.XTM.Models.Response.SubjectMatters;
 using Apps.XTM.Models.Response.Templates;
+using Blackbird.Applications.Sdk.Common.Dynamic;
+using Blackbird.Applications.Sdk.Common.Invocation;
 using RestSharp;
 
 namespace Apps.XTM.DataSourceHandlers;
 
-internal class ProjectTemplateDataHandler : XtmInvocable, IAsyncDataSourceHandler
+public class SubjectMatterDataHandler : XtmInvocable, IAsyncDataSourceHandler
 {
-    public ProjectTemplateDataHandler(InvocationContext invocationContext) : base(invocationContext)
+    public SubjectMatterDataHandler(InvocationContext invocationContext) : base(invocationContext)
     {
     }
 
     public async Task<Dictionary<string, string>> GetDataAsync(DataSourceContext context,
         CancellationToken cancellationToken)
     {
-        var templates = await Client.ExecuteXtmWithJson<List<ProjectTemplate>>($"{ApiEndpoints.Projects}/templates",
+        var response = await Client.ExecuteXtmWithJson<List<SubjectMatterResponse>>(ApiEndpoints.SubjectMatters,
             Method.Get,
             null,
             Creds);
 
-        return templates
+        return response
             .Where(x => context.SearchString == null ||
                         x.Name.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase))
             .Take(20)
