@@ -4,6 +4,8 @@ Blackbird is the new automation backbone for the language technology industry. B
 
 ## Introduction
 
+<!-- begin docs -->
+
 XTM Cloud is a translation management system. Features include the creation of projects and uploading files to these projects in order to translate them.
 
 ## Before setting up
@@ -91,3 +93,5 @@ Let us know if you're interested!
 ## Feedback
 
 Feedback to our implementation of XTM is always very welcome. Reach out to us using the [established channels](https://www.blackbird.io/) or create an issue.
+
+<!-- end docs -->
