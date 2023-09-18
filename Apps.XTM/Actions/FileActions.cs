@@ -11,6 +11,7 @@ using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Utils.Extensions.Files;
+using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using RestSharp;
 using File = Blackbird.Applications.Sdk.Common.Files.File;
 
@@ -22,8 +23,25 @@ public class FileActions : XtmInvocable
     public FileActions(InvocationContext invocationContext) : base(invocationContext)
     {
     }
-    
-     [Action("Download source files as ZIP",
+
+    [Action("Generate files", Description = "Generate project files")]
+    public async Task<ListGeneratedFilesResponse> GenerateFiles(
+        [ActionParameter] ProjectRequest project,
+        [ActionParameter] GenerateFileRequest query)
+    {
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/generate";
+
+        var request = new XTMRequest(new()
+        {
+            Url = Creds.Get(CredsNames.Url) + endpoint.WithQuery(query),
+            Method = Method.Post
+        }, await Client.GetToken(Creds));
+
+        var response = await Client.ExecuteXtm<GeneratedFileResponse[]>(request);
+        return new(response);
+    }
+
+    [Action("Download source files as ZIP",
         Description = "Download the source files for project or specific jobs as ZIP")]
     public async Task<FileResponse> DownloadSourceFilesAsZip(
         [ActionParameter] ProjectRequest project,
@@ -65,9 +83,9 @@ public class FileActions : XtmInvocable
     [Action("Download project file", Description = "Download a single, generated project file based on its ID")]
     public async Task<FileResponse> DownloadProjectFile(
         [ActionParameter] ProjectRequest project,
-        [ActionParameter] [Display("File ID")] string fileId)
+        [ActionParameter] DownloadProjectFileRequest input)
     {
-        var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/{fileId}/download?fileScope=JOB";
+        var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/{input.FileId}/download?fileScope={input.FileScope}";
 
         var response = await Client.ExecuteXtmWithJson(url,
             Method.Get,
@@ -76,9 +94,39 @@ public class FileActions : XtmInvocable
 
         return new(new(response.RawBytes)
         {
-            Name = $"Project-{project.ProjectId}_File-{fileId}",
+            Name = $"Project-{project.ProjectId}_File-{input.FileId}",
             ContentType = response.ContentType ?? MediaTypeNames.Application.Octet
         });
+    }
+    
+    [Action("Download all project files", Description = "Download all of the project files")]
+    public async Task<GetProjectFilesResponse> DownloadProjectFiles(
+        [ActionParameter] ProjectRequest project,
+        [ActionParameter] DownloadAllProjectFilesRequest query)
+    {
+        var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/download";
+
+        var response = await Client.ExecuteXtmWithJson(url.WithQuery(query),
+            Method.Get,
+            null,
+            Creds);
+
+        var zipFiles = response.RawBytes.GetFilesFromZip();
+
+        var result = new List<FileWithData>();
+        await foreach (var zipFile in zipFiles)
+        {
+            result.Add(new()
+            {
+                Content = zipFile,
+                Name = zipFile.Name
+            });
+        }
+
+        return new()
+        {
+            Files = result
+        };
     }
 
     [Action("Upload source file", Description = "Upload source files for a project")]
@@ -123,7 +171,7 @@ public class FileActions : XtmInvocable
         }
 
         parameters.ToList().ForEach(x => request.AddParameter(x.Key, x.Value));
-            
+
         request.AddFile("files[0].file", input.File.Bytes, input.Name ?? input.File.Name);
         request.AlwaysMultipartFormData = true;
 
@@ -157,7 +205,7 @@ public class FileActions : XtmInvocable
         }, token);
 
         parameters.ToList().ForEach(x => request.AddParameter(x.Key, x.Value, encode: false));
-          
+
         request.AddFile("translationFile.file", input.File.Bytes, input.Name ?? input.File.Name);
         request.AlwaysMultipartFormData = true;
 

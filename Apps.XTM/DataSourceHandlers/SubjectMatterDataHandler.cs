@@ -1,7 +1,6 @@
 ﻿using Apps.XTM.Constants;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Response.SubjectMatters;
-using Apps.XTM.Models.Response.Templates;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using RestSharp;

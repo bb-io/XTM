@@ -18,7 +18,7 @@ public class ConnectionDefinition : IConnectionDefinition
                 new(CredsNames.Client) { DisplayName = "Client" },
                 new(CredsNames.UserId) { DisplayName = "User ID" },
                 new(CredsNames.Password) { DisplayName = "Password" },
-                new(CredsNames.Url) { DisplayName = "Url" },
+                new(CredsNames.Url) { DisplayName = "URL" },
             }
         },
     };
