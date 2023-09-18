@@ -32,57 +32,85 @@ public class WebhookList
         return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>()
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new(data),
+            Result = new(data)
+            {
+                CustomerId = request.QueryParameters["xtmCustomerId"]
+            },
         });
     }    
     
     [Webhook("On job finished", Description = "On a specific job finished")]
-    public Task<WebhookResponse<EmptyPayload>> OnJobFinished(WebhookRequest request)
+    public Task<WebhookResponse<JobFinishedPayload>> OnJobFinished(WebhookRequest request)
     {
-        return Task.FromResult(new WebhookResponse<EmptyPayload>()
+        return Task.FromResult(new WebhookResponse<JobFinishedPayload>()
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new(),
+            Result = new()
+            {
+                ProjectId = request.QueryParameters["xtmProjectId"],
+                CustomerId = request.QueryParameters["xtmCustomerId"],
+                JobId = request.QueryParameters["xtmJobId"],
+                Uuid = request.QueryParameters["xtmUuid"],
+            },
         });
     }  
     
     [Webhook("On project created", Description = "On a new project created")]
-    public Task<WebhookResponse<EmptyPayload>> OnProjectCreated(WebhookRequest request)
+    public Task<WebhookResponse<ProjectCreatedPayload>> OnProjectCreated(WebhookRequest request)
     {
-        return Task.FromResult(new WebhookResponse<EmptyPayload>()
+        return Task.FromResult(new WebhookResponse<ProjectCreatedPayload>()
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new(),
+            Result = new()
+            {
+                ProjectId = request.QueryParameters["xtmProjectId"],
+                Uuid = request.QueryParameters["xtmUuid"],
+            },
         });
     }    
     
     [Webhook("On project accepted", Description = "On a specific project accepted")]
-    public Task<WebhookResponse<EmptyPayload>> OnProjectAccepted(WebhookRequest request)
+    public Task<WebhookResponse<ProjectAcceptedPayload>> OnProjectAccepted(WebhookRequest request)
     {
-        return Task.FromResult(new WebhookResponse<EmptyPayload>()
+        return Task.FromResult(new WebhookResponse<ProjectAcceptedPayload>()
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new(),
+            Result = new()
+            {
+                ProjectId = request.QueryParameters["xtmProjectId"],
+                ExternalProjectId = request.QueryParameters["xtmExternalProjectId"],
+                Uuid = request.QueryParameters["xtmUuid"],
+            },
         });
     } 
     
     [Webhook("On project finished", Description = "On a specific project finished")]
-    public Task<WebhookResponse<EmptyPayload>> OnProjectFinished(WebhookRequest request)
+    public Task<WebhookResponse<ProjectFinishedPayload>> OnProjectFinished(WebhookRequest request)
     {
-        return Task.FromResult(new WebhookResponse<EmptyPayload>()
+        return Task.FromResult(new WebhookResponse<ProjectFinishedPayload>()
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new(),
+            Result = new()
+            {
+                ProjectId = request.QueryParameters["xtmProjectId"],
+                CustomerId = request.QueryParameters["xtmCustomerId"],
+                Uuid = request.QueryParameters["xtmUuid"],
+            },
         });
     }
     
     [Webhook("On invoice status changed", Description = "On invoice changed for any project")]
-    public Task<WebhookResponse<EmptyPayload>> OnInvoiceStatusChanged(WebhookRequest request)
+    public Task<WebhookResponse<InvoiceStatusChangedPayload>> OnInvoiceStatusChanged(WebhookRequest request)
     {
-        return Task.FromResult(new WebhookResponse<EmptyPayload>()
+        return Task.FromResult(new WebhookResponse<InvoiceStatusChangedPayload>()
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new(),
+            Result = new()
+            {
+                ProjectId = request.QueryParameters["xtmProjectId"],
+                InvoiceStatus = request.QueryParameters["xtmInvoiceStatus"],
+                Uuid = request.QueryParameters["xtmUuid"],
+            },
         });
     }
 

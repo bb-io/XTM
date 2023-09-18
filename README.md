@@ -76,8 +76,6 @@ Before you can connect you need to make sure that:
 - **On project finished**
 - **On invoice status changed**
 
-_Due to a technical limitation, some of these events do not contain any data at the moment_
-
 ## Missing features
 
 The current implementation covers the basic actions. However, in the future we can also support:
