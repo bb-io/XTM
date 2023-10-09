@@ -73,9 +73,9 @@ public class FileActions : XtmInvocable
 
         var files = zipFile.File.Bytes.GetFilesFromZip();
 
-        var result = new List<File>();
+        var result = new List<FileResponse>();
         await foreach (var file in files)
-            result.Add(file);
+            result.Add(new FileResponse(file));
 
         return new(result);
     }
