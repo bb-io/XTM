@@ -12,8 +12,8 @@ using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
+using Newtonsoft.Json;
 using RestSharp;
-using File = Blackbird.Applications.Sdk.Common.Files.File;
 
 namespace Apps.XTM.Actions;
 
@@ -65,23 +65,38 @@ public class FileActions : XtmInvocable
     }
 
     [Action("Download source files", Description = "Download the source files for project or specific jobs")]
-    public async Task<SourceFilesResponse> DownloadSourceFiles(
+    public async Task<DownloadFilesResponse<XtmSourceFileDescription>> DownloadSourceFiles(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] [Display("Job IDs")] string[]? jobIds)
     {
-        var zipFile = await DownloadSourceFilesAsZip(project, jobIds);
+        var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/sources/download";
 
-        var files = zipFile.File.Bytes.GetFilesFromZip();
+        if (jobIds != null)
+            url += $"?{string.Join("&", jobIds.Select(x => $"jobIds={x}"))}";
 
-        var result = new List<FileResponse>();
+        var response = await Client.ExecuteXtmWithJson(url,
+            Method.Get,
+            null,
+            Creds);
+        
+        var files = response.RawBytes.GetFilesFromZip();
+        var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmSourceFileDescription>>
+            (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString());
+        
+        var result = new List<FileWithData<XtmSourceFileDescription>>();
+        
         await foreach (var file in files)
-            result.Add(new FileResponse(file));
+            result.Add(new()
+            {
+                Content = file,
+                FileDescription = xtmFileDescriptions.First(description => description.FileName == file.Name)
+            });
 
         return new(result);
     }
 
     [Action("Download project file", Description = "Download a single, generated project file based on its ID")]
-    public async Task<FileResponse> DownloadProjectFile(
+    public async Task<FileWithData<XtmProjectFileDescription>> DownloadProjectFile(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] DownloadProjectFileRequest input)
     {
@@ -91,16 +106,21 @@ public class FileActions : XtmInvocable
             Method.Get,
             null,
             Creds);
+        
+        var file = await response.RawBytes.GetFilesFromZip().FirstAsync();
+        var xtmFileDescription = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
+            (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString()).First();
+        xtmFileDescription.FileName = file.Name;
 
-        return new(new(response.RawBytes)
+        return new()
         {
-            Name = $"Project-{project.ProjectId}_File-{input.FileId}",
-            ContentType = response.ContentType ?? MediaTypeNames.Application.Octet
-        });
+            Content = file,
+            FileDescription = xtmFileDescription
+        };
     }
     
     [Action("Download all project files", Description = "Download all of the project files")]
-    public async Task<GetProjectFilesResponse> DownloadProjectFiles(
+    public async Task<DownloadFilesResponse<XtmProjectFileDescription>> DownloadProjectFiles(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] DownloadAllProjectFilesRequest query)
     {
@@ -111,22 +131,21 @@ public class FileActions : XtmInvocable
             null,
             Creds);
 
-        var zipFiles = response.RawBytes.GetFilesFromZip();
+        var files = response.RawBytes.GetFilesFromZip();
+        var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
+            (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString());
 
-        var result = new List<FileWithData>();
-        await foreach (var zipFile in zipFiles)
+        var result = new List<FileWithData<XtmProjectFileDescription>>();
+        await foreach (var file in files)
         {
             result.Add(new()
             {
-                Content = zipFile,
-                Name = zipFile.Name
+                Content = file,
+                FileDescription = xtmFileDescriptions.First(description => description.FileName == file.Name)
             });
         }
 
-        return new()
-        {
-            Files = result
-        };
+        return new(result);
     }
 
     [Action("Upload source file", Description = "Upload source files for a project")]

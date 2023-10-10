@@ -7,7 +7,9 @@ namespace Apps.XTM.Models.Request.Files;
 
 public class UploadTranslationFileInput
 {
-    [Display("File type")] public string FileType { get; set; }
+    [Display("File type")]
+    [DataSource(typeof(FileTypeDataHandler))]
+    public string FileType { get; set; }
 
     [Display("Job ID")]
     public string JobId { get; set; }
@@ -20,8 +22,8 @@ public class UploadTranslationFileInput
 
     public string? Name { get; set; }
 
-    [Display("Enable autopopulation?")] public bool Autopopulation { get; set; }
-
+    [Display("Enable autopopulation?")] 
+    public bool Autopopulation { get; set; }
 
     [Display("Segment status approving")]
     [DataSource(typeof(SegmentStatusApprovingDataHandler))]
