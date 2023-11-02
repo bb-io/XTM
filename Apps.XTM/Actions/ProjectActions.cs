@@ -6,6 +6,7 @@ using Apps.XTM.Models.Response.Projects;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Newtonsoft.Json;
 using RestSharp;
 
 namespace Apps.XTM.Actions;
@@ -46,8 +47,8 @@ public class ProjectActions : XtmInvocable
             { "description", input.Description },
             { "customerId", input.CustomerId },
             { "workflowId", input.WorkflowId },
-            { "sourceLanguage", input.SourceLanguge },
-            { "targetLanguages", input.TargetLanguage },
+            { "sourceLanguage", input.SourceLanguage },
+            { "targetLanguages", string.Join(",", input.TargetLanguages) },
             { "callbacks.projectCreatedCallback", input.ProjectCreatedCallback },
             { "callbacks.projectAcceptedCallback", input.ProjectAcceptedCallback },
             { "callbacks.projectFinishedCallback", input.ProjectFinishedCallback },

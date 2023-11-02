@@ -18,12 +18,11 @@ public class CreateProjectRequest : CustomerRequest
         
     [Display("Source language")]
     [DataSource(typeof(LanguageDataHandler))]
-    public string SourceLanguge { get; set; }
-
-    // Todo, update back to multiple languages once array inputs are better
-    [Display("Target language")]
+    public string SourceLanguage { get; set; }
+    
+    [Display("Target languages")]
     [DataSource(typeof(LanguageDataHandler))]
-    public string TargetLanguage { get; set; }
+    public IEnumerable<string> TargetLanguages { get; set; }
         
     [Display("Project created callback URL")]
     public string? ProjectCreatedCallback { get; set; }
