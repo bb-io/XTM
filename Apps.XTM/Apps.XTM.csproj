@@ -5,13 +5,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Product>XTM</Product>
-    <Version>2.0.0</Version>
+    <Version>2.0.1</Version>
     <Description>Translation management system that centralizes localization assets and enables fast, accurate translation and deployment of content tailored to any audience in any territory</Description>
     <AssemblyName>Apps.XTM</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Blackbird.Applications.Sdk.Common" Version="2.2.0-alpha3" />
+    <PackageReference Include="Blackbird.Applications.Sdk.Common" Version="2.3.0-alpha2" />
     <PackageReference Include="Blackbird.Applications.Sdk.Utils" Version="1.0.4" />
     <PackageReference Include="System.IO.Compression" Version="4.3.0" />
     <PackageReference Include="System.Linq.Async" Version="6.0.1" />
