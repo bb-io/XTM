@@ -105,7 +105,11 @@ public class XTMClient : RestClient
     private Exception GetXtmError(RestResponse response)
     {
         var error = JsonConvert.DeserializeObject<ErrorResponse>(response.Content);
-        return new(error?.Reason ?? response.StatusCode.ToString());
+        var message = (error?.Reason.TrimEnd('.') ?? response.StatusCode.ToString())
+                      + (error?.IncorrectParameters != null
+                          ? ": " + error.IncorrectParameters.ToLower().Replace("_", " ") + "."
+                          : ".");
+        return new(message);
     }
 
     #endregion
