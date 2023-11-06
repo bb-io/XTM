@@ -1,4 +1,5 @@
 ﻿using Apps.XTM.Constants;
+using Apps.XTM.Extensions;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request.Projects;
 using Apps.XTM.Models.Response;
@@ -6,7 +7,7 @@ using Apps.XTM.Models.Response.Projects;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using Newtonsoft.Json;
+using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using RestSharp;
 
 namespace Apps.XTM.Actions;
@@ -41,7 +42,12 @@ public class ProjectActions : XtmInvocable
     [Action("Create project", Description = "Create new project")]
     public Task<CreateProjectResponse> CreateProject([ActionParameter] CreateProjectRequest input)
     {
-        var parameters = new Dictionary<string, string>()
+        string GetBridgeUrl(string eventType)
+            => $"{InvocationContext.UriInfo.BridgeServiceUrl.ToString().TrimEnd('/')}{ApplicationConstants.XtmBridgePath}"
+                .SetQueryParameter("id", Creds.GetInstanceUrlHash())
+                .SetQueryParameter("eventType", eventType);
+        
+        var parameters = new Dictionary<string, string>
         {
             { "name", input.Name },
             { "description", input.Description },
@@ -49,13 +55,13 @@ public class ProjectActions : XtmInvocable
             { "workflowId", input.WorkflowId },
             { "sourceLanguage", input.SourceLanguage },
             { "targetLanguages", string.Join(",", input.TargetLanguages) },
-            { "callbacks.projectCreatedCallback", input.ProjectCreatedCallback },
-            { "callbacks.projectAcceptedCallback", input.ProjectAcceptedCallback },
-            { "callbacks.projectFinishedCallback", input.ProjectFinishedCallback },
-            { "callbacks.jobFinishedCallback", input.JobFinishedCallback },
-            { "callbacks.analysisFinishedCallback", input.AnalysisFinishedCallback },
-            { "callbacks.workflowTransitionCallback", input.WorkflowTransitionCallback },
-            { "callbacks.invoiceStatusChangedCallback", input.InvoiceStatusChangedCallback },
+            { "callbacks.projectCreatedCallback", input.ProjectCreatedCallback ?? GetBridgeUrl(EventNames.ProjectCreated) },
+            { "callbacks.projectAcceptedCallback", input.ProjectAcceptedCallback ?? GetBridgeUrl(EventNames.ProjectAccepted) },
+            { "callbacks.projectFinishedCallback", input.ProjectFinishedCallback ?? GetBridgeUrl(EventNames.ProjectFinished) },
+            { "callbacks.jobFinishedCallback", input.JobFinishedCallback ?? GetBridgeUrl(EventNames.JobFinished) },
+            { "callbacks.analysisFinishedCallback", input.AnalysisFinishedCallback ?? GetBridgeUrl(EventNames.AnalysisFinished) },
+            { "callbacks.workflowTransitionCallback", input.WorkflowTransitionCallback ?? GetBridgeUrl(EventNames.WorkflowTransition) },
+            { "callbacks.invoiceStatusChangedCallback", input.InvoiceStatusChangedCallback ?? GetBridgeUrl(EventNames.InvoiceStatusChanged) }
         };
 
         return Client.ExecuteXtmWithFormData<CreateProjectResponse>(ApiEndpoints.Projects,

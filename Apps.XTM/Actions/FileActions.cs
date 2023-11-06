@@ -79,17 +79,17 @@ public class FileActions : XtmInvocable
             null,
             Creds);
         
-        var files = response.RawBytes.GetFilesFromZip();
+        var files = await response.RawBytes.GetFilesFromZip();
         var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmSourceFileDescription>>
             (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString());
         
         var result = new List<FileWithData<XtmSourceFileDescription>>();
         
-        await foreach (var file in files)
+        foreach (var file in files)
             result.Add(new()
             {
-                Content = file,
-                FileDescription = xtmFileDescriptions.First(description => description.FileName == file.Name)
+                Content = file.File,
+                FileDescription = xtmFileDescriptions.First(description => description.FileName == file.File.Name)
             });
 
         return new(result);
@@ -107,14 +107,14 @@ public class FileActions : XtmInvocable
             null,
             Creds);
         
-        var file = await response.RawBytes.GetFilesFromZip().FirstAsync();
+        var file = (await response.RawBytes.GetFilesFromZip()).First();
         var xtmFileDescription = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
             (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString()).First();
-        xtmFileDescription.FileName = file.Name;
+        xtmFileDescription.FileName = file.File.Name;
 
         return new()
         {
-            Content = file,
+            Content = file.File,
             FileDescription = xtmFileDescription
         };
     }
@@ -131,17 +131,17 @@ public class FileActions : XtmInvocable
             null,
             Creds);
 
-        var files = response.RawBytes.GetFilesFromZip();
+        var files = await response.RawBytes.GetFilesFromZip();
         var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
             (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString());
 
         var result = new List<FileWithData<XtmProjectFileDescription>>();
-        await foreach (var file in files)
+        foreach (var file in files)
         {
             result.Add(new()
             {
-                Content = file,
-                FileDescription = xtmFileDescriptions.First(description => description.FileName == file.Name)
+                Content = file.File,
+                FileDescription = xtmFileDescriptions.First(description => description.FileName == file.File.Name)
             });
         }
 
