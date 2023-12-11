@@ -162,12 +162,16 @@ public class FileActions : XtmInvocable
             Method = Method.Post
         }, token);
 
-        var parameters = new Dictionary<string, string>()
+        var parameters = new Dictionary<string, string>
         {
             { "files[0].name", input.Name ?? input.File.Name },
-            { "files[0].workflowId", input.WorkflowId },
-            { "files[0].translationType", input.TranslationType },
         };
+        
+        if (input.WorkflowId != null)
+            parameters.Add("files[0].workflowId", input.WorkflowId);
+        
+        if (input.TranslationType != null)
+            parameters.Add("files[0].translationType", input.TranslationType);
 
         if (input.Metadata != null)
         {
