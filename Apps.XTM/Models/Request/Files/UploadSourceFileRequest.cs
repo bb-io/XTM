@@ -12,14 +12,16 @@ public class UploadSourceFileRequest
     [JsonProperty("file")]
     public Blackbird.Applications.Sdk.Common.Files.File File { get; set; }
     
-    [JsonProperty("name")]
-    public string? Name { get; set; }
-    
-    [Display("Target languages")] public IEnumerable<string>? TargetLanguages { get; set; }
-    
     [Display("Workflow")] 
     [DataSource(typeof(WorkflowDataHandler))]
     public string WorkflowId { get; set; }
+    
+    [JsonProperty("name")]
+    public string? Name { get; set; }
+    
+    [Display("Target languages")] 
+    [DataSource(typeof(LanguageDataHandler))]
+    public IEnumerable<string>? TargetLanguages { get; set; }
     
     [Display("Tag IDs")]
     [JsonConverter(typeof(StringToIntConverter), nameof(TagIds))]
@@ -29,7 +31,6 @@ public class UploadSourceFileRequest
     [DataSource(typeof(TranslationTypeDataHandler))]
     public string? TranslationType { get; set; }
     
+    [Display("Metadata in JSON format")]
     public string? Metadata { get; set; }
-    
-    [Display("Metadata type")] public string? MetadataType { get; set; }
 }

@@ -49,8 +49,8 @@ public class ProjectActions : XtmInvocable
         
         var parameters = new Dictionary<string, string>
         {
-            { "name", input.Name },
-            { "description", input.Description ?? string.Empty },
+            { "name", input.Name.Trim() },
+            { "description", input.Description?.Trim() ?? string.Empty },
             { "customerId", input.CustomerId },
             { "workflowId", input.WorkflowId },
             { "sourceLanguage", input.SourceLanguage },
@@ -75,10 +75,10 @@ public class ProjectActions : XtmInvocable
     public Task<CreateProjectResponse> CreateProjectFromTemplate(
         [ActionParameter] CreateProjectFromTemplateRequest input)
     {
-        var parameters = new Dictionary<string, string>()
+        var parameters = new Dictionary<string, string>
         {
-            { "name", input.Name },
-            { "description", input.Description },
+            { "name", input.Name.Trim() },
+            { "description", input.Description.Trim() },
             { "customerId", input.CustomerId },
             { "templateId", input.TemplateId }
         };
@@ -92,11 +92,13 @@ public class ProjectActions : XtmInvocable
     [Action("Clone project", Description = "Create a new project based on the provided project")]
     public Task<CreateProjectResponse> CloneProject([ActionParameter] CloneProjectRequest input)
     {
-        var parameters = new Dictionary<string, string>()
+        var parameters = new Dictionary<string, string>
         {
-            { "name", input.Name },
-            { "originId", input.OriginId },
+            { "originId", input.OriginId }
         };
+        
+        if (input.Name != null)
+            parameters.Add("name", input.Name.Trim());
 
         return Client.ExecuteXtmWithFormData<CreateProjectResponse>($"{ApiEndpoints.Projects}/clone",
             Method.Post,
