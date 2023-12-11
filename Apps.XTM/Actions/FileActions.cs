@@ -122,11 +122,64 @@ public class FileActions : XtmInvocable
     [Action("Download all project files", Description = "Download all of the project files")]
     public async Task<DownloadFilesResponse<XtmProjectFileDescription>> DownloadProjectFiles(
         [ActionParameter] ProjectRequest project,
-        [ActionParameter] DownloadAllProjectFilesRequest query)
+        [ActionParameter] DownloadAllProjectFilesRequest input)
     {
         var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/download";
 
-        var response = await Client.ExecuteXtmWithJson(url.WithQuery(query),
+        var queryParameters = new Dictionary<string, string>
+        {
+            { "fileScope", input.FileScope },
+            { "fileType", input.FileType }
+        };
+        
+        if (input.JobIds != null)
+            queryParameters.Add("jobIds", string.Join(",", input.JobIds));
+        
+        if (input.TargetLanguages != null)
+            queryParameters.Add("targetLanguages", string.Join(",", input.TargetLanguages));
+        
+        var response = await Client.ExecuteXtmWithJson(url.WithQuery(queryParameters),
+            Method.Get,
+            null,
+            Creds);
+
+        var files = await response.RawBytes.GetFilesFromZip();
+        var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
+            (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString());
+
+        var result = new List<FileWithData<XtmProjectFileDescription>>();
+        foreach (var file in files)
+        {
+            result.Add(new()
+            {
+                Content = file.File,
+                FileDescription = xtmFileDescriptions.First(description => description.FileName == file.File.Name)
+            });
+        }
+
+        return new(result);
+    }
+    
+    [Action("Download translated files", Description = "Download project's translated files")]
+    public async Task<DownloadFilesResponse<XtmProjectFileDescription>> DownloadTranslations(
+        [ActionParameter] ProjectRequest project,
+        [ActionParameter] DownloadTranslationsRequest input)
+    {
+        var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/download";
+
+        var queryParameters = new Dictionary<string, string>
+        {
+            { "fileScope", "JOB" },
+            { "fileType", "TARGET" }
+        };
+        
+        if (input.JobIds != null)
+            queryParameters.Add("jobIds", string.Join(",", input.JobIds));
+        
+        if (input.TargetLanguages != null)
+            queryParameters.Add("targetLanguages", string.Join(",", input.TargetLanguages));
+        
+        var response = await Client.ExecuteXtmWithJson(url.WithQuery(queryParameters),
             Method.Get,
             null,
             Creds);
@@ -164,7 +217,7 @@ public class FileActions : XtmInvocable
 
         var parameters = new Dictionary<string, string>
         {
-            { "files[0].name", input.Name ?? input.File.Name },
+            { "files[0].name", input.Name?.Trim() ?? input.File.Name },
             { "files[0].workflowId", input.WorkflowId }
         };
 
@@ -174,7 +227,7 @@ public class FileActions : XtmInvocable
         if (input.Metadata != null)
         {
             parameters.Add("files[0].metadata", input.Metadata);
-            parameters.Add("files[0].metadataType", input.MetadataType);
+            parameters.Add("files[0].metadataType", "JSON"); // JSON is the only available type of metadata
         }
 
         if (input.TagIds is not null)
@@ -207,11 +260,11 @@ public class FileActions : XtmInvocable
         var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/translations/upload";
         var token = await Client.GetToken(Creds);
 
-        var parameters = new Dictionary<string, string>()
+        var parameters = new Dictionary<string, string>
         {
             { "fileType", input.FileType },
             { "jobId", input.JobId },
-            { "translationFile.name", input.Name ?? input.File.Name },
+            { "translationFile.name", input.Name?.Trim() ?? input.File.Name },
             { "xliffOptions.autopopulation", input.Autopopulation ? "ENABLED" : "DISABLED" },
             { "xliffOptions.segmentStatusApproving", input.SegmentStatusApproving },
         };

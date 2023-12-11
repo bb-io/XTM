@@ -1,4 +1,5 @@
-﻿using Apps.XTM.DataSourceHandlers.EnumHandlers;
+﻿using Apps.XTM.DataSourceHandlers;
+using Apps.XTM.DataSourceHandlers.EnumHandlers;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Newtonsoft.Json;
@@ -14,6 +15,6 @@ public class GenerateFileRequest
     
     [Display("Target language")]
     [JsonProperty("targetLanguage")]
-    [DataSource(typeof(LanguageDataHandler))]
+    [DataSource(typeof(ProjectTargetLanguageDataSourceHandler))]
     public string? TargetLanguage { get; set; }
 }

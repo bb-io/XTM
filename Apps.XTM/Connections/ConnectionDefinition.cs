@@ -17,10 +17,10 @@ public class ConnectionDefinition : IConnectionDefinition
             {
                 new(CredsNames.Client) { DisplayName = "Client" },
                 new(CredsNames.UserId) { DisplayName = "User ID" },
-                new(CredsNames.Password) { DisplayName = "Password" },
-                new(CredsNames.Url) { DisplayName = "URL" },
+                new(CredsNames.Password) { DisplayName = "Password", Sensitive = true },
+                new(CredsNames.Url) { DisplayName = "URL" }
             }
-        },
+        }
     };
 
     public IEnumerable<AuthenticationCredentialsProvider> CreateAuthorizationCredentialsProviders(
