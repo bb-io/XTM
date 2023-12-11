@@ -165,11 +165,9 @@ public class FileActions : XtmInvocable
         var parameters = new Dictionary<string, string>
         {
             { "files[0].name", input.Name ?? input.File.Name },
+            { "files[0].workflowId", input.WorkflowId }
         };
-        
-        if (input.WorkflowId != null)
-            parameters.Add("files[0].workflowId", input.WorkflowId);
-        
+
         if (input.TranslationType != null)
             parameters.Add("files[0].translationType", input.TranslationType);
 
