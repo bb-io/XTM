@@ -30,7 +30,7 @@ public class ProjectActions : XtmInvocable
         return new(response);
     }
 
-    [Action("Get project", Description = "Get project by ID")]
+    [Action("Get project", Description = "Get project")]
     public Task<FullProject> GetProject([ActionParameter] ProjectRequest project)
     {
         return Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.ProjectId}",
@@ -50,7 +50,7 @@ public class ProjectActions : XtmInvocable
         var parameters = new Dictionary<string, string>
         {
             { "name", input.Name },
-            { "description", input.Description },
+            { "description", input.Description ?? string.Empty },
             { "customerId", input.CustomerId },
             { "workflowId", input.WorkflowId },
             { "sourceLanguage", input.SourceLanguage },

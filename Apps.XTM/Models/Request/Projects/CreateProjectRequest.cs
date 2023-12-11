@@ -9,10 +9,8 @@ namespace Apps.XTM.Models.Request.Projects;
 public class CreateProjectRequest : CustomerRequest
 {
     public string Name { get; set; }
-        
-    public string Description { get; set; }
-        
-    [Display("Workflow ID")] 
+    
+    [Display("Workflow")] 
     [DataSource(typeof(WorkflowDataHandler))]
     public string WorkflowId { get; set; }
         
@@ -23,6 +21,8 @@ public class CreateProjectRequest : CustomerRequest
     [Display("Target languages")]
     [DataSource(typeof(LanguageDataHandler))]
     public IEnumerable<string> TargetLanguages { get; set; }
+    
+    public string? Description { get; set; }
         
     [Display("Project created callback URL")]
     public string? ProjectCreatedCallback { get; set; }

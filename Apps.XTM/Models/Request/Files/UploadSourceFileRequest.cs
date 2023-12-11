@@ -19,7 +19,7 @@ public class UploadSourceFileRequest
     
     [Display("Workflow")] 
     [DataSource(typeof(WorkflowDataHandler))]
-    public string WorkflowId { get; set; }
+    public string? WorkflowId { get; set; }
     
     [Display("Tag IDs")]
     [JsonConverter(typeof(StringToIntConverter), nameof(TagIds))]
@@ -27,7 +27,7 @@ public class UploadSourceFileRequest
     
     [Display("Translation type")]
     [DataSource(typeof(TranslationTypeDataHandler))]
-    public string TranslationType { get; set; }
+    public string? TranslationType { get; set; }
     
     public string? Metadata { get; set; }
     
