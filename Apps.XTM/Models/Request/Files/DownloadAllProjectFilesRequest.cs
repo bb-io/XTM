@@ -1,4 +1,5 @@
-﻿using Apps.XTM.DataSourceHandlers.EnumHandlers;
+﻿using Apps.XTM.DataSourceHandlers;
+using Apps.XTM.DataSourceHandlers.EnumHandlers;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 
@@ -15,7 +16,7 @@ public class DownloadAllProjectFilesRequest
     public string FileType { get; set; }
     
     [Display("Target language")]
-    [DataSource(typeof(LanguageDataHandler))]
+    [DataSource(typeof(ProjectTargetLanguageDataSourceHandler))]
     public IEnumerable<string>? TargetLanguages { get; set; }
     
     [Display("Job IDs")]

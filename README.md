@@ -50,8 +50,11 @@ Before you can connect you need to make sure that:
 - **Download source files**
 - **Download source files as ZIP**
 - **Download project file**
+- **Download all project files**
+- **Download translated files**
 - **Upload source file**
 - **Upload translation file**
+- **Generate files**
 
 ### Translation memories
 

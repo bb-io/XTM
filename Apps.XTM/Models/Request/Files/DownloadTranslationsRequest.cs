@@ -1,4 +1,4 @@
-﻿using Apps.XTM.DataSourceHandlers.EnumHandlers;
+﻿using Apps.XTM.DataSourceHandlers;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 
@@ -10,6 +10,6 @@ public class DownloadTranslationsRequest
     public IEnumerable<string>? JobIds { get; set; }
 
     [Display("Target language")]
-    [DataSource(typeof(LanguageDataHandler))]
+    [DataSource(typeof(ProjectTargetLanguageDataSourceHandler))]
     public IEnumerable<string>? TargetLanguages { get; set; }
 }

@@ -20,7 +20,7 @@ public class UploadSourceFileRequest
     public string? Name { get; set; }
     
     [Display("Target languages")] 
-    [DataSource(typeof(LanguageDataHandler))]
+    [DataSource(typeof(ProjectTargetLanguageDataSourceHandler))]
     public IEnumerable<string>? TargetLanguages { get; set; }
     
     [Display("Tag IDs")]
