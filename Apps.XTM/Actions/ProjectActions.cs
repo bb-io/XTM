@@ -1,8 +1,10 @@
-﻿using Apps.XTM.Constants;
+﻿using System.Net.Mime;
+using Apps.XTM.Constants;
 using Apps.XTM.Extensions;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request.Projects;
 using Apps.XTM.Models.Response;
+using Apps.XTM.Models.Response.Files;
 using Apps.XTM.Models.Response.Projects;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
@@ -43,10 +45,11 @@ public class ProjectActions : XtmInvocable
     public Task<CreateProjectResponse> CreateProject([ActionParameter] CreateProjectRequest input)
     {
         string GetBridgeUrl(string eventType)
-            => $"{InvocationContext.UriInfo.BridgeServiceUrl.ToString().TrimEnd('/')}{ApplicationConstants.XtmBridgePath}"
-                .SetQueryParameter("id", Creds.GetInstanceUrlHash())
-                .SetQueryParameter("eventType", eventType);
-        
+            =>
+                $"{InvocationContext.UriInfo.BridgeServiceUrl.ToString().TrimEnd('/')}{ApplicationConstants.XtmBridgePath}"
+                    .SetQueryParameter("id", Creds.GetInstanceUrlHash())
+                    .SetQueryParameter("eventType", eventType);
+
         var parameters = new Dictionary<string, string>
         {
             { "name", input.Name.Trim() },
@@ -55,13 +58,31 @@ public class ProjectActions : XtmInvocable
             { "workflowId", input.WorkflowId },
             { "sourceLanguage", input.SourceLanguage },
             { "targetLanguages", string.Join(",", input.TargetLanguages) },
-            { "callbacks.projectCreatedCallback", input.ProjectCreatedCallback ?? GetBridgeUrl(EventNames.ProjectCreated) },
-            { "callbacks.projectAcceptedCallback", input.ProjectAcceptedCallback ?? GetBridgeUrl(EventNames.ProjectAccepted) },
-            { "callbacks.projectFinishedCallback", input.ProjectFinishedCallback ?? GetBridgeUrl(EventNames.ProjectFinished) },
+            {
+                "callbacks.projectCreatedCallback",
+                input.ProjectCreatedCallback ?? GetBridgeUrl(EventNames.ProjectCreated)
+            },
+            {
+                "callbacks.projectAcceptedCallback",
+                input.ProjectAcceptedCallback ?? GetBridgeUrl(EventNames.ProjectAccepted)
+            },
+            {
+                "callbacks.projectFinishedCallback",
+                input.ProjectFinishedCallback ?? GetBridgeUrl(EventNames.ProjectFinished)
+            },
             { "callbacks.jobFinishedCallback", input.JobFinishedCallback ?? GetBridgeUrl(EventNames.JobFinished) },
-            { "callbacks.analysisFinishedCallback", input.AnalysisFinishedCallback ?? GetBridgeUrl(EventNames.AnalysisFinished) },
-            { "callbacks.workflowTransitionCallback", input.WorkflowTransitionCallback ?? GetBridgeUrl(EventNames.WorkflowTransition) },
-            { "callbacks.invoiceStatusChangedCallback", input.InvoiceStatusChangedCallback ?? GetBridgeUrl(EventNames.InvoiceStatusChanged) }
+            {
+                "callbacks.analysisFinishedCallback",
+                input.AnalysisFinishedCallback ?? GetBridgeUrl(EventNames.AnalysisFinished)
+            },
+            {
+                "callbacks.workflowTransitionCallback",
+                input.WorkflowTransitionCallback ?? GetBridgeUrl(EventNames.WorkflowTransition)
+            },
+            {
+                "callbacks.invoiceStatusChangedCallback",
+                input.InvoiceStatusChangedCallback ?? GetBridgeUrl(EventNames.InvoiceStatusChanged)
+            }
         };
 
         return Client.ExecuteXtmWithFormData<CreateProjectResponse>(ApiEndpoints.Projects,
@@ -96,7 +117,7 @@ public class ProjectActions : XtmInvocable
         {
             { "originId", input.OriginId }
         };
-        
+
         if (input.Name != null)
             parameters.Add("name", input.Name.Trim());
 
@@ -116,7 +137,7 @@ public class ProjectActions : XtmInvocable
             input,
             Creds);
     }
-        
+
     [Action("Add project target languages", Description = "Add more target languages to a specific project")]
     public Task<CreateProjectResponse> AddTargetLanguages(
         [ActionParameter] ProjectRequest project,
@@ -128,7 +149,7 @@ public class ProjectActions : XtmInvocable
             input,
             Creds);
     }
-        
+
     [Action("Delete project target languages", Description = "Delete specific target languages from a project")]
     public Task<ManageEntityResponse> DeleteTargetLanguages(
         [ActionParameter] ProjectRequest project,
@@ -139,8 +160,8 @@ public class ProjectActions : XtmInvocable
             Method.Delete,
             input,
             Creds);
-    }     
-        
+    }
+
     [Action("Reanalyze project", Description = "Reanalyze specific project")]
     public Task<ManageEntityResponse> ReanalyzeProject(
         [ActionParameter] ProjectRequest project)
@@ -160,7 +181,7 @@ public class ProjectActions : XtmInvocable
             null,
             Creds);
     }
-        
+
     [Action("Get project estimates", Description = "Get specific project estimates")]
     public Task<ProjectEstimates> GetProjectEstimates([ActionParameter] ProjectRequest project)
     {
@@ -168,5 +189,21 @@ public class ProjectActions : XtmInvocable
             Method.Get,
             null,
             Creds);
+    }
+
+    [Action("Download metrics", Description = "Download metrics file for a specific file in XLSX format")]
+    public async Task<FileResponse> DownloadMetrics(
+        [ActionParameter] ProjectRequest project,
+        [ActionParameter] DownloadMetricsRequest input)
+    {
+        var endpoint =
+            $"{ApiEndpoints.Projects}/{project.ProjectId}/metrics/files/download?metricsFilesType={input.MetricsFilesType}";
+        var response = await Client.ExecuteXtmWithJson(endpoint, Method.Get, null, Creds);
+
+        return new(new(response.RawBytes)
+        {
+            Name = $"{project.ProjectId}.xlsx",
+            ContentType = MediaTypeNames.Application.Octet
+        });
     }
 }

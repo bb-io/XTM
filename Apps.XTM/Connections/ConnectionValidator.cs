@@ -9,13 +9,13 @@ namespace Apps.XTM.Connections;
 public class ConnectionValidator : IConnectionValidator
 {
     private XTMClient Client => new();
-    
+
     public async ValueTask<ConnectionValidationResponse> ValidateConnection(
         IEnumerable<AuthenticationCredentialsProvider> authProviders, CancellationToken cancellationToken)
     {
         try
         {
-            var response = await Client.ExecuteXtmWithJson(ApiEndpoints.System,
+            await Client.ExecuteXtmWithJson(ApiEndpoints.System,
                 Method.Get,
                 null,
                 authProviders.ToArray());
