@@ -10,6 +10,7 @@ using Apps.XTM.RestUtilities;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using Newtonsoft.Json;
@@ -20,8 +21,12 @@ namespace Apps.XTM.Actions;
 [ActionList]
 public class FileActions : XtmInvocable
 {
-    public FileActions(InvocationContext invocationContext) : base(invocationContext)
+    private readonly IFileManagementClient _fileManagementClient;
+    
+    public FileActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) 
+        : base(invocationContext)
     {
+        _fileManagementClient = fileManagementClient;
     }
 
     [Action("Generate files", Description = "Generate project files")]
@@ -57,11 +62,10 @@ public class FileActions : XtmInvocable
             null,
             Creds);
 
-        return new(new(response.RawBytes)
-        {
-            Name = $"Project-{project.ProjectId}SourceFiles.zip",
-            ContentType = response.ContentType ?? MediaTypeNames.Application.Octet
-        });
+        using var stream = new MemoryStream(response.RawBytes);
+        var file = await _fileManagementClient.UploadAsync(stream,
+            response.ContentType ?? MediaTypeNames.Application.Octet, $"Project-{project.ProjectId}SourceFiles.zip");
+        return new(file);
     }
 
     [Action("Download source files", Description = "Download the source files for project or specific jobs")]
@@ -79,7 +83,7 @@ public class FileActions : XtmInvocable
             null,
             Creds);
         
-        var files = await response.RawBytes.GetFilesFromZip();
+        var files = await response.RawBytes.GetFilesFromZip(_fileManagementClient);
         var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmSourceFileDescription>>
             (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString());
         
@@ -107,7 +111,7 @@ public class FileActions : XtmInvocable
             null,
             Creds);
         
-        var file = (await response.RawBytes.GetFilesFromZip()).First();
+        var file = (await response.RawBytes.GetFilesFromZip(_fileManagementClient)).First();
         var xtmFileDescription = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
             (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString()).First();
         xtmFileDescription.FileName = file.File.Name;
@@ -143,7 +147,7 @@ public class FileActions : XtmInvocable
             null,
             Creds);
 
-        var files = await response.RawBytes.GetFilesFromZip();
+        var files = await response.RawBytes.GetFilesFromZip(_fileManagementClient);
         var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
             (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString());
 
@@ -184,7 +188,7 @@ public class FileActions : XtmInvocable
             null,
             Creds);
 
-        var files = await response.RawBytes.GetFilesFromZip();
+        var files = await response.RawBytes.GetFilesFromZip(_fileManagementClient);
         var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
             (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString());
 
@@ -246,7 +250,9 @@ public class FileActions : XtmInvocable
 
         parameters.ToList().ForEach(x => request.AddParameter(x.Key, x.Value));
 
-        request.AddFile("files[0].file", input.File.Bytes, input.Name ?? input.File.Name);
+        var fileStream = await _fileManagementClient.DownloadAsync(input.File);
+        var fileBytes = await fileStream.GetByteData();
+        request.AddFile("files[0].file", fileBytes, input.Name ?? input.File.Name);
         request.AlwaysMultipartFormData = true;
 
         return await Client.ExecuteXtm<CreateProjectResponse>(request);
@@ -280,7 +286,9 @@ public class FileActions : XtmInvocable
 
         parameters.ToList().ForEach(x => request.AddParameter(x.Key, x.Value, encode: false));
 
-        request.AddFile("translationFile.file", input.File.Bytes, input.Name ?? input.File.Name);
+        var fileStream = await _fileManagementClient.DownloadAsync(input.File);
+        var fileBytes = await fileStream.GetByteData();
+        request.AddFile("translationFile.file", fileBytes, input.Name ?? input.File.Name);
         request.AlwaysMultipartFormData = true;
 
         return await Client.ExecuteXtm<CreateProjectResponse>(request);

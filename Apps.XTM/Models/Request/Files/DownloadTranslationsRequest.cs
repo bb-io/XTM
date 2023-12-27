@@ -9,7 +9,7 @@ public class DownloadTranslationsRequest
     [Display("Job IDs")]
     public IEnumerable<string>? JobIds { get; set; }
 
-    [Display("Target language")]
+    [Display("Target languages")]
     [DataSource(typeof(ProjectTargetLanguageDataSourceHandler))]
     public IEnumerable<string>? TargetLanguages { get; set; }
 }

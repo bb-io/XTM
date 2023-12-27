@@ -3,6 +3,7 @@ using Apps.XTM.DataSourceHandlers.EnumHandlers;
 using Apps.XTM.Utils.Converters;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
+using Blackbird.Applications.Sdk.Common.Files;
 using Newtonsoft.Json;
 
 namespace Apps.XTM.Models.Request.Files;
@@ -10,7 +11,7 @@ namespace Apps.XTM.Models.Request.Files;
 public class UploadSourceFileRequest
 {
     [JsonProperty("file")]
-    public Blackbird.Applications.Sdk.Common.Files.File File { get; set; }
+    public FileReference File { get; set; }
     
     [Display("Workflow")] 
     [DataSource(typeof(WorkflowDataHandler))]
