@@ -9,6 +9,7 @@ using Apps.XTM.Models.Response.Projects;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using RestSharp;
 
@@ -17,8 +18,12 @@ namespace Apps.XTM.Actions;
 [ActionList]
 public class ProjectActions : XtmInvocable
 {
-    public ProjectActions(InvocationContext invocationContext) : base(invocationContext)
+    private readonly IFileManagementClient _fileManagementClient;
+    
+    public ProjectActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) 
+        : base(invocationContext)
     {
+        _fileManagementClient = fileManagementClient;
     }
 
     [Action("List projects", Description = "List all projects")]
@@ -200,10 +205,9 @@ public class ProjectActions : XtmInvocable
             $"{ApiEndpoints.Projects}/{project.ProjectId}/metrics/files/download?metricsFilesType={input.MetricsFilesType}";
         var response = await Client.ExecuteXtmWithJson(endpoint, Method.Get, null, Creds);
 
-        return new(new(response.RawBytes)
-        {
-            Name = $"{project.ProjectId}.xlsx",
-            ContentType = MediaTypeNames.Application.Octet
-        });
+        using var stream = new MemoryStream(response.RawBytes);
+        var file = await _fileManagementClient.UploadAsync(stream,
+            response.ContentType ?? MediaTypeNames.Application.Octet, $"{project.ProjectId}.xlsx");
+        return new(file);
     }
 }

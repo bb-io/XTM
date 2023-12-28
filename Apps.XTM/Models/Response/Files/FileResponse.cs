@@ -1,5 +1,5 @@
-﻿using File = Blackbird.Applications.Sdk.Common.Files.File;
+﻿using Blackbird.Applications.Sdk.Common.Files;
 
 namespace Apps.XTM.Models.Response.Files;
 
-public record FileResponse(File File);
+public record FileResponse(FileReference File);

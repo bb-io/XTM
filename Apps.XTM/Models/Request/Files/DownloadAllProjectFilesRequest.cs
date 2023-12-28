@@ -15,7 +15,7 @@ public class DownloadAllProjectFilesRequest
     [DataSource(typeof(FileTypeDataHandler))]
     public string FileType { get; set; }
     
-    [Display("Target language")]
+    [Display("Target languages")]
     [DataSource(typeof(ProjectTargetLanguageDataSourceHandler))]
     public IEnumerable<string>? TargetLanguages { get; set; }
     
