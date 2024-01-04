@@ -22,8 +22,8 @@ namespace Apps.XTM.Actions;
 public class FileActions : XtmInvocable
 {
     private readonly IFileManagementClient _fileManagementClient;
-    
-    public FileActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) 
+
+    public FileActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
         : base(invocationContext)
     {
         _fileManagementClient = fileManagementClient;
@@ -50,12 +50,12 @@ public class FileActions : XtmInvocable
         Description = "Download the source files for project or specific jobs as ZIP")]
     public async Task<FileResponse> DownloadSourceFilesAsZip(
         [ActionParameter] ProjectRequest project,
-        [ActionParameter] [Display("Job IDs")] string[]? jobIds)
+        [ActionParameter] JobsRequest jobs)
     {
         var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/sources/download";
 
-        if (jobIds != null)
-            url += $"?{string.Join("&", jobIds.Select(x => $"jobIds={x}"))}";
+        if (jobs.JobIds != null)
+            url += $"?{string.Join("&", jobs.JobIds.Select(x => $"jobIds={x}"))}";
 
         var response = await Client.ExecuteXtmWithJson(url,
             Method.Get,
@@ -65,30 +65,31 @@ public class FileActions : XtmInvocable
         using var stream = new MemoryStream(response.RawBytes);
         var file = await _fileManagementClient.UploadAsync(stream,
             response.ContentType ?? MediaTypeNames.Application.Octet, $"Project-{project.ProjectId}SourceFiles.zip");
+
         return new(file);
     }
 
     [Action("Download source files", Description = "Download the source files for project or specific jobs")]
     public async Task<DownloadFilesResponse<XtmSourceFileDescription>> DownloadSourceFiles(
         [ActionParameter] ProjectRequest project,
-        [ActionParameter] [Display("Job IDs")] string[]? jobIds)
+        [ActionParameter] JobsRequest jobs)
     {
         var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/sources/download";
 
-        if (jobIds != null)
-            url += $"?{string.Join("&", jobIds.Select(x => $"jobIds={x}"))}";
+        if (jobs.JobIds != null)
+            url += $"?{string.Join("&", jobs.JobIds.Select(x => $"jobIds={x}"))}";
 
         var response = await Client.ExecuteXtmWithJson(url,
             Method.Get,
             null,
             Creds);
-        
+
         var files = await response.RawBytes.GetFilesFromZip(_fileManagementClient);
         var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmSourceFileDescription>>
             (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString());
-        
+
         var result = new List<FileWithData<XtmSourceFileDescription>>();
-        
+
         foreach (var file in files)
             result.Add(new()
             {
@@ -104,13 +105,14 @@ public class FileActions : XtmInvocable
         [ActionParameter] ProjectRequest project,
         [ActionParameter] DownloadProjectFileRequest input)
     {
-        var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/{input.FileId}/download?fileScope={input.FileScope}";
+        var url =
+            $"{ApiEndpoints.Projects}/{project.ProjectId}/files/{input.FileId}/download?fileScope={input.FileScope}";
 
         var response = await Client.ExecuteXtmWithJson(url,
             Method.Get,
             null,
             Creds);
-        
+
         var file = (await response.RawBytes.GetFilesFromZip(_fileManagementClient)).First();
         var xtmFileDescription = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
             (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString()).First();
@@ -122,7 +124,7 @@ public class FileActions : XtmInvocable
             FileDescription = xtmFileDescription
         };
     }
-    
+
     [Action("Download all project files", Description = "Download all of the project files")]
     public async Task<DownloadFilesResponse<XtmProjectFileDescription>> DownloadProjectFiles(
         [ActionParameter] ProjectRequest project,
@@ -135,13 +137,13 @@ public class FileActions : XtmInvocable
             { "fileScope", input.FileScope },
             { "fileType", input.FileType }
         };
-        
+
         if (input.JobIds != null)
             queryParameters.Add("jobIds", string.Join(",", input.JobIds));
-        
+
         if (input.TargetLanguages != null)
             queryParameters.Add("targetLanguages", string.Join(",", input.TargetLanguages));
-        
+
         var response = await Client.ExecuteXtmWithJson(url.WithQuery(queryParameters),
             Method.Get,
             null,
@@ -163,7 +165,7 @@ public class FileActions : XtmInvocable
 
         return new(result);
     }
-    
+
     [Action("Download translated files", Description = "Download project's translated files")]
     public async Task<DownloadFilesResponse<XtmProjectFileDescription>> DownloadTranslations(
         [ActionParameter] ProjectRequest project,
@@ -176,13 +178,13 @@ public class FileActions : XtmInvocable
             { "fileScope", "JOB" },
             { "fileType", "TARGET" }
         };
-        
+
         if (input.JobIds != null)
             queryParameters.Add("jobIds", string.Join(",", input.JobIds));
-        
+
         if (input.TargetLanguages != null)
             queryParameters.Add("targetLanguages", string.Join(",", input.TargetLanguages));
-        
+
         var response = await Client.ExecuteXtmWithJson(url.WithQuery(queryParameters),
             Method.Get,
             null,
