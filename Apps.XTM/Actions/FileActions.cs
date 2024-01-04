@@ -50,12 +50,12 @@ public class FileActions : XtmInvocable
         Description = "Download the source files for project or specific jobs as ZIP")]
     public async Task<FileResponse> DownloadSourceFilesAsZip(
         [ActionParameter] ProjectRequest project,
-        [ActionParameter] [Display("Job IDs")] string[]? jobIds)
+        [ActionParameter] JobsRequest jobs)
     {
         var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/sources/download";
 
-        if (jobIds != null)
-            url += $"?{string.Join("&", jobIds.Select(x => $"jobIds={x}"))}";
+        if (jobs.JobIds != null)
+            url += $"?{string.Join("&", jobs.JobIds.Select(x => $"jobIds={x}"))}";
 
         var response = await Client.ExecuteXtmWithJson(url,
             Method.Get,
@@ -65,18 +65,19 @@ public class FileActions : XtmInvocable
         using var stream = new MemoryStream(response.RawBytes);
         var file = await _fileManagementClient.UploadAsync(stream,
             response.ContentType ?? MediaTypeNames.Application.Octet, $"Project-{project.ProjectId}SourceFiles.zip");
+      
         return new(file);
     }
 
     [Action("Download source files", Description = "Download the source files for project or specific jobs")]
     public async Task<DownloadFilesResponse<XtmSourceFileDescription>> DownloadSourceFiles(
         [ActionParameter] ProjectRequest project,
-        [ActionParameter] [Display("Job IDs")] string[]? jobIds)
+        [ActionParameter] JobsRequest jobs)
     {
         var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/sources/download";
 
-        if (jobIds != null)
-            url += $"?{string.Join("&", jobIds.Select(x => $"jobIds={x}"))}";
+        if (jobs.JobIds != null)
+            url += $"?{string.Join("&", jobs.JobIds.Select(x => $"jobIds={x}"))}";
 
         var response = await Client.ExecuteXtmWithJson(url,
             Method.Get,
