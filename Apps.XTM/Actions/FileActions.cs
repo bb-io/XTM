@@ -91,11 +91,13 @@ public class FileActions : XtmInvocable
         var result = new List<FileWithData<XtmSourceFileDescription>>();
 
         foreach (var file in files)
+        {
             result.Add(new()
             {
                 Content = file.File,
-                FileDescription = xtmFileDescriptions.First(description => description.FileName == file.File.Name)
+                FileDescription = xtmFileDescriptions?.FirstOrDefault(description => description.FileName == file.File.Name)
             });
+        }
 
         return new(result);
     }
