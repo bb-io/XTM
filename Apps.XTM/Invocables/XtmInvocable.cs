@@ -14,7 +14,7 @@ public class XtmInvocable : BaseInvocable
     protected XTMClient Client { get; }
     protected string Url => Creds.GetInstanceUrl();
 
-    protected ProjectManagerMTOMWebServiceClient ProjectManagerMTOClient => new(ProjectManagerMTOMWebServiceClient.EndpointConfiguration.XTMProjectManagerMTOMWebServicePort, Url.TrimEnd('/') + "/XTMWebService");
+    protected ProjectManagerMTOMWebServiceClient ProjectManagerMTOClient => new(ProjectManagerMTOMWebServiceClient.EndpointConfiguration.XTMProjectManagerMTOMWebServicePort, Url.Replace("api", "gui").TrimEnd('/') + "/XTMWebService");
 
     protected XtmInvocable(InvocationContext invocationContext) : base(invocationContext)
     {
