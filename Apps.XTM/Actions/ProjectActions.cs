@@ -244,9 +244,15 @@ public class ProjectActions : XtmInvocable
             id = ParseLong(project.ProjectId)
         };
 
-        var result = await this.ProjectManagerMTOClient.checkProjectCompletionAsync(loginApi, xtmProjectDescriptorApi, new xtmCheckProjectCompletionOptionsAPI());
-
-        return BuildProjectCompletionResponse(result);
+        try
+        {
+            var result = await this.ProjectManagerMTOClient.checkProjectCompletionAsync(loginApi, xtmProjectDescriptorApi, new xtmCheckProjectCompletionOptionsAPI());
+            return BuildProjectCompletionResponse(result);
+        }
+        catch (Exception e)
+        {
+            throw new Exception($"Error while getting project completion. Soap URI: {SoapUrl}; Type: {e.GetType()}; Message: {e.Message}; Inner exception message: {e.InnerException?.Message}");
+        }
     }
 
     private ProjectCompletionResponse BuildProjectCompletionResponse(checkProjectCompletionResponse response)
