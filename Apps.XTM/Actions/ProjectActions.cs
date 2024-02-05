@@ -239,16 +239,16 @@ public class ProjectActions : XtmInvocable
             password = Creds.Get(CredsNames.Password),
         };
 
-        var xtmProjectDescriptorApi = new xtmProjectDescriptorAPI
-        {
-            id = ParseLong(project.ProjectId),
-            idSpecified = true,
-            projectExternalIdSpecified = false,
-            externalIdSpecified = false
-        };
-
         try
         {
+            var xtmProjectDescriptorApi = new xtmProjectDescriptorAPI
+            {
+                id = ParseLong(project.ProjectId),
+                idSpecified = true,
+                projectExternalIdSpecified = false,
+                externalIdSpecified = false
+            };
+
             var result = await this.ProjectManagerMTOClient.checkProjectCompletionAsync(loginApi, xtmProjectDescriptorApi, new xtmCheckProjectCompletionOptionsAPI());
             return BuildProjectCompletionResponse(result);
         }
