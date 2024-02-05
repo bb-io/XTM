@@ -235,75 +235,19 @@ public class ProjectActions : XtmInvocable
         {
             client = Creds.Get(CredsNames.Client),
             userIdSpecified = true,
-            userId = ParseLong(userId),
+            userId = ParseId(userId),
             password = Creds.Get(CredsNames.Password),
         };
 
-
         var xtmProjectDescriptorApi = new xtmProjectDescriptorAPI
         {
-            id = ParseLong(project.ProjectId),
+            id = ParseId(project.ProjectId),
             idSpecified = true,
             projectExternalIdSpecified = false,
             externalIdSpecified = false
         };
 
-        try
-        {
-            var result = await this.ProjectManagerMTOClient.checkProjectCompletionAsync(loginApi, xtmProjectDescriptorApi, new xtmCheckProjectCompletionOptionsAPI());
-            return BuildProjectCompletionResponse(result);
-        }
-        catch (Exception e)
-        {
-            throw new Exception($"Error while getting project completion. Soap URI: {SoapUrl}; Type: {e.GetType()}; Message: {e.Message}; Inner exception message: {e.InnerException?.Message}");
-        }
-    }
-
-    private ProjectCompletionResponse BuildProjectCompletionResponse(checkProjectCompletionResponse response)
-    {
-        var result = new ProjectCompletionResponse
-        {
-            Activity = response.@return.project.activity.ToString()
-        };
-
-        var jobs = new List<JobResponse>();
-
-        foreach (var job in response.@return.project.jobs)
-        {
-            var jobResponse = new JobResponse
-            {
-                JobId = job.jobDescriptor.id.ToString(),
-                FileName = job.fileName,
-                SourceFileId = job.sourceFileId.ToString(),
-                TargetLanguage = job.targetLanguage.ToString(),
-                JoinFilesType = job.joinFilesType.ToString(),
-                Steps = new List<StepResponse>()
-            };
-
-            foreach (var step in job.steps)
-            {
-                var stepResponse = new StepResponse
-                {
-                    Status = step.status.ToString(),
-                    StepName = step.stepDescriptor.workflowStepName,
-                    DueToDate = step.dueDate
-                };
-
-                jobResponse.Steps.Add(stepResponse);
-            }
-
-            jobs.Add(jobResponse);
-        }
-
-        result.Jobs = jobs;
-
-        return result;
-    }
-
-    private long ParseLong(string value)
-    {
-        return long.TryParse(value, out var result)
-            ? result 
-            : throw new ArgumentException("Invalid value");
+        checkProjectCompletionResponse result = await this.ProjectManagerMTOClient.checkProjectCompletionAsync(loginApi, xtmProjectDescriptorApi, new xtmCheckProjectCompletionOptionsAPI());
+        return new(result);
     }
 }

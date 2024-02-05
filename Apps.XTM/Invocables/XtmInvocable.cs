@@ -21,4 +21,11 @@ public class XtmInvocable : BaseInvocable
     {
         Client = new();
     }
+
+    protected long ParseId(string value)
+    {
+        return long.TryParse(value, out var result) 
+            ? result 
+            : throw new($"Failed to parse {value} to long");
+    }
 }
