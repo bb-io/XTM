@@ -1,6 +1,7 @@
 ﻿using Apps.XTM.Constants;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Response.Workflows;
+using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using RestSharp;
@@ -25,7 +26,7 @@ public class WorkflowActions : XtmInvocable
 
         return new(response);
     }
-    
+
     [Action("List workflow steps", Description = "List all workflow steps")]
     public async Task<AllWorkflowStepsResponse> ListWorkflowSteps()
     {
@@ -36,6 +37,22 @@ public class WorkflowActions : XtmInvocable
             Creds);
 
         return new(response);
+    }
+
+    [Action("Get workflow by ID", Description = "Get workflow by ID")]
+    public async Task<WorkflowResponse> GetWorkflow([ActionParameter, Display("Workflow ID")] string workflowId)
+    {
+        var workflows = await Client.ExecuteXtmWithJson<List<WorkflowResponse>>($"{ApiEndpoints.Workflows}?ids={workflowId}",
+                         Method.Get,
+                         null,
+                         Creds);
+
+        if(workflows == null || !workflows.Any())
+        {
+            throw new Exception($"Workflow with ID {workflowId} not found");
+        }
+
+        return workflows.First();
     }
 
     #endregion
