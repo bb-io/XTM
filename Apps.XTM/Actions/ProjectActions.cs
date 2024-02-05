@@ -241,7 +241,10 @@ public class ProjectActions : XtmInvocable
 
         var xtmProjectDescriptorApi = new xtmProjectDescriptorAPI
         {
-            id = ParseLong(project.ProjectId)
+            id = ParseLong(project.ProjectId),
+            idSpecified = true,
+            projectExternalIdSpecified = false,
+            externalIdSpecified = false
         };
 
         try
