@@ -8,6 +8,7 @@ using RestSharp;
 
 namespace Apps.XTM.Actions;
 
+[ActionList]
 public class WorkflowActions : XtmInvocable
 {
     public WorkflowActions(InvocationContext invocationContext) : base(invocationContext)
