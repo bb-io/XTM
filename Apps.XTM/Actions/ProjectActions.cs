@@ -13,6 +13,7 @@ using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using RestSharp;
 using Apps.XTM.Models.Response.Metrics;
+using System;
 
 namespace Apps.XTM.Actions;
 
@@ -20,7 +21,7 @@ namespace Apps.XTM.Actions;
 public class ProjectActions : XtmInvocable
 {
     private readonly IFileManagementClient _fileManagementClient;
-    
+
     public ProjectActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) 
         : base(invocationContext)
     {
@@ -213,9 +214,84 @@ public class ProjectActions : XtmInvocable
     }
 
     [Action("Get bundle metrics", Description = "Get metrics for a specific bundle")]
-    public Task<List<MetricsResponse>> GetBundleMetrics([ActionParameter] ProjectRequest project)
+    public Task<List<MetricsResponse>> GetBundleMetrics([ActionParameter] ProjectRequest project, [ActionParameter] BundleMetricsRequest request)
     {
-        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/metrics/bundles";
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Metrics}{ApiEndpoints.Bundles}";
+
+        if(request.JobId is not null)
+        {
+            endpoint += $"?jobIds={request.JobId}";
+        }
+
         return Client.ExecuteXtmWithJson<List<MetricsResponse>>(endpoint, Method.Get, null, Creds);
+    }
+
+    [Action("Get project completion", Description = "Get project completion for a specific project")]
+    public async Task<ProjectCompletionResponse> GetProjectCompletion([ActionParameter] ProjectRequest project)
+    {
+        var userId = Creds.Get(CredsNames.UserId);
+
+        var loginApi = new loginAPI
+        {
+            client = Creds.Get(CredsNames.Client),
+            userIdSpecified = true,
+            userId = ParseLong(userId),
+            password = Creds.Get(CredsNames.Password),
+        };
+
+        var xtmProjectDescriptorApi = new xtmProjectDescriptorAPI
+        {
+            id = ParseLong(project.ProjectId)
+        };
+
+        var result = await this.ProjectManagerMTOClient.checkProjectCompletionAsync(loginApi, xtmProjectDescriptorApi, new xtmCheckProjectCompletionOptionsAPI());
+
+        return BuildProjectCompletionResponse(result);
+    }
+
+    private ProjectCompletionResponse BuildProjectCompletionResponse(checkProjectCompletionResponse response)
+    {
+        var result = new ProjectCompletionResponse
+        {
+            Activity = response.@return.project.activity.ToString()
+        };
+
+        var jobs = new List<JobResponse>();
+
+        foreach (var job in response.@return.project.jobs)
+        {
+            var jobResponse = new JobResponse
+            {
+                JobId = job.jobDescriptor.id.ToString(),
+                FileName = job.fileName,
+                SourceFileId = job.sourceFileId.ToString(),
+                TargetLanguage = job.targetLanguage.ToString(),
+                JoinFilesType = job.joinFilesType.ToString(),
+                Steps = new List<StepResponse>()
+            };
+
+            foreach (var step in job.steps)
+            {
+                var stepResponse = new StepResponse
+                {
+                    Status = step.status.ToString(),
+                    StepName = step.stepDescriptor.workflowStepName,
+                    DueToDate = step.dueDate
+                };
+
+                jobResponse.Steps.Add(stepResponse);
+            }
+
+            jobs.Add(jobResponse);
+        }
+
+        return result;
+    }
+
+    private long ParseLong(string value)
+    {
+        return long.TryParse(value, out var result)
+            ? result 
+            : throw new ArgumentException("Invalid value");
     }
 }

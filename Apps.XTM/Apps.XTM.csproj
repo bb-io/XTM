@@ -10,9 +10,9 @@
         <LangVersion>11</LangVersion>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Blackbird.Applications.Sdk.Utils" Version="1.0.17"/>
+        <PackageReference Include="Blackbird.Applications.Sdk.Utils" Version="1.0.17" />
     </ItemGroup>
     <ItemGroup>
-        <EmbeddedResource CopyToOutputDirectory="Always" Include="image\icon.png"/>
+        <EmbeddedResource CopyToOutputDirectory="Always" Include="image\icon.png" />
     </ItemGroup>
 </Project>
