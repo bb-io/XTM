@@ -12,6 +12,7 @@ using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using RestSharp;
+using Apps.XTM.Models.Response.Metrics;
 
 namespace Apps.XTM.Actions;
 
@@ -209,5 +210,12 @@ public class ProjectActions : XtmInvocable
         var file = await _fileManagementClient.UploadAsync(stream,
             response.ContentType ?? MediaTypeNames.Application.Octet, $"{project.ProjectId}.xlsx");
         return new(file);
+    }
+
+    [Action("Get bundle metrics", Description = "Get metrics for a specific bundle")]
+    public Task<List<MetricsResponse>> GetBundleMetrics([ActionParameter] ProjectRequest project)
+    {
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/metrics/bundles";
+        return Client.ExecuteXtmWithJson<List<MetricsResponse>>(endpoint, Method.Get, null, Creds);
     }
 }
