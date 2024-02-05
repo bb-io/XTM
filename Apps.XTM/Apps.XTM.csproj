@@ -11,8 +11,13 @@
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="Blackbird.Applications.Sdk.Utils" Version="1.0.17" />
+        <PackageReference Include="System.ServiceModel.Http" Version="8.0.0" />
+        <PackageReference Include="System.ServiceModel.Primitives" Version="8.0.0" />
     </ItemGroup>
     <ItemGroup>
         <EmbeddedResource CopyToOutputDirectory="Always" Include="image\icon.png" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="System\ServiceModel\" />
     </ItemGroup>
 </Project>
