@@ -12,6 +12,8 @@ using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using RestSharp;
+using Apps.XTM.Models.Response.Metrics;
+using System;
 
 namespace Apps.XTM.Actions;
 
@@ -19,7 +21,7 @@ namespace Apps.XTM.Actions;
 public class ProjectActions : XtmInvocable
 {
     private readonly IFileManagementClient _fileManagementClient;
-    
+
     public ProjectActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) 
         : base(invocationContext)
     {
@@ -209,5 +211,43 @@ public class ProjectActions : XtmInvocable
         var file = await _fileManagementClient.UploadAsync(stream,
             response.ContentType ?? MediaTypeNames.Application.Octet, $"{project.ProjectId}.xlsx");
         return new(file);
+    }
+
+    [Action("Get bundle metrics", Description = "Get metrics for a specific bundle")]
+    public Task<List<MetricsResponse>> GetBundleMetrics([ActionParameter] ProjectRequest project, [ActionParameter] BundleMetricsRequest request)
+    {
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Metrics}{ApiEndpoints.Bundles}";
+
+        if(request.JobId is not null)
+        {
+            endpoint += $"?jobIds={request.JobId}";
+        }
+
+        return Client.ExecuteXtmWithJson<List<MetricsResponse>>(endpoint, Method.Get, null, Creds);
+    }
+
+    [Action("Get project completion", Description = "Get project completion for a specific project")]
+    public async Task<ProjectCompletionResponse> GetProjectCompletion([ActionParameter] ProjectRequest project)
+    {
+        var userId = Creds.Get(CredsNames.UserId);
+
+        var loginApi = new loginAPI
+        {
+            client = Creds.Get(CredsNames.Client),
+            userIdSpecified = true,
+            userId = ParseId(userId),
+            password = Creds.Get(CredsNames.Password),
+        };
+
+        var xtmProjectDescriptorApi = new xtmProjectDescriptorAPI
+        {
+            id = ParseId(project.ProjectId),
+            idSpecified = true,
+            projectExternalIdSpecified = false,
+            externalIdSpecified = false
+        };
+
+        checkProjectCompletionResponse result = await this.ProjectManagerMTOClient.checkProjectCompletionAsync(loginApi, xtmProjectDescriptorApi, new xtmCheckProjectCompletionOptionsAPI());
+        return new(result);
     }
 }

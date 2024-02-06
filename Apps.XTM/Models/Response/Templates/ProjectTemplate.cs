@@ -6,4 +6,7 @@ public class ProjectTemplate : SimpleProjectTemplateResponse
 {
     [Display("Customer ID")]
     public string CustomerId { get; set; }
+
+    [Display("Workflow ID")]
+    public string WorkflowId { get; set; }
 }
