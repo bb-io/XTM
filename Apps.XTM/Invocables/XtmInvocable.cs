@@ -1,4 +1,4 @@
-﻿using Apps.XTM.Extenstions;
+﻿using Apps.XTM.Extensions;
 using Apps.XTM.RestUtilities;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Authentication;

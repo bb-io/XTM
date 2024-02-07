@@ -250,4 +250,11 @@ public class ProjectActions : XtmInvocable
         checkProjectCompletionResponse result = await this.ProjectManagerMTOClient.checkProjectCompletionAsync(loginApi, xtmProjectDescriptorApi, new xtmCheckProjectCompletionOptionsAPI());
         return new(result);
     }
+    
+    [Action("Get project status", Description = "Get project status for a specific project")]
+    public async Task<ProjectStatusResponse> GetProjectStatus([ActionParameter] ProjectRequest project)
+    {
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Status}";
+        return await Client.ExecuteXtmWithJson<ProjectStatusResponse>(endpoint, Method.Get, null, Creds);
+    }
 }
