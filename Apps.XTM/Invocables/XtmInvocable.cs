@@ -5,6 +5,7 @@ using Apps.XTM.RestUtilities;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using RestSharp;
 using TermService;
 
 namespace Apps.XTM.Invocables;
