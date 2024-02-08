@@ -12,6 +12,7 @@ using TermService;
 
 namespace Apps.XTM.Actions
 {
+    [ActionList]
     public class GlossaryActions : XtmInvocable
     {
         private readonly IFileManagementClient _fileManagementClient;
