@@ -14,6 +14,7 @@ using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using RestSharp;
 using Apps.XTM.Models.Response.Metrics;
 using System;
+using Apps.XTM.Models.Response.User;
 
 namespace Apps.XTM.Actions;
 
@@ -256,5 +257,23 @@ public class ProjectActions : XtmInvocable
     {
         var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Status}";
         return await Client.ExecuteXtmWithJson<ProjectStatusResponse>(endpoint, Method.Get, null, Creds);
+    }
+    
+    [Action("Get project users", Description = "Get users assigned to a specific project")]
+    public async Task<ProjectUsersResponse> GetProjectUsers([ActionParameter] ProjectRequest project)
+    {
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Users}";
+        var projectUsers = await Client.ExecuteXtmWithJson<ProjectUsers>(endpoint, Method.Get, null, Creds);
+        
+        var projectUsersResponse = new ProjectUsersResponse();
+        
+        projectUsersResponse.ProjectManager = await GetUserById(projectUsers.ProjectManager.UserId);
+        projectUsersResponse.ProjectCreator = await GetUserById(projectUsers.ProjectCreator.UserId);
+        foreach (var linguist in projectUsers.Linguists)
+        {
+            projectUsersResponse.Linguists.Add(await GetUserById(linguist.UserId));
+        }
+
+        return projectUsersResponse;
     }
 }
