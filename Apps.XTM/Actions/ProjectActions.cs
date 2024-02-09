@@ -277,6 +277,16 @@ public class ProjectActions : XtmInvocable
             ProjectCreator = await GetUserById(projectUsers.ProjectCreator.UserId)
         };
 
+        if (projectUsersResponse.ProjectManager is null)
+        {
+            throw new Exception("Project manager not found");
+        }
+        
+        if (projectUsersResponse.ProjectCreator is null)
+        {
+            throw new Exception("Project creator not found");
+        }
+
         foreach (var linguist in projectUsers.Linguists)
         {
             projectUsersResponse.Linguists.Add(await GetUserById(linguist.UserId));
