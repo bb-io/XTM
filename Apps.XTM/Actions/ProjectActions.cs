@@ -265,27 +265,11 @@ public class ProjectActions : XtmInvocable
         var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Users}";
         var projectUsers = await Client.ExecuteXtmWithJson<ProjectUsers>(endpoint, Method.Get, null, Creds);
         
-        if(projectUsers.ProjectManager is null)
-            throw new Exception("Project manager not found");
-        
-        if(projectUsers.ProjectCreator is null)
-            throw new Exception("Project creator not found");
-        
         var projectUsersResponse = new ProjectUsersResponse
         {
             ProjectManager = await GetUserById(projectUsers.ProjectManager.UserId),
             ProjectCreator = await GetUserById(projectUsers.ProjectCreator.UserId)
         };
-
-        if (projectUsersResponse.ProjectManager is null)
-        {
-            throw new Exception("Project manager not found");
-        }
-        
-        if (projectUsersResponse.ProjectCreator is null)
-        {
-            throw new Exception("Project creator not found");
-        }
 
         foreach (var linguist in projectUsers.Linguists)
         {
