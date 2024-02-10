@@ -265,10 +265,12 @@ public class ProjectActions : XtmInvocable
         var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Users}";
         var projectUsers = await Client.ExecuteXtmWithJson<ProjectUsers>(endpoint, Method.Get, null, Creds);
         
-        var projectUsersResponse = new ProjectUsersResponse();
-        
-        projectUsersResponse.ProjectManager = await GetUserById(projectUsers.ProjectManager.UserId);
-        projectUsersResponse.ProjectCreator = await GetUserById(projectUsers.ProjectCreator.UserId);
+        var projectUsersResponse = new ProjectUsersResponse
+        {
+            ProjectManager = await GetUserById(projectUsers.ProjectManager.UserId),
+            ProjectCreator = await GetUserById(projectUsers.ProjectCreator.UserId)
+        };
+
         foreach (var linguist in projectUsers.Linguists)
         {
             projectUsersResponse.Linguists.Add(await GetUserById(linguist.UserId));
