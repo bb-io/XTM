@@ -14,7 +14,7 @@ namespace Apps.XTM.Models.Response.Glossaries
         public MartifHeader MartifHeader { get; set; }
 
         [XmlElement(ElementName = "text")]
-        public List<Text> Text { get; set; }
+        public Text Text { get; set; }
 
         [XmlAttribute(AttributeName = "type")]
         public string Type { get; set; }
@@ -22,13 +22,6 @@ namespace Apps.XTM.Models.Response.Glossaries
         [XmlAttribute(AttributeName = "lang")]
         public string Lang { get; set; }
     }
-
-    // using System.Xml.Serialization;
-    // XmlSerializer serializer = new XmlSerializer(typeof(Martif));
-    // using (StringReader reader = new StringReader(xml))
-    // {
-    //    var test = (Martif)serializer.Deserialize(reader);
-    // }
 
     [XmlRoot(ElementName = "sourceDesc")]
     public class SourceDesc
@@ -158,7 +151,7 @@ namespace Apps.XTM.Models.Response.Glossaries
         [XmlElement(ElementName = "ntig")]
         public Ntig Ntig { get; set; }
 
-        [XmlAttribute(AttributeName = "lang")]
+        [XmlAttribute(AttributeName = "xml:lang")]
         public string Lang { get; set; }
 
         [XmlText]

@@ -10,10 +10,7 @@ namespace Apps.XTM.Models.Response.Glossaries
 {
     public class ExportGlossaryResponse
     {
-        //[Display("Glossary")]
-        //public FileReference File { get; set; }
-
-        [Display("Test")]
-        public string Filenames { get; set; }
+        [Display("Glossary")]
+        public FileReference File { get; set; }
     }
 }

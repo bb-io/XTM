@@ -1,7 +1,7 @@
 ﻿using Apps.XTM.DataSourceHandlers;
-using Apps.XTM.DataSourceHandlers.EnumHandlers;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
+using Blackbird.Applications.Sdk.Common.Files;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,14 +10,13 @@ using System.Threading.Tasks;
 
 namespace Apps.XTM.Models.Request.Glossaries
 {
-    public class GlossaryRequest
+    public class ImportGlossaryRequest
     {
+        [Display("Glossary", Description = "Glossary file exported from other Blackbird apps")]
+        public FileReference File { get; set; }
+
         [Display("Customer ID")]
         [DataSource(typeof(CustomerDataHandler))]
         public string CustomerId { get; set; }
-
-        [Display("Translation languages")]
-        [DataSource(typeof(LanguageDataHandler))]
-        public List<string>? Languages { get; set; }
     }
 }
