@@ -60,7 +60,7 @@ namespace Apps.XTM.Actions
                     customer = customerForExport,
                     translationLanguages = request.Languages == null ? 
                     Enum.GetValues(typeof(TermService.languageCODE)).Cast<TermService.languageCODE?>().ToArray() :
-                    request.Languages.Select(x => (TermService.languageCODE?)Enum.Parse(typeof(TermService.languageCODE?), x)).ToArray()
+                    request.Languages.Select(x => (TermService.languageCODE?)Enum.Parse(typeof(TermService.languageCODE), x)).ToArray()
                 }
             }, new xtmExportTermOptionsAPI());
             var fileDescriptors = result.@return.Select(x => new xtmTermBaseFileDescriptorAPI() { id = x.id, idSpecified = true }).ToArray();
