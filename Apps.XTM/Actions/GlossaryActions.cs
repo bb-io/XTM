@@ -77,7 +77,12 @@ namespace Apps.XTM.Actions
                     fileTypeSpecified = true
                 }
             },
-            new xtmImportTermMTOMOptionsAPI() { purgeTermsSpecified = false, addToExistingTermsSpecified = false }); //{ addToExistingTermsSpecified = false, purgeTermsSpecified = false}
+            new xtmImportTermMTOMOptionsAPI() { 
+                purgeTerms = request.PurgeTerms != null ? request.PurgeTerms.Value : default,
+                purgeTermsSpecified = request.PurgeTerms != null,
+                addToExistingTerms = request.AddToExisting != null ? request.AddToExisting.Value : default,
+                addToExistingTermsSpecified = request.AddToExisting != null
+            });
 
             var fileDescriptors = resultFile.@return.Select(x => new xtmTermBaseFileDescriptorAPI() { id = x.id, idSpecified = true }).ToArray();
             await PollTermFileOperationStatus(fileDescriptors);

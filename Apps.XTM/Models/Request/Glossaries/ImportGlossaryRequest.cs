@@ -18,5 +18,11 @@ namespace Apps.XTM.Models.Request.Glossaries
         [Display("Customer ID")]
         [DataSource(typeof(CustomerDataHandler))]
         public string CustomerId { get; set; }
+
+        [Display("Purge terms")]
+        public bool? PurgeTerms { get; set; }
+
+        [Display("Add to existing terms")]
+        public bool? AddToExisting { get; set; }
     }
 }
