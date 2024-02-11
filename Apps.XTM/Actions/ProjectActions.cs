@@ -278,4 +278,19 @@ public class ProjectActions : XtmInvocable
 
         return projectUsersResponse;
     }
+    
+    [Action("Get project details", Description = "Get project details for a specific project")]
+    public async Task<ProjectDetailsResponse> GetProjectDetails([ActionParameter] ProjectRequest project)
+    {
+        var projectCompletion = await GetProjectCompletion(project);
+        var projectStatus = await GetProjectStatus(project);
+        var getProjectEstimates = await GetProjectEstimates(project);
+        
+        return new ProjectDetailsResponse
+        {
+            ProjectCompletion = projectCompletion,
+            ProjectStatus = projectStatus,
+            ProjectEstimates = getProjectEstimates
+        };
+    }
 }
