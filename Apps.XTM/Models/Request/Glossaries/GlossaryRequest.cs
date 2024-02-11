@@ -16,8 +16,26 @@ namespace Apps.XTM.Models.Request.Glossaries
         [DataSource(typeof(CustomerDataHandler))]
         public string CustomerId { get; set; }
 
+        [Display("Main language")]
+        [DataSource(typeof(LanguageDataHandler))]
+        public string? MainLanguage { get; set; }
+
         [Display("Translation languages")]
         [DataSource(typeof(LanguageDataHandler))]
         public List<string>? Languages { get; set; }
+
+        [Display("Status")]
+        [DataSource(typeof(TermStatusDataHandler))]
+        public string? Status { get; set; }
+
+        [Display("Columns to export")]
+        [DataSource(typeof(TermColumnsDataHandler))]
+        public List<string>? Columns { get; set; }
+
+        [Display("Domain")]
+        public string? Domain { get; set; }
+
+        [Display("All languages")]
+        public bool? AllLanguages { get; set; }
     }
 }

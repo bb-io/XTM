@@ -49,4 +49,17 @@ public class XtmInvocable : BaseInvocable
         
         return response.First();
     }
+
+    protected TermService.loginAPI GetLoginAPIObj()
+    {
+        var userId = Creds.Get(CredsNames.UserId);
+
+        return new TermService.loginAPI
+        {
+            client = Creds.Get(CredsNames.Client),
+            userIdSpecified = true,
+            userId = ParseId(userId),
+            password = Creds.Get(CredsNames.Password),
+        };
+    }
 }

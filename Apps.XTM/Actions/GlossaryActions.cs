@@ -14,6 +14,8 @@ using DocumentFormat.OpenXml.Vml.Office;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Converters;
 using System.Net.Mime;
 using System.Xml;
+using DocumentFormat.OpenXml.Office2016.Excel;
+using Blackbird.Applications.Sdk.Common.Files;
 
 
 namespace Apps.XTM.Actions
@@ -32,52 +34,82 @@ namespace Apps.XTM.Actions
         [Action("Export glossary", Description = "Export glossary")]
         public async Task<ExportGlossaryResponse> ExportGlossary([ActionParameter] GlossaryRequest request)
         {
-            var userId = Creds.Get(CredsNames.UserId);
-
-            var loginApi = new TermService.loginAPI
-            {
-                client = Creds.Get(CredsNames.Client),
-                userIdSpecified = true,
-                userId = ParseId(userId),
-                password = Creds.Get(CredsNames.Password),
-            };
-
-            var customerForExport = new TermService.xtmCustomerDescriptorAPI() 
-            { 
-                id = ParseId(request.CustomerId), 
-                externalIdSpecified = false, 
-                idSpecified = true 
-            };
-            var result = await TermWebServiceClient.exportTermAsync(loginApi, new xtmExportTermAPI[] {
-                new xtmExportTermAPI() { 
-                    fileType = xtmTermFileTypeEnum.TBX, 
+            var result = await TermWebServiceClient.exportTermAsync(GetLoginAPIObj(), new xtmExportTermAPI[] {
+                new xtmExportTermAPI() {
+                    fileType = xtmTermFileTypeEnum.TBX,
                     fileTypeSpecified = true,
+                    status = request.Status != null ? Enum.Parse<xtmTermStatusEnum>(request.Status) : xtmTermStatusEnum.ALL,
                     statusSpecified = true,
-                    status = xtmTermStatusEnum.ALL,
-                    allLanguages = true,
+                    allLanguages = request.AllLanguages != null ? request.AllLanguages.Value : false,
                     allLanguagesSpecified = true,
-                    mainLanguageSpecified = false,
-                    customer = customerForExport,
-                    translationLanguages = request.Languages == null ? 
+                    mainLanguage = request.MainLanguage != null ? Enum.Parse<TermService.languageCODE>(request.MainLanguage) : default,
+                    mainLanguageSpecified = request.MainLanguage != null,
+                    customer = GetTermsCustomer(request.CustomerId),
+                    domain = request.Domain != null ? new xtmTermDomainAPI(){ name = request.Domain } : default,
+                    columnsToExport = request.Columns != null ? request.Columns.Select(x => (xtmTermColumnsEnum?)Enum.Parse<xtmTermColumnsEnum>(x)).ToArray() : default,
+                    translationLanguages = request.Languages == null ?
                     Enum.GetValues(typeof(TermService.languageCODE)).Cast<TermService.languageCODE?>().ToArray() :
-                    request.Languages.Select(x => (TermService.languageCODE?)Enum.Parse(typeof(TermService.languageCODE), x)).ToArray()
+                    request.Languages.Select(x => (TermService.languageCODE?)Enum.Parse<TermService.languageCODE>(x)).ToArray()
                 }
-            }, new xtmExportTermOptionsAPI());
+            }, new xtmExportTermOptionsAPI()) ;
+
             var fileDescriptors = result.@return.Select(x => new xtmTermBaseFileDescriptorAPI() { id = x.id, idSpecified = true }).ToArray();
+            await PollTermFileOperationStatus(fileDescriptors);
 
+            var resultFile = await TermWebServiceClient.downloadTermMTOMAsync(GetLoginAPIObj(), fileDescriptors, new xtmDownloadTermMTOMOptionsAPI());
+            return new ExportGlossaryResponse() { File = await XTMToBlackbirdGlossary(resultFile.@return.First()) };
+        }
 
+        [Action("Import glossary", Description = "Import glossary")]
+        public async Task ImportGlossary([ActionParameter] ImportGlossaryRequest request)
+        {
+            var xtmGlossary = await BlackbirdToXTMGlossary(request.File);
+            if (xtmGlossary.Length > 7800000)
+                throw new ArgumentException("Maximum XTM glossary file size is 7.5 MB.\nPlease provide smaller file");
+
+            var resultFile = await TermWebServiceClient.importTermMTOMAsync(GetLoginAPIObj(),
+            new xtmImportTermMTOMAPI[] {
+                new xtmImportTermMTOMAPI() {
+                    fileMTOM = xtmGlossary,
+                    customer = GetTermsCustomer(request.CustomerId),
+                    fileName = request.File.Name,
+                    fileType = xtmTermFileTypeEnum.TBX,
+                    fileTypeSpecified = true
+                }
+            },
+            new xtmImportTermMTOMOptionsAPI() { purgeTermsSpecified = false, addToExistingTermsSpecified = false }); //{ addToExistingTermsSpecified = false, purgeTermsSpecified = false}
+
+            var fileDescriptors = resultFile.@return.Select(x => new xtmTermBaseFileDescriptorAPI() { id = x.id, idSpecified = true }).ToArray();
+            await PollTermFileOperationStatus(fileDescriptors);
+        }
+
+        private TermService.xtmCustomerDescriptorAPI GetTermsCustomer(string customerId)
+        {
+            return new TermService.xtmCustomerDescriptorAPI()
+            {
+                id = ParseId(customerId),
+                externalIdSpecified = false,
+                idSpecified = true
+            };
+        }
+
+        private async Task PollTermFileOperationStatus(xtmTermBaseFileDescriptorAPI[] fileDescriptors)
+        {
             while (true)
             {
-                var checkRes = await TermWebServiceClient.checkTermCompletionAsync(loginApi, fileDescriptors, new xtmCheckTermCompletionOptionsAPI());
-                if (checkRes.@return.All(x => x.status == xtmTermCompletionStatusEnum.FINISHED))
+                var checkRes = await TermWebServiceClient.checkTermCompletionAsync(GetLoginAPIObj(), fileDescriptors, new xtmCheckTermCompletionOptionsAPI());
+                if (checkRes.@return.First().status == xtmTermCompletionStatusEnum.FINISHED)
                     break;
+                else if (checkRes.@return.First().status != xtmTermCompletionStatusEnum.IN_PROGRESS)
+                    throw new ArgumentException($"Error during terms operation. Status: {checkRes.@return.First().status.ToString()}");
                 await Task.Delay(1000);
             }
+        }
 
-            var resultFile = await TermWebServiceClient.downloadTermMTOMAsync(loginApi, fileDescriptors, new xtmDownloadTermMTOMOptionsAPI());
-
+        private async Task<FileReference> XTMToBlackbirdGlossary(xtmTermMTOMResponseAPI xtmGlossary)
+        {
             XmlSerializer serializer = new XmlSerializer(typeof(XTMBasicTbxDto));
-            using var tbxFileStream = new MemoryStream(resultFile.@return.First().fileMTOM);
+            using var tbxFileStream = new MemoryStream(xtmGlossary.fileMTOM);
 
             XmlReaderSettings settings = new XmlReaderSettings();
             settings.XmlResolver = null;
@@ -85,7 +117,7 @@ namespace Apps.XTM.Actions
 
             using var reader = XmlReader.Create(tbxFileStream, settings);
             var tbxDto = (XTMBasicTbxDto)serializer.Deserialize(reader);
-            
+
 
             var conceptEntries = new List<GlossaryConceptEntry>();
             int counter = 0;
@@ -102,85 +134,43 @@ namespace Apps.XTM.Actions
                 ++counter;
             }
             var blackbirdGlossary = new Glossary(conceptEntries);
-            blackbirdGlossary.Title = resultFile.@return.First().fileName;
+            blackbirdGlossary.Title = xtmGlossary.fileName;
             using var stream = blackbirdGlossary.ConvertToTbx();
-            return new ExportGlossaryResponse() { File = await _fileManagementClient.UploadAsync(stream, MediaTypeNames.Application.Xml, blackbirdGlossary.Title) };
+            return await _fileManagementClient.UploadAsync(stream, MediaTypeNames.Application.Xml, blackbirdGlossary.Title);
         }
 
-        [Action("Import glossary", Description = "Import glossary")]
-        public async Task ImportGlossary([ActionParameter] ImportGlossaryRequest request)
+        private async Task<byte[]> BlackbirdToXTMGlossary(FileReference blackbirdGlossary)
         {
-            if (request.File.Size > 7800000)
-                throw new ArgumentException("Maximum file size for XTM glossary is 7.5 MB");
+            using var glossaryStream = await _fileManagementClient.DownloadAsync(blackbirdGlossary);
 
-            using var glossaryStream = await _fileManagementClient.DownloadAsync(request.File);
-
-            var blackbirdGlossary = await glossaryStream.ConvertFromTbx();
+            var blackbirdGlossaryObj = await glossaryStream.ConvertFromTbx();
 
             var xmBasicTbxDto = new XTMBasicTbxDto() { Text = new() { Body = new() { TermEntry = new() } } };
-            foreach (var entry in blackbirdGlossary.ConceptEntries)
+            foreach (var entry in blackbirdGlossaryObj.ConceptEntries)
             {
-                var termEntry = new TermEntry() { LangSet = new List<LangSet>()};
+                var termEntry = new TermEntry() { LangSet = new List<LangSet>() };
                 foreach (var languageSection in entry.LanguageSections)
                 {
-                    var langSet = new LangSet() { 
+                    var langSet = new LangSet()
+                    {
                         Lang = languageSection.LanguageCode,
-                        Ntig = new Ntig() { 
-                            TermGrp = new TermGrp() { 
-                                Term = languageSection.Terms.First().Term 
-                            } 
-                        } 
+                        Ntig = new Ntig()
+                        {
+                            TermGrp = new TermGrp()
+                            {
+                                Term = languageSection.Terms.First().Term
+                            }
+                        }
                     };
                     termEntry.LangSet.Add(langSet);
                 }
                 xmBasicTbxDto.Text.Body.TermEntry.Add(termEntry);
             }
 
-            var userId = Creds.Get(CredsNames.UserId);
-
-            var loginApi = new TermService.loginAPI
-            {
-                client = Creds.Get(CredsNames.Client),
-                userIdSpecified = true,
-                userId = ParseId(userId),
-                password = Creds.Get(CredsNames.Password),
-            };
             using var ms = new MemoryStream();
             XmlSerializer serializer = new XmlSerializer(typeof(XTMBasicTbxDto));
             serializer.Serialize(ms, xmBasicTbxDto);
-
-            var customerForExport = new TermService.xtmCustomerDescriptorAPI()
-            {
-                id = ParseId(request.CustomerId),
-                externalIdSpecified = false,
-                idSpecified = true
-            };
-            var fileArr = ms.ToArray();
-
-            var resultFile = await TermWebServiceClient.importTermMTOMAsync(loginApi,
-            new xtmImportTermMTOMAPI[] {
-                new xtmImportTermMTOMAPI() {
-                    fileMTOM = fileArr,
-                    customer = new TermService.xtmCustomerDescriptorAPI()
-                    {
-                        id = ParseId(request.CustomerId),
-                        externalIdSpecified = false,
-                        idSpecified = true
-                    },
-                    fileName = request.File.Name,
-                    fileType = xtmTermFileTypeEnum.TBX,
-                    fileTypeSpecified = true
-                }
-            },
-            new xtmImportTermMTOMOptionsAPI() { purgeTermsSpecified = false, addToExistingTermsSpecified = false }); //{ addToExistingTermsSpecified = false, purgeTermsSpecified = false}
-
-            while (true)
-            {
-                var checkRes = await TermWebServiceClient.checkTermCompletionAsync(loginApi, resultFile.@return.Select(x => new xtmTermBaseFileDescriptorAPI() { id = x.id, idSpecified = true }).ToArray(), new xtmCheckTermCompletionOptionsAPI());
-                if (checkRes.@return.All(x => x.status == xtmTermCompletionStatusEnum.FINISHED))
-                    break;
-                await Task.Delay(1000);
-            }
+            return ms.ToArray();
         }
     }
 }
