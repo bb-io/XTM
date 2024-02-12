@@ -21,4 +21,7 @@ public class JobResponse
     
     [Display("Join files type")]
     public string JoinFilesType { get; set; }
+
+    [Display("Steps")]
+    public List<StepResponse> Steps { get; set; }
 }

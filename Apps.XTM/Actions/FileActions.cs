@@ -83,19 +83,22 @@ public class FileActions : XtmInvocable
             Method.Get,
             null,
             Creds);
-
-        var files = await response.RawBytes.GetFilesFromZip(_fileManagementClient);
+        using var fileStream = new MemoryStream(response.RawBytes);
+        var files = await fileStream.GetFilesFromZip();
         var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmSourceFileDescription>>
             (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString());
 
         var result = new List<FileWithData<XtmSourceFileDescription>>();
 
         foreach (var file in files)
+        {
+            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
             result.Add(new()
             {
-                Content = file.File,
-                FileDescription = xtmFileDescriptions.First(description => description.FileName == file.File.Name)
+                Content = uploadedFile,
+                FileDescription = xtmFileDescriptions?.FirstOrDefault(description => description.FileName == file.UploadName)
             });
+        }
 
         return new(result);
     }
@@ -112,15 +115,15 @@ public class FileActions : XtmInvocable
             Method.Get,
             null,
             Creds);
-
-        var file = (await response.RawBytes.GetFilesFromZip(_fileManagementClient)).First();
+        using var fileStream = new MemoryStream(response.RawBytes);
+        var file = (await fileStream.GetFilesFromZip()).First();
         var xtmFileDescription = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
             (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString()).First();
-        xtmFileDescription.FileName = file.File.Name;
-
+        xtmFileDescription.FileName = file.UploadName;
+        var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
         return new()
         {
-            Content = file.File,
+            Content = uploadedFile,
             FileDescription = xtmFileDescription
         };
     }
@@ -149,17 +152,19 @@ public class FileActions : XtmInvocable
             null,
             Creds);
 
-        var files = await response.RawBytes.GetFilesFromZip(_fileManagementClient);
+        using var fileStream = new MemoryStream(response.RawBytes);
+        var files = await fileStream.GetFilesFromZip();
         var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
             (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString());
 
         var result = new List<FileWithData<XtmProjectFileDescription>>();
         foreach (var file in files)
         {
+            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
             result.Add(new()
             {
-                Content = file.File,
-                FileDescription = xtmFileDescriptions.First(description => description.FileName == file.File.Name)
+                Content = uploadedFile,
+                FileDescription = xtmFileDescriptions.First(description => description.FileName == file.UploadName)
             });
         }
 
@@ -190,17 +195,19 @@ public class FileActions : XtmInvocable
             null,
             Creds);
 
-        var files = await response.RawBytes.GetFilesFromZip(_fileManagementClient);
+        using var fileStream = new MemoryStream(response.RawBytes);
+        var files = await fileStream.GetFilesFromZip();
         var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
             (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString());
 
         var result = new List<FileWithData<XtmProjectFileDescription>>();
         foreach (var file in files)
         {
+            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
             result.Add(new()
             {
-                Content = file.File,
-                FileDescription = xtmFileDescriptions.First(description => description.FileName == file.File.Name)
+                Content = uploadedFile,
+                FileDescription = xtmFileDescriptions.First(description => description.FileName == file.UploadName)
             });
         }
 
