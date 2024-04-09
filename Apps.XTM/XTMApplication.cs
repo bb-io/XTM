@@ -1,12 +1,19 @@
 ﻿using Blackbird.Applications.Sdk.Common;
+using Blackbird.Applications.Sdk.Common.Metadata;
 
 namespace Apps.XTM;
 
-public class XTMApplication : IApplication
+public class XTMApplication : IApplication, ICategoryProvider
 {
     private string _name;
     private readonly Dictionary<Type, object> _typesInstances;
 
+    public IEnumerable<ApplicationCategory> Categories
+    {
+        get => [ApplicationCategory.CatAndTms];
+        set { }
+    }
+    
     public XTMApplication()
     {
         _name = "XTM";

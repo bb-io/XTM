@@ -7,9 +7,10 @@
         <Version>3.1.2</Version>
         <Description>Translation management system that centralizes localization assets and enables fast, accurate translation and deployment of content tailored to any audience in any territory</Description>
         <AssemblyName>Apps.XTM</AssemblyName>
-        <LangVersion>11</LangVersion>
+        <LangVersion>12</LangVersion>
     </PropertyGroup>
     <ItemGroup>
+        <PackageReference Include="Blackbird.Applications.Sdk.Common" Version="2.6.0"/>
         <PackageReference Include="Blackbird.Applications.Sdk.Utils" Version="1.0.17"/>
     </ItemGroup>
     <ItemGroup>
