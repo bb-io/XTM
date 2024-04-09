@@ -12,4 +12,7 @@ public static class ApiEndpoints
     public const string Users = "/users";
     public const string SubjectMatters = "/subject-matters";
     public const string TMFiles = "/translation-memory/files";
+    public const string Metrics = "/metrics";
+    public const string Bundles = "/bundles";
+    public const string Status = "/status";
 }

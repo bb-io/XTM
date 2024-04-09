@@ -1,5 +1,6 @@
 ﻿using Apps.XTM.Constants;
 using Apps.XTM.Invocables;
+using Apps.XTM.Models.Request.Users;
 using Apps.XTM.Models.Response.User;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
@@ -23,5 +24,11 @@ public class UserActions : XtmInvocable
             Creds);
 
         return new(response);
+    }
+    
+    [Action("Get user", Description = "Get user by id")]
+    public async Task<UserResponse> GetUserById(GetUserByIdRequest request)
+    {
+        return await base.GetUserById(request.Id);
     }
 }

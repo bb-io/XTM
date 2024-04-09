@@ -12,6 +12,9 @@ using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using RestSharp;
+using Apps.XTM.Models.Response.Metrics;
+using System;
+using Apps.XTM.Models.Response.User;
 
 namespace Apps.XTM.Actions;
 
@@ -19,7 +22,7 @@ namespace Apps.XTM.Actions;
 public class ProjectActions : XtmInvocable
 {
     private readonly IFileManagementClient _fileManagementClient;
-    
+
     public ProjectActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) 
         : base(invocationContext)
     {
@@ -209,5 +212,85 @@ public class ProjectActions : XtmInvocable
         var file = await _fileManagementClient.UploadAsync(stream,
             response.ContentType ?? MediaTypeNames.Application.Octet, $"{project.ProjectId}.xlsx");
         return new(file);
+    }
+
+    [Action("Get bundle metrics", Description = "Get metrics for a specific bundle")]
+    public Task<List<MetricsResponse>> GetBundleMetrics([ActionParameter] ProjectRequest project, [ActionParameter] BundleMetricsRequest request)
+    {
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Metrics}{ApiEndpoints.Bundles}";
+
+        if(request.JobId is not null)
+        {
+            endpoint += $"?jobIds={request.JobId}";
+        }
+
+        return Client.ExecuteXtmWithJson<List<MetricsResponse>>(endpoint, Method.Get, null, Creds);
+    }
+
+    [Action("Get project completion", Description = "Get project completion for a specific project")]
+    public async Task<ProjectCompletionResponse> GetProjectCompletion([ActionParameter] ProjectRequest project)
+    {
+        var userId = Creds.Get(CredsNames.UserId);
+
+        var loginApi = new loginAPI
+        {
+            client = Creds.Get(CredsNames.Client),
+            userIdSpecified = true,
+            userId = ParseId(userId),
+            password = Creds.Get(CredsNames.Password),
+        };
+
+        var xtmProjectDescriptorApi = new xtmProjectDescriptorAPI
+        {
+            id = ParseId(project.ProjectId),
+            idSpecified = true,
+            projectExternalIdSpecified = false,
+            externalIdSpecified = false
+        };
+
+        checkProjectCompletionResponse result = await this.ProjectManagerMTOClient.checkProjectCompletionAsync(loginApi, xtmProjectDescriptorApi, new xtmCheckProjectCompletionOptionsAPI());
+        return new(result);
+    }
+    
+    [Action("Get project status", Description = "Get project status for a specific project")]
+    public async Task<ProjectStatusResponse> GetProjectStatus([ActionParameter] ProjectRequest project)
+    {
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Status}";
+        return await Client.ExecuteXtmWithJson<ProjectStatusResponse>(endpoint, Method.Get, null, Creds);
+    }
+    
+    [Action("Get project users", Description = "Get users assigned to a specific project")]
+    public async Task<ProjectUsersResponse> GetProjectUsers([ActionParameter] ProjectRequest project)
+    {
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Users}";
+        var projectUsers = await Client.ExecuteXtmWithJson<ProjectUsers>(endpoint, Method.Get, null, Creds);
+        
+        var projectUsersResponse = new ProjectUsersResponse
+        {
+            ProjectManager = await GetUserById(projectUsers.ProjectManager.UserId),
+            ProjectCreator = await GetUserById(projectUsers.ProjectCreator.UserId)
+        };
+
+        foreach (var linguist in projectUsers.Linguists)
+        {
+            projectUsersResponse.Linguists.Add(await GetUserById(linguist.UserId));
+        }
+
+        return projectUsersResponse;
+    }
+    
+    [Action("Get project details", Description = "Get project details for a specific project")]
+    public async Task<ProjectDetailsResponse> GetProjectDetails([ActionParameter] ProjectRequest project)
+    {
+        var projectCompletion = await GetProjectCompletion(project);
+        var projectStatus = await GetProjectStatus(project);
+        var getProjectEstimates = await GetProjectEstimates(project);
+        
+        return new ProjectDetailsResponse
+        {
+            ProjectCompletion = projectCompletion,
+            ProjectStatus = projectStatus,
+            ProjectEstimates = getProjectEstimates
+        };
     }
 }

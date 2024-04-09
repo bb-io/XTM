@@ -21,4 +21,10 @@ public static class CredsExtensions
     
         return hash.ToString();
     }
+    
+    public static string GetInstanceUrl(this IEnumerable<AuthenticationCredentialsProvider> creds)
+    {
+        return creds.FirstOrDefault(x => x.KeyName == CredsNames.Url)
+            ?.Value ?? string.Empty;
+    }
 }
