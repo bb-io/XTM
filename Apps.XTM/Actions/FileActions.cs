@@ -258,10 +258,16 @@ public class FileActions : XtmInvocable
         }
 
         parameters.ToList().ForEach(x => request.AddParameter(x.Key, x.Value));
+        
+        string fileName = input.Name ?? input.File.Name;
+        if (string.IsNullOrEmpty(fileName))
+        {
+            throw new("File name is required");
+        }
 
         var fileStream = await _fileManagementClient.DownloadAsync(input.File);
         var fileBytes = await fileStream.GetByteData();
-        request.AddFile("files[0].file", fileBytes, input.Name ?? input.File.Name);
+        request.AddFile("files[0].file", fileBytes, fileName);
         request.AlwaysMultipartFormData = true;
 
         return await Client.ExecuteXtm<CreateProjectResponse>(request);
