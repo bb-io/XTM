@@ -88,7 +88,7 @@ public class XTMClient : RestClient
 
     public async Task<string> GetToken(AuthenticationCredentialsProvider[] creds)
     {
-        var url = creds.Get(CredsNames.Url);
+        var url = creds.GetUrl();
 
         var client = creds.Get(CredsNames.Client);
         var userId = creds.Get(CredsNames.UserId);
