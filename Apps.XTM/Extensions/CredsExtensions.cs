@@ -30,6 +30,10 @@ public static class CredsExtensions
     
     public static string GetUrl(this IEnumerable<AuthenticationCredentialsProvider> creds)
     {
-        return creds.Get(CredsNames.Url).TrimEnd('/') + "/project-manager-api-rest";
+        var url = creds.Get(CredsNames.Url).TrimEnd('/');
+        if(url.Contains("/project-manager-api-rest"))
+            return url;
+        
+        return url + "/project-manager-api-rest";
     }
 }
