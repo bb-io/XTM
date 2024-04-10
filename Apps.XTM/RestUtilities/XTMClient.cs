@@ -21,7 +21,7 @@ public class XTMClient : RestClient
 
         var request = new XTMRequest(new()
         {
-            Url = creds.Get(CredsNames.Url) + endpoint,
+            Url = creds.GetUrl() + endpoint,
             Method = method
         }, token);
 
