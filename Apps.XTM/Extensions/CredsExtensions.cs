@@ -27,4 +27,13 @@ public static class CredsExtensions
         return creds.FirstOrDefault(x => x.KeyName == CredsNames.Url)
             ?.Value ?? string.Empty;
     }
+    
+    public static string GetUrl(this IEnumerable<AuthenticationCredentialsProvider> creds)
+    {
+        var url = creds.Get(CredsNames.Url).TrimEnd('/');
+        if(url.Contains("/project-manager-api-rest"))
+            return url;
+        
+        return url + "/project-manager-api-rest";
+    }
 }
