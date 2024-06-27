@@ -19,4 +19,6 @@ public class FullProject
     [Display("Target languages")] public IEnumerable<string> TargetLanguages { get; set; }
 
     [Display("Template ID")] public string TemplateId { get; set; }
+    
+    public string Status { get; set; }
 }

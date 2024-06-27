@@ -78,6 +78,8 @@ Before you can connect you need to make sure that:
 - **On project accepted**
 - **On project finished**
 - **On invoice status changed**
+- **On projects created**
+- **On project status changed**
 
 ## Missing features
 
