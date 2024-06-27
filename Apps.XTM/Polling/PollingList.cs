@@ -20,22 +20,22 @@ public class PollingList : XtmInvocable
     {
     }
 
-    [PollingEvent("On projects created", "On any new projects created")]
+    [PollingEvent("On projects created (polling)", "On any new projects created")]
     public Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsCreated(
         PollingEventRequest<DateMemory> request) => ProcessProjectsPolling(request,
         $"createdDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
 
-    [PollingEvent("On projects updated", "On any projects are updated")]
+    [PollingEvent("On projects updated (polling)", "On any projects are updated")]
     public Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsUpdated(
         PollingEventRequest<DateMemory> request) => ProcessProjectsPolling(request,
         $"modifiedDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
 
-    [PollingEvent("On projects finished", "On any projects are finished")]
+    [PollingEvent("On projects finished (polling)", "On any projects are finished")]
     public Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsFinished(
         PollingEventRequest<DateMemory> request) => ProcessProjectsPolling(request,
         $"finishedDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
 
-    [PollingEvent("On project status changed", "On status of the specific project changed")]
+    [PollingEvent("On project status changed (polling)", "On status of the specific project changed")]
     public async Task<PollingEventResponse<ProjectStatusMemory, SimpleProject>> OnProjectStatusChanged(
         PollingEventRequest<ProjectStatusMemory> request,
         [PollingEventParameter] ProjectRequest project,
