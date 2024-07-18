@@ -36,7 +36,7 @@ namespace Apps.XTM.Actions
             if (Params is not null && Params.Count > 0)
             { endpoint = endpoint + "?"+String.Join("&",Params); }
             
-            var response = await Client.ExecuteXtmWithJson<List<LqaResponse>>(endpoint,
+            var response = await Client.ExecuteXtmWithJson<List<LqaDto>>(endpoint,
                 Method.Get,
             null,
             Creds);
@@ -44,7 +44,7 @@ namespace Apps.XTM.Actions
             return FixDate(response);
         }
 
-        private List<LqaResponse> FixDate(List<LqaResponse> response)
+        private List<LqaResponse> FixDate(List<LqaDto> response)
         {
             var updated = new List<LqaResponse>();
             foreach (var item in response) 
@@ -53,15 +53,26 @@ namespace Apps.XTM.Actions
                 updated.Add(new LqaResponse 
                 {
                     id = item.id,
-                    evaluator = item.evaluator,
-                    project = item.project,
-                    customer = item.customer,
-                    language = item.language,
-                    evaluee = item.evaluee,
+                    completeDate = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(long.Parse(item.completeDate)).ToString("yyyy-MM-dd"),
+                    severityMultiplierNeutral = item.severityMultipliers.Neutral,
+                    severityMultiplierCritical = item.severityMultipliers.Critical,
+                    severityMultiplierMajor = item.severityMultipliers.Major,
+                    severityMultiplierMinor = item.severityMultipliers.Minor,
+                    evaluee = item.evaluee.userName,
+                    evaluator = item.evaluator.userName,
+                    customer = item.customer.name,
+                    projectId = item.project.id.ToString(),
+                    projectName = item.project.name,
+                    projectWordcount = item.project.wordCount,
+                    projectTotal = item.project.Total,
+                    projectErrors = item.project.Errors,
+                    SubjectMatter = item.project.subjectMatter.Name,
+                    languageCode = item.language.code,
+                    languageWordcount = item.language.wordCount,
+                    languageTotal = item.language.Total,
+                    languageErrors = item.language.Errors,                    
                     files = item.files,
-                    severityMultipliers = item.severityMultipliers,
-                    completeDate = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddMilliseconds(long.Parse(item.completeDate)).ToString("yyyy-MM-dd")
-                });
+                    });
             }
 
             return updated;
