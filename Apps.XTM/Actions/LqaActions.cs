@@ -3,6 +3,7 @@ using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request;
 using Apps.XTM.Models.Response;
 using Apps.XTM.Models.Response.Customers;
+using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using DocumentFormat.OpenXml.Bibliography;
@@ -23,7 +24,7 @@ namespace Apps.XTM.Actions
         }
 
         [Action("Search LQA reports", Description = "Define criteria to search LQA reports")]
-        public async Task<List<LqaResponse>> SearchLqa(LQARequest input)
+        public async Task<List<LqaResponse>> SearchLqa([ActionParameter] LQARequest input)
         {
             var Params = new List<string>();
             if (input.DateFrom is not null) Params.Add($"completeDateFrom={input.DateFrom:yyyy-MM-dd}");

@@ -45,6 +45,14 @@ Before you can connect you need to make sure that:
 - **Delete project**
 - **Get project estimates**
 
+### LQA
+
+- **Search LQA reports** Define the criteria to fetch the LQA reports you need. Optional parameters include:
+	- Date from
+	- Date to
+	- Target languages
+	- LQA type
+
 ### Files
 
 - **Download source files**
@@ -87,7 +95,6 @@ Before you can connect you need to make sure that:
 
 The current implementation covers the basic actions. However, in the future we can also support:
 
-- Project LQA
 - Project analytics
 - Custom fields
 - Jobs
