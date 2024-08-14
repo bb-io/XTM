@@ -32,13 +32,21 @@ public class FileActions : XtmInvocable
     [Action("Generate files", Description = "Generate project files")]
     public async Task<ListGeneratedFilesResponse> GenerateFiles(
         [ActionParameter] ProjectRequest project,
-        [ActionParameter] GenerateFileRequest query)
+        [ActionParameter] GenerateFileRequest query,
+        [ActionParameter] [Display("Job IDs")] IEnumerable<string>? jobIds)
     {
         var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/generate";
 
+        if (jobIds == null)
+        {
+            var projectActions = new ProjectActions(InvocationContext, _fileManagementClient);
+            var projectCompletion = await projectActions.GetProjectCompletion(project);
+            jobIds = projectCompletion.JobIds;
+        }
+        
         var request = new XTMRequest(new()
         {
-            Url = Creds.Get(CredsNames.Url) + endpoint.WithQuery(query),
+            Url = Creds.Get(CredsNames.Url) + endpoint.WithQuery(query).SetQueryParameter("jobIds", string.Join(',', jobIds)),
             Method = Method.Post
         }, await Client.GetToken(Creds));
 
