@@ -17,4 +17,7 @@ public class GenerateFileRequest
     [JsonProperty("targetLanguage")]
     [DataSource(typeof(ProjectTargetLanguageDataSourceHandler))]
     public string? TargetLanguage { get; set; }
+
+    [Display("Job IDs")]
+    public IEnumerable<string>? jobIds { get; set; }
 }
