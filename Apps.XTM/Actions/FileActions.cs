@@ -32,13 +32,29 @@ public class FileActions : XtmInvocable
     [Action("Generate files", Description = "Generate project files")]
     public async Task<ListGeneratedFilesResponse> GenerateFiles(
         [ActionParameter] ProjectRequest project,
-        [ActionParameter] GenerateFileRequest query)
+        [ActionParameter] GenerateFileRequest input)
     {
         var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/generate";
 
+        if (input.jobIds == null)
+        {
+            var projectActions = new ProjectActions(InvocationContext, _fileManagementClient);
+            var projectCompletion = await projectActions.GetProjectCompletion(project);
+            input.jobIds = projectCompletion.JobIds;
+        }
+
+        var queryParameters = new Dictionary<string, string>
+        {
+            { "jobIds", string.Join(",", input.jobIds) },
+            { "fileType", input.FileType }
+        };
+
+        if (input.TargetLanguage != null)
+            queryParameters.Add("targetLanguage", input.TargetLanguage);
+
         var request = new XTMRequest(new()
         {
-            Url = Creds.Get(CredsNames.Url) + endpoint.WithQuery(query),
+            Url = Creds.Get(CredsNames.Url) + endpoint.WithQuery(queryParameters),
             Method = Method.Post
         }, await Client.GetToken(Creds));
 
@@ -161,10 +177,12 @@ public class FileActions : XtmInvocable
         foreach (var file in files)
         {
             var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
+            var language = file.Path.Split('/').FirstOrDefault();
+            var name = file.Path.Split('/').LastOrDefault();
             result.Add(new()
             {
                 Content = uploadedFile,
-                FileDescription = xtmFileDescriptions.First(description => description.FileName == file.UploadName)
+                FileDescription = xtmFileDescriptions.FirstOrDefault(description => description.TargetLanguage == language && description.FileName == name)
             });
         }
 

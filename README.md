@@ -45,6 +45,14 @@ Before you can connect you need to make sure that:
 - **Delete project**
 - **Get project estimates**
 
+### LQA
+
+- **Search LQA reports** Define the criteria to fetch the LQA reports you need. Optional parameters include:
+	- Date from
+	- Date to
+	- Target languages
+	- LQA type
+
 ### Files
 
 - **Download source files**
@@ -78,12 +86,15 @@ Before you can connect you need to make sure that:
 - **On project accepted**
 - **On project finished**
 - **On invoice status changed**
+- **On projects created (polling)**
+- **On projects updated (polling)**
+- **On projects finished (polling)**
+- **On project status changed (polling)**
 
 ## Missing features
 
 The current implementation covers the basic actions. However, in the future we can also support:
 
-- Project LQA
 - Project analytics
 - Custom fields
 - Jobs

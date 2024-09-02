@@ -21,7 +21,7 @@ public class XTMClient : RestClient
 
         var request = new XTMRequest(new()
         {
-            Url = creds.GetUrl() + endpoint,
+            Url = creds.Get(CredsNames.Url) + endpoint,
             Method = method
         }, token);
 
@@ -88,7 +88,7 @@ public class XTMClient : RestClient
 
     public async Task<string> GetToken(AuthenticationCredentialsProvider[] creds)
     {
-        var url = creds.GetUrl();
+        var url = creds.Get(CredsNames.Url);
 
         var client = creds.Get(CredsNames.Client);
         var userId = creds.Get(CredsNames.UserId);

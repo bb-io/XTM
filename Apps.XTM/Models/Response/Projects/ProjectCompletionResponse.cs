@@ -1,9 +1,14 @@
-﻿namespace Apps.XTM.Models.Response.Projects;
+﻿using Blackbird.Applications.Sdk.Common;
+
+namespace Apps.XTM.Models.Response.Projects;
 
 public class ProjectCompletionResponse
 {
     public string Activity { get; set; }
     public List<JobResponse> Jobs { get; set; }
+
+    [Display("Job IDs")]
+    public IEnumerable<string> JobIds { get; set; }
 
     public ProjectCompletionResponse()
     {
@@ -15,6 +20,7 @@ public class ProjectCompletionResponse
     {
         Activity = response.@return.project.activity.ToString();
         Jobs = new();
+        JobIds = response.@return.project.jobs.Select(x => x.jobDescriptor.id.ToString()).ToList();
 
         foreach (var job in response.@return.project.jobs)
         {
