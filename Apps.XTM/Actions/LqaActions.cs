@@ -17,12 +17,8 @@ using System.Threading.Tasks;
 namespace Apps.XTM.Actions
 {
     [ActionList]
-    public class LqaActions : XtmInvocable
+    public class LqaActions(InvocationContext invocationContext) : XtmInvocable(invocationContext)
     {
-        public LqaActions(InvocationContext invocationContext) : base(invocationContext)
-        {
-        }
-
         [Action("Search LQA reports", Description = "Define criteria to search LQA reports")]
         public async Task<List<LqaResponse>> SearchLqa([ActionParameter] LQARequest input)
         {
