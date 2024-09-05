@@ -15,6 +15,7 @@ using RestSharp;
 using Apps.XTM.Models.Response.Metrics;
 using System;
 using Apps.XTM.Models.Response.User;
+using Apps.XTM.Utils;
 
 namespace Apps.XTM.Actions;
 
@@ -25,7 +26,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
     private const int PageSize = 100;
     
     [Action("List projects", Description = "List all projects")]
-    public async Task<ListProjectsResponse> ListProjects()
+    public async Task<ListProjectsResponse> ListProjects([ActionParameter] ListProjectsRequest request)
     {
         var page = 1;
         var hasMorePages = true;
@@ -38,10 +39,16 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
                 { "page", page.ToString() },
                 { "pageSize", PageSize.ToString() }
             };
-
-            var response = await Client.ExecuteXtmWithJson<List<SimpleProject>?>(ApiEndpoints.Projects,
+            
+            if (request.Name != null)
+            {
+                queryParams.Add("name", request.Name);
+            }
+            
+            var endpoint = $"{ApiEndpoints.Projects}?{queryParams.ToQueryString()}";
+            var response = await Client.ExecuteXtmWithJson<List<SimpleProject>?>(endpoint,
                 Method.Get,
-                queryParams,
+                null,
                 Creds);
 
             if (response != null && response.Any())
