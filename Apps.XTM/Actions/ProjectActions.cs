@@ -19,25 +19,43 @@ using Apps.XTM.Models.Response.User;
 namespace Apps.XTM.Actions;
 
 [ActionList]
-public class ProjectActions : XtmInvocable
+public class ProjectActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
+    : XtmInvocable(invocationContext)
 {
-    private readonly IFileManagementClient _fileManagementClient;
-
-    public ProjectActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) 
-        : base(invocationContext)
-    {
-        _fileManagementClient = fileManagementClient;
-    }
-
+    private const int PageSize = 100;
+    
     [Action("List projects", Description = "List all projects")]
     public async Task<ListProjectsResponse> ListProjects()
     {
-        var response = await Client.ExecuteXtmWithJson<List<SimpleProject>>(ApiEndpoints.Projects,
-            Method.Get,
-            null,
-            Creds);
+        var page = 1;
+        var hasMorePages = true;
+        var allProjects = new List<SimpleProject>();
 
-        return new(response);
+        while (hasMorePages)
+        {
+            var queryParams = new Dictionary<string, string>
+            {
+                { "page", page.ToString() },
+                { "pageSize", PageSize.ToString() }
+            };
+
+            var response = await Client.ExecuteXtmWithJson<List<SimpleProject>?>(ApiEndpoints.Projects,
+                Method.Get,
+                queryParams,
+                Creds);
+
+            if (response != null && response.Any())
+            {
+                allProjects.AddRange(response);
+                page++;
+            }
+            else
+            {
+                hasMorePages = false;
+            }
+        }
+
+        return new ListProjectsResponse(allProjects);
     }
 
     [Action("Get project", Description = "Get project")]
@@ -209,7 +227,7 @@ public class ProjectActions : XtmInvocable
         var response = await Client.ExecuteXtmWithJson(endpoint, Method.Get, null, Creds);
 
         using var stream = new MemoryStream(response.RawBytes);
-        var file = await _fileManagementClient.UploadAsync(stream,
+        var file = await fileManagementClient.UploadAsync(stream,
             response.ContentType ?? MediaTypeNames.Application.Octet, $"{project.ProjectId}.xlsx");
         return new(file);
     }
