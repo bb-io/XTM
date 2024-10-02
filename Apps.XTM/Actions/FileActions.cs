@@ -292,7 +292,7 @@ public class FileActions : XtmInvocable
     }
 
     [Action("Upload translation file", Description = "Upload translation file to project")]
-    public async Task<CreateProjectResponse> UploadTranslationFile(
+    public async Task<UploadTranslationFileResponse> UploadTranslationFile(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] UploadTranslationFileInput input)
     {
@@ -324,6 +324,27 @@ public class FileActions : XtmInvocable
         request.AddFile("translationFile.file", fileBytes, input.Name ?? input.File.Name);
         request.AlwaysMultipartFormData = true;
 
-        return await Client.ExecuteXtm<CreateProjectResponse>(request);
+        var response = await Client.ExecuteXtm<FileUploadResponse>(request);
+
+        UploadStatusResponse uploadStatusResponse;
+        do
+        { 
+            uploadStatusResponse = await Client.ExecuteXtmWithJson<UploadStatusResponse>($"{ApiEndpoints.Projects}/{project.ProjectId}/files/translations/{response.File.FileId}/status",
+                Method.Get,
+                null,
+                Creds);
+        
+            if(uploadStatusResponse.Status == "ERROR")
+                throw new($"Failed to upload translation file. Status: {uploadStatusResponse.Status}, Error: {uploadStatusResponse.ErrorDescription}");
+            
+            await Task.Delay(4000);
+        } while (uploadStatusResponse.Status != "FINISHED");
+
+        return new()
+        {
+            FileId = response.File.FileId,
+            JobId = response.File.JobId,
+            Status = uploadStatusResponse.Status
+        };
     }
 }
