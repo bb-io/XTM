@@ -108,11 +108,14 @@ public class FileActions : XtmInvocable
 
         foreach (var file in files)
         {
-            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
+            var uploadedFile =
+                await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet,
+                    file.UploadName);
             result.Add(new()
             {
                 Content = uploadedFile,
-                FileDescription = xtmFileDescriptions?.FirstOrDefault(description => description.FileName == file.UploadName)
+                FileDescription =
+                    xtmFileDescriptions?.FirstOrDefault(description => description.FileName == file.UploadName)
             });
         }
 
@@ -136,7 +139,8 @@ public class FileActions : XtmInvocable
         var xtmFileDescription = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
             (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString()).First();
         xtmFileDescription.FileName = file.UploadName;
-        var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
+        var uploadedFile =
+            await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
         return new()
         {
             Content = uploadedFile,
@@ -176,13 +180,16 @@ public class FileActions : XtmInvocable
         var result = new List<FileWithData<XtmProjectFileDescription>>();
         foreach (var file in files)
         {
-            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
+            var uploadedFile =
+                await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet,
+                    file.UploadName);
             var language = file.Path.Split('/').FirstOrDefault();
             var name = file.Path.Split('/').LastOrDefault();
             result.Add(new()
             {
                 Content = uploadedFile,
-                FileDescription = xtmFileDescriptions.FirstOrDefault(description => description.TargetLanguage == language && description.FileName == name)
+                FileDescription = xtmFileDescriptions.FirstOrDefault(description =>
+                    description.TargetLanguage == language && description.FileName == name)
             });
         }
 
@@ -221,7 +228,9 @@ public class FileActions : XtmInvocable
         var result = new List<FileWithData<XtmProjectFileDescription>>();
         foreach (var file in files)
         {
-            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
+            var uploadedFile =
+                await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet,
+                    file.UploadName);
             result.Add(new()
             {
                 Content = uploadedFile,
@@ -276,7 +285,7 @@ public class FileActions : XtmInvocable
         }
 
         parameters.ToList().ForEach(x => request.AddParameter(x.Key, x.Value));
-        
+
         string fileName = input.Name ?? input.File.Name;
         if (string.IsNullOrEmpty(fileName))
         {
@@ -326,25 +335,41 @@ public class FileActions : XtmInvocable
 
         var response = await Client.ExecuteXtm<FileUploadResponse>(request);
 
-        UploadStatusResponse uploadStatusResponse;
-        do
-        { 
-            uploadStatusResponse = await Client.ExecuteXtmWithJson<UploadStatusResponse>($"{ApiEndpoints.Projects}/{project.ProjectId}/files/translations/{response.File.FileId}/status?fileType={input.FileType}",
-                Method.Get,
-                null,
-                Creds);
-        
-            if(uploadStatusResponse.Status == "ERROR")
-                throw new($"Failed to upload translation file. Status: {uploadStatusResponse.Status}, Error: {uploadStatusResponse.ErrorDescription}");
-            
-            await Task.Delay(4000);
-        } while (uploadStatusResponse.Status != "FINISHED");
-
+        var uploadStatusResponse = await PollFileStatusAsync(project.ProjectId, response.File.FileId, input.FileType);
         return new()
         {
             FileId = response.File.FileId,
             JobId = response.File.JobId,
             Status = uploadStatusResponse.Status
         };
+    }
+
+    private async Task<UploadStatusResponse> PollFileStatusAsync(string projectId, string fileId, string fileType)
+    {
+        var statusUrl = $"{ApiEndpoints.Projects}/{projectId}/files/translations/{fileId}/status?fileType={fileType}";
+        UploadStatusResponse uploadStatusResponse;
+
+        do
+        {
+            uploadStatusResponse = await Client.ExecuteXtmWithJson<UploadStatusResponse>(
+                statusUrl,
+                Method.Get,
+                null,
+                Creds
+            );
+
+            if (uploadStatusResponse.Status == "ERROR")
+            {
+                throw new Exception(
+                    $"Failed to upload translation file. Status: {uploadStatusResponse.Status}, Error description: {uploadStatusResponse.ErrorDescription}");
+            }
+
+            if (uploadStatusResponse.Status != "FINISHED")
+            {
+                await Task.Delay(5000);
+            }
+        } while (uploadStatusResponse.Status != "FINISHED");
+
+        return uploadStatusResponse;
     }
 }
