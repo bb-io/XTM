@@ -61,7 +61,7 @@ Before you can connect you need to make sure that:
 - **Download all project files**
 - **Download translated files**
 - **Upload source file**
-- **Upload translation file**
+- **Upload translation file**. This action utilizes `/files/translations/{fileId}/status` endpoint to check the status of the newly uploaded translation file. The action will wait for the translation to be processed and return the status of the translation file along with the `File ID` and the `Project ID`.
 - **Generate files**
 
 ### Translation memories
