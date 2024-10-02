@@ -329,7 +329,7 @@ public class FileActions : XtmInvocable
         UploadStatusResponse uploadStatusResponse;
         do
         { 
-            uploadStatusResponse = await Client.ExecuteXtmWithJson<UploadStatusResponse>($"{ApiEndpoints.Projects}/{project.ProjectId}/files/translations/{response.File.FileId}/status",
+            uploadStatusResponse = await Client.ExecuteXtmWithJson<UploadStatusResponse>($"{ApiEndpoints.Projects}/{project.ProjectId}/files/translations/{response.File.FileId}/status?fileType={input.FileType}",
                 Method.Get,
                 null,
                 Creds);
