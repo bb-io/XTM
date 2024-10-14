@@ -4,9 +4,9 @@ using Blackbird.Applications.Sdk.Common.Dynamic;
 
 namespace Apps.XTM.Models.Request.Projects;
 
-public class ProjectRequest
+public class ProjectOptionalRequest
 {
     [Display("Project ID")]
     [DataSource(typeof(ProjectDataHandler))]
-    public string ProjectId { get; set; }
+    public string? ProjectId { get; set; }
 }
