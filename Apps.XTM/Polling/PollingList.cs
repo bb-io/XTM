@@ -14,26 +14,52 @@ using RestSharp;
 namespace Apps.XTM.Polling;
 
 [PollingEventList]
-public class PollingList : XtmInvocable
+public class PollingList(InvocationContext invocationContext) : XtmInvocable(invocationContext)
 {
-    public PollingList(InvocationContext invocationContext) : base(invocationContext)
-    {
-    }
-
     [PollingEvent("On projects created (polling)", "On any new projects created")]
     public Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsCreated(
         PollingEventRequest<DateMemory> request) => ProcessProjectsPolling(request,
         $"createdDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
 
     [PollingEvent("On projects updated (polling)", "On any projects are updated")]
-    public Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsUpdated(
-        PollingEventRequest<DateMemory> request) => ProcessProjectsPolling(request,
-        $"modifiedDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
+    public async Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsUpdated(
+        PollingEventRequest<DateMemory> request,
+        [PollingEventParameter] ProjectOptionalRequest projectOptionalRequest)
+    {
+        var result = await ProcessProjectsPolling(request,
+            $"modifiedDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
+
+        if (projectOptionalRequest.ProjectId != null)
+        {
+            var filteredProjects = result.Result?.Projects?.Where(x => x.Id == projectOptionalRequest.ProjectId).ToList();
+            if (filteredProjects != null && filteredProjects.Count > 0)
+            {
+                result.Result = new(filteredProjects);
+            }
+        }
+        
+        return result;
+    }
 
     [PollingEvent("On projects finished (polling)", "On any projects are finished")]
-    public Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsFinished(
-        PollingEventRequest<DateMemory> request) => ProcessProjectsPolling(request,
-        $"finishedDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
+    public async Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsFinished(
+        PollingEventRequest<DateMemory> request,
+        [PollingEventParameter] ProjectOptionalRequest projectOptionalRequest)
+    {
+        var result = await ProcessProjectsPolling(request,
+            $"finishedDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
+        
+        if (projectOptionalRequest.ProjectId != null)
+        {
+            var filteredProjects = result.Result?.Projects?.Where(x => x.Id == projectOptionalRequest.ProjectId).ToList();
+            if (filteredProjects != null && filteredProjects.Count > 0)
+            {
+                result.Result = new(filteredProjects);
+            }
+        }
+        
+        return result;
+    }
 
     [PollingEvent("On project status changed (polling)", "On status of the specific project changed")]
     public async Task<PollingEventResponse<ProjectStatusMemory, SimpleProject>> OnProjectStatusChanged(

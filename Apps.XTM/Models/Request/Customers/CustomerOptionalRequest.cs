@@ -4,9 +4,9 @@ using Blackbird.Applications.Sdk.Common.Dynamic;
 
 namespace Apps.XTM.Models.Request.Customers;
 
-public class CustomerRequest
+public class CustomerOptionalRequest
 {
     [Display("Customer ID")]
     [DataSource(typeof(CustomerDataHandler))]
-    public string CustomerId { get; set; } = string.Empty;
+    public string? CustomerId { get; set; }
 }

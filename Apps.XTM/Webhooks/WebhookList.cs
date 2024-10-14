@@ -1,5 +1,9 @@
 ﻿using System.Net;
 using System.Web;
+using Apps.XTM.Models.Request.Customers;
+using Apps.XTM.Models.Request.Invoices;
+using Apps.XTM.Models.Request.Jobs;
+using Apps.XTM.Models.Request.Projects;
 using Apps.XTM.Webhooks.Handlers;
 using Apps.XTM.Webhooks.Models.Payload;
 using Apps.XTM.Webhooks.Models.Response;
@@ -14,45 +18,76 @@ public class WebhookList
     #region Manual webhooks
 
     [Webhook("On analysis finished (manual)", Description = "On project analysis finished (manual)")]
-    public Task<WebhookResponse<AnalysisFinishedResponse>> OnAnalysisFinishedManual(WebhookRequest request)
+    public Task<WebhookResponse<AnalysisFinishedResponse>> OnAnalysisFinishedManual(WebhookRequest request,
+        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
     {
         var data = HandleFormDataRequest<AnalysisFinishedPayload>(request);
+        var result = new AnalysisFinishedResponse(data);
+        
+        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        {
+            return GetPreflightResponse<AnalysisFinishedResponse>();
+        }
         
         return Task.FromResult(new WebhookResponse<AnalysisFinishedResponse>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new(data)
+            Result = result
         });
     }
 
     [Webhook("On workflow transition (manual)", Description = "On any transition in active workflow steps (manual)")]
-    public Task<WebhookResponse<WorkflowTransitionResponse>> OnWorkflowTransitionManual(WebhookRequest request)
+    public Task<WebhookResponse<WorkflowTransitionResponse>> OnWorkflowTransitionManual(WebhookRequest request,
+        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
+        [WebhookParameter] CustomerOptionalRequest customerOptionalRequest)
     {
         var data = HandleFormDataRequest<WorkflowTransitionPayload>(request);
+        var result = new WorkflowTransitionResponse(data);
+        
+        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        {
+            return GetPreflightResponse<WorkflowTransitionResponse>();
+        }
+        
+        if(customerOptionalRequest.CustomerId != null && customerOptionalRequest.CustomerId != result.CustomerId)
+        {
+            return GetPreflightResponse<WorkflowTransitionResponse>();
+        }
         
         return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new(data)
-            {
-                CustomerId = request.QueryParameters["xtmCustomerId"]
-            }
+            Result = result
         });
     }
 
     [Webhook("On job finished (manual)", Description = "On a specific job finished (manual)")]
-    public Task<WebhookResponse<JobFinishedPayload>> OnJobFinishedManual(WebhookRequest request)
+    public Task<WebhookResponse<JobFinishedPayload>> OnJobFinishedManual(WebhookRequest request,
+        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
+        [WebhookParameter] JobOptionalRequest jobOptionalRequest)
     {
+        var result = new JobFinishedPayload
+        {
+            ProjectId = request.QueryParameters["xtmProjectId"],
+            CustomerId = request.QueryParameters["xtmCustomerId"],
+            JobId = request.QueryParameters["xtmJobId"],
+            Uuid = request.QueryParameters["xtmUuid"]
+        };
+        
+        if(jobOptionalRequest.JobId != null && jobOptionalRequest.JobId != result.JobId)
+        {
+            return GetPreflightResponse<JobFinishedPayload>();
+        }
+        
+        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        {
+            return GetPreflightResponse<JobFinishedPayload>();
+        }
+        
         return Task.FromResult(new WebhookResponse<JobFinishedPayload>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new()
-            {
-                ProjectId = request.QueryParameters["xtmProjectId"],
-                CustomerId = request.QueryParameters["xtmCustomerId"],
-                JobId = request.QueryParameters["xtmJobId"],
-                Uuid = request.QueryParameters["xtmUuid"]
-            }
+            Result = result
         });
     }  
     
@@ -71,47 +106,77 @@ public class WebhookList
     }    
     
     [Webhook("On project accepted (manual)", Description = "On a specific project accepted (manual)")]
-    public Task<WebhookResponse<ProjectAcceptedPayload>> OnProjectAcceptedManual(WebhookRequest request)
+    public Task<WebhookResponse<ProjectAcceptedPayload>> OnProjectAcceptedManual(WebhookRequest request,
+        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
     {
+        var result = new ProjectAcceptedPayload
+        {
+            ProjectId = request.QueryParameters["xtmProjectId"],
+            ExternalProjectId = request.QueryParameters["xtmExternalProjectId"],
+            Uuid = request.QueryParameters["xtmUuid"]
+        };
+        
+        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        {
+            return GetPreflightResponse<ProjectAcceptedPayload>();
+        }
+        
         return Task.FromResult(new WebhookResponse<ProjectAcceptedPayload>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new()
-            {
-                ProjectId = request.QueryParameters["xtmProjectId"],
-                ExternalProjectId = request.QueryParameters["xtmExternalProjectId"],
-                Uuid = request.QueryParameters["xtmUuid"]
-            }
+            Result = result
         });
     } 
     
     [Webhook("On project finished (manual)", Description = "On a specific project finished (manual)")]
-    public Task<WebhookResponse<ProjectFinishedPayload>> OnProjectFinishedManual(WebhookRequest request)
+    public Task<WebhookResponse<ProjectFinishedPayload>> OnProjectFinishedManual(WebhookRequest request,
+        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
     {
+        var result = new ProjectFinishedPayload
+        {
+            ProjectId = request.QueryParameters["xtmProjectId"],
+            CustomerId = request.QueryParameters["xtmCustomerId"],
+            Uuid = request.QueryParameters["xtmUuid"]
+        };
+        
+        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        {
+            return GetPreflightResponse<ProjectFinishedPayload>();
+        }
+        
         return Task.FromResult(new WebhookResponse<ProjectFinishedPayload>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new()
-            {
-                ProjectId = request.QueryParameters["xtmProjectId"],
-                CustomerId = request.QueryParameters["xtmCustomerId"],
-                Uuid = request.QueryParameters["xtmUuid"]
-            }
+            Result = result
         });
     }
     
     [Webhook("On invoice status changed (manual)", Description = "On invoice changed for any project (manual)")]
-    public Task<WebhookResponse<InvoiceStatusChangedPayload>> OnInvoiceStatusChangedManual(WebhookRequest request)
+    public Task<WebhookResponse<InvoiceStatusChangedPayload>> OnInvoiceStatusChangedManual(WebhookRequest request,
+        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
+        [WebhookParameter] InvoiceOptionalRequest invoiceStatusChangedRequest)
     {
+        var result = new InvoiceStatusChangedPayload
+        {
+            ProjectId = request.QueryParameters["xtmProjectId"],
+            InvoiceStatus = request.QueryParameters["xtmInvoiceStatus"],
+            Uuid = request.QueryParameters["xtmUuid"]
+        };
+        
+        if(invoiceStatusChangedRequest.InvoiceId != null && invoiceStatusChangedRequest.InvoiceId != result.Uuid)
+        {
+            return GetPreflightResponse<InvoiceStatusChangedPayload>();
+        }
+        
+        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        {
+            return GetPreflightResponse<InvoiceStatusChangedPayload>();
+        }
+        
         return Task.FromResult(new WebhookResponse<InvoiceStatusChangedPayload>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new()
-            {
-                ProjectId = request.QueryParameters["xtmProjectId"],
-                InvoiceStatus = request.QueryParameters["xtmInvoiceStatus"],
-                Uuid = request.QueryParameters["xtmUuid"]
-            }
+            Result = result
         });
     }
 
@@ -121,48 +186,78 @@ public class WebhookList
 
     [Webhook("On analysis finished", typeof(AnalysisFinishedWebhookHandler),
         Description = "On project analysis finished")]
-    public Task<WebhookResponse<AnalysisFinishedResponse>> OnAnalysisFinished(WebhookRequest request)
+    public Task<WebhookResponse<AnalysisFinishedResponse>> OnAnalysisFinished(WebhookRequest request,
+        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
     {
         var data = HandleBridgeWebhookRequest<AnalysisFinishedPayload>(request);
+        var result = new AnalysisFinishedResponse(data.Payload);
+        
+        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        {
+            return GetPreflightResponse<AnalysisFinishedResponse>();
+        }
         
         return Task.FromResult(new WebhookResponse<AnalysisFinishedResponse>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new(data.Payload)
+            Result = result
         });
     }   
     
     [Webhook("On workflow transition", typeof(WorkflowTransitionedWebhookHandler), 
         Description = "On any transition in active workflow steps")]
-    public Task<WebhookResponse<WorkflowTransitionResponse>> OnWorkflowTransition(WebhookRequest request)
+    public Task<WebhookResponse<WorkflowTransitionResponse>> OnWorkflowTransition(WebhookRequest request,
+        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
+        [WebhookParameter] CustomerOptionalRequest customerOptionalRequest)
     {
         var data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
+        var result = new WorkflowTransitionResponse(data.Payload);
+        
+        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        {
+            return GetPreflightResponse<WorkflowTransitionResponse>();
+        }
+        
+        if(customerOptionalRequest.CustomerId != null && customerOptionalRequest.CustomerId != result.CustomerId)
+        {
+            return GetPreflightResponse<WorkflowTransitionResponse>();
+        }
         
         return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new(data.Payload)
-            {
-                CustomerId = data.Parameters["xtmCustomerId"]
-            }
+            Result = result
         });
     } 
     
     [Webhook("On job finished", typeof(JobFinishedWebhookHandler), Description = "On a specific job finished")]
-    public Task<WebhookResponse<JobFinishedPayload>> OnJobFinished(WebhookRequest request)
+    public Task<WebhookResponse<JobFinishedPayload>> OnJobFinished(WebhookRequest request,
+        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
+        [WebhookParameter] JobOptionalRequest jobOptionalRequest)
     {
         var data = HandleBridgeWebhookRequest<object>(request);
+        var result = new JobFinishedPayload
+        {
+            ProjectId = data.Parameters["xtmProjectId"],
+            CustomerId = data.Parameters["xtmCustomerId"],
+            JobId = data.Parameters["xtmJobId"],
+            Uuid = data.Parameters["xtmUuid"]
+        };
+        
+        if(jobOptionalRequest.JobId != null && jobOptionalRequest.JobId != result.JobId)
+        {
+            return GetPreflightResponse<JobFinishedPayload>();
+        }
+        
+        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        {
+            return GetPreflightResponse<JobFinishedPayload>();
+        }
         
         return Task.FromResult(new WebhookResponse<JobFinishedPayload>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new()
-            {
-                ProjectId = data.Parameters["xtmProjectId"],
-                CustomerId = data.Parameters["xtmCustomerId"],
-                JobId = data.Parameters["xtmJobId"],
-                Uuid = data.Parameters["xtmUuid"]
-            },
+            Result = result
         });
     }
     
@@ -184,55 +279,82 @@ public class WebhookList
     
     [Webhook("On project accepted", typeof(ProjectAcceptedWebhookHandler),
         Description = "On a specific project accepted")]
-    public Task<WebhookResponse<ProjectAcceptedPayload>> OnProjectAccepted(WebhookRequest request)
+    public Task<WebhookResponse<ProjectAcceptedPayload>> OnProjectAccepted(WebhookRequest request,
+        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
     {
         var data = HandleBridgeWebhookRequest<object>(request);
+        var result = new ProjectAcceptedPayload
+        {
+            ProjectId = data.Parameters["xtmProjectId"],
+            ExternalProjectId = data.Parameters["xtmExternalProjectId"],
+            Uuid = data.Parameters["xtmUuid"]
+        };
+        
+        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        {
+            return GetPreflightResponse<ProjectAcceptedPayload>();
+        }
         
         return Task.FromResult(new WebhookResponse<ProjectAcceptedPayload>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new()
-            {
-                ProjectId = data.Parameters["xtmProjectId"],
-                ExternalProjectId = data.Parameters["xtmExternalProjectId"],
-                Uuid = data.Parameters["xtmUuid"]
-            }
+            Result = result
         });
     } 
     
     [Webhook("On project finished", typeof(ProjectFinishedWebhookHandler),
         Description = "On a specific project finished")]
-    public Task<WebhookResponse<ProjectFinishedPayload>> OnProjectFinished(WebhookRequest request)
+    public Task<WebhookResponse<ProjectFinishedPayload>> OnProjectFinished(WebhookRequest request,
+        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
     {
         var data = HandleBridgeWebhookRequest<object>(request);
+        var result = new ProjectFinishedPayload
+        {
+            ProjectId = data.Parameters["xtmProjectId"],
+            CustomerId = data.Parameters["xtmCustomerId"],
+            Uuid = data.Parameters["xtmUuid"]
+        };
+        
+        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        {
+            return GetPreflightResponse<ProjectFinishedPayload>();
+        }
         
         return Task.FromResult(new WebhookResponse<ProjectFinishedPayload>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new()
-            {
-                ProjectId = data.Parameters["xtmProjectId"],
-                CustomerId = data.Parameters["xtmCustomerId"],
-                Uuid = data.Parameters["xtmUuid"]
-            }
+            Result = result
         });
     }
     
     [Webhook("On invoice status changed", typeof(InvoiceStatusChangedWebhookHandler), 
         Description = "On invoice changed for any project")]
-    public Task<WebhookResponse<InvoiceStatusChangedPayload>> OnInvoiceStatusChanged(WebhookRequest request)
+    public Task<WebhookResponse<InvoiceStatusChangedPayload>> OnInvoiceStatusChanged(WebhookRequest request,
+        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
+        [WebhookParameter] InvoiceOptionalRequest invoiceStatusChangedRequest)
     {
         var data = HandleBridgeWebhookRequest<object>(request);
+        var result = new InvoiceStatusChangedPayload
+        {
+            ProjectId = data.Parameters["xtmProjectId"],
+            InvoiceStatus = data.Parameters["xtmInvoiceStatus"],
+            Uuid = data.Parameters["xtmUuid"]
+        };
+        
+        if(invoiceStatusChangedRequest.InvoiceId != null && invoiceStatusChangedRequest.InvoiceId != result.Uuid)
+        {
+            return GetPreflightResponse<InvoiceStatusChangedPayload>();
+        }
+        
+        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        {
+            return GetPreflightResponse<InvoiceStatusChangedPayload>();
+        }
         
         return Task.FromResult(new WebhookResponse<InvoiceStatusChangedPayload>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new()
-            {
-                ProjectId = data.Parameters["xtmProjectId"],
-                InvoiceStatus = data.Parameters["xtmInvoiceStatus"],
-                Uuid = data.Parameters["xtmUuid"]
-            }
+            Result = result
         });
     }
 
@@ -250,6 +372,17 @@ public class WebhookList
 
     private BridgeWebhookPayload<T> HandleBridgeWebhookRequest<T>(WebhookRequest request) 
         => JsonConvert.DeserializeObject<BridgeWebhookPayload<T>>(request.Body.ToString());
+    
+    private Task<WebhookResponse<T>> GetPreflightResponse<T>()
+        where T : class
+    {
+        return Task.FromResult(new WebhookResponse<T>
+        {
+            HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
+            Result = null,
+            ReceivedWebhookRequestType = WebhookRequestType.Preflight
+        });
+    }
 
     #endregion  
 }
