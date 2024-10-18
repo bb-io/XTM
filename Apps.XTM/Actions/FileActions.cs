@@ -223,7 +223,7 @@ public class FileActions : XtmInvocable
         using var fileStream = new MemoryStream(response.RawBytes);
         var files = await fileStream.GetFilesFromZip();
         var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
-            (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString());
+            (response.Headers.First(header => header.Name == "xtm-file-description").Value.ToString());
 
         var result = new List<FileWithData<XtmProjectFileDescription>>();
         foreach (var file in files)
