@@ -226,7 +226,7 @@ public class FileActions : XtmInvocable
         var test = response.Headers.FirstOrDefault(header => header.Name == "xtm-file-description");
         if (test is null) 
         {
-            string concat = String.Join(",",response.Headers.Select(x => x.Name);
+            string concat = String.Join(",",response.Headers.Select(x => x.Name));
             throw new Exception(concat);
         }
         var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
