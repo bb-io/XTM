@@ -239,8 +239,7 @@ public class FileActions : XtmInvocable
             });
             if (!xtmFileDescriptions.Any(d => d.FileName == file.UploadName))
             {
-                string concat = String.Join(",", xtmFileDescriptions.Select(x => x.FileName));
-                throw new Exception(concat);
+                throw new Exception(file.UploadName);
             }
         }
 
