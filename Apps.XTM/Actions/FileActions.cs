@@ -235,12 +235,8 @@ public class FileActions : XtmInvocable
             result.Add(new()
             {
                 Content = uploadedFile,
-                FileDescription = xtmFileDescriptions.FirstOrDefault(description => description.FileName == file.UploadName)
+                FileDescription = xtmFileDescriptions.FirstOrDefault(d => d.TargetLanguage+"_"+d.FileName == file.UploadName)
             });
-            if (!xtmFileDescriptions.Any(d => d.FileName == file.UploadName))
-            {
-                throw new Exception(file.UploadName);
-            }
         }
 
         return new(result);
