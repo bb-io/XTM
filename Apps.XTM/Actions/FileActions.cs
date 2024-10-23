@@ -15,6 +15,7 @@ using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using Newtonsoft.Json;
 using RestSharp;
+using System.ComponentModel.DataAnnotations;
 
 namespace Apps.XTM.Actions;
 
@@ -222,6 +223,12 @@ public class FileActions : XtmInvocable
 
         using var fileStream = new MemoryStream(response.RawBytes);
         var files = await fileStream.GetFilesFromZip();
+        var test = response.Headers.FirstOrDefault(header => header.Name == "xtm-file-description");
+        if (test is null) 
+        {
+            string concat = String.Join(",",response.Headers.Select(x => x.Name);
+            throw new Exception(concat);
+        }
         var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
             (response.Headers.FirstOrDefault(header => header.Name == "xtm-file-description").Value.ToString());
 
