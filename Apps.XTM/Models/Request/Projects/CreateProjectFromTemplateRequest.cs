@@ -9,9 +9,12 @@ public class CreateProjectFromTemplateRequest : CustomerRequest
 {
     public string Name { get; set; }
 
-    public string Description { get; set; }
+    public string? Description { get; set; }
 
-    [Display("Template")]
+    [Display("Template ID")]
     [DataSource(typeof(ProjectTemplateDataHandler))]
     public string TemplateId { get; set; }
+
+    [Display("Due date")]
+    public DateTime? DueDate { get; set; }
 }
