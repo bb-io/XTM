@@ -118,6 +118,11 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             }
         };
 
+        if (input.DueDate.HasValue)
+        {
+            parameters.Add("dueDate", input.DueDate.Value.ToString("YYYY-MM-DDThh:mm:ssZ"));
+        }
+
         return Client.ExecuteXtmWithFormData<CreateProjectResponse>(ApiEndpoints.Projects,
             Method.Post,
             parameters,
@@ -132,10 +137,15 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
         var parameters = new Dictionary<string, string>
         {
             { "name", input.Name.Trim() },
-            { "description", input.Description.Trim() },
+            { "description", input.Description?.Trim() ?? string.Empty  },
             { "customerId", input.CustomerId },
-            { "templateId", input.TemplateId }
+            { "templateId", input.TemplateId },
         };
+
+        if (input.DueDate.HasValue)
+        {
+            parameters.Add("dueDate", input.DueDate.Value.ToString("YYYY-MM-DDThh:mm:ssZ"));
+        }
 
         return Client.ExecuteXtmWithFormData<CreateProjectResponse>(ApiEndpoints.Projects,
             Method.Post,

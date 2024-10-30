@@ -21,7 +21,10 @@ public class CreateProjectRequest : CustomerRequest
     [Display("Target languages")]
     [DataSource(typeof(LanguageDataHandler))]
     public IEnumerable<string> TargetLanguages { get; set; }
-    
+
+    [Display("Due date")]
+    public DateTime? DueDate { get; set; }
+
     public string? Description { get; set; }
         
     [Display("Project created callback URL")]
