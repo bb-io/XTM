@@ -144,7 +144,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
 
         if (input.DueDate.HasValue)
         {
-            parameters.Add("dueDate", input.DueDate.Value.ToString("YYYY-MM-DDThh:mm:ssZ"));
+            parameters.Add("dueDate", input.DueDate.Value.ToString("yyyy-MM-ddThh:mm:ssZ"));
         }
 
         return Client.ExecuteXtmWithFormData<CreateProjectResponse>(ApiEndpoints.Projects,
