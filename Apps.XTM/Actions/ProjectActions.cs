@@ -134,12 +134,42 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
     public Task<CreateProjectResponse> CreateProjectFromTemplate(
         [ActionParameter] CreateProjectFromTemplateRequest input)
     {
+        string GetBridgeUrl(string eventType)
+           =>
+               $"{InvocationContext.UriInfo.BridgeServiceUrl.ToString().TrimEnd('/')}{ApplicationConstants.XtmBridgePath}"
+                   .SetQueryParameter("id", Creds.GetInstanceUrlHash())
+                   .SetQueryParameter("eventType", eventType);
         var parameters = new Dictionary<string, string>
         {
             { "name", input.Name.Trim() },
             { "description", input.Description?.Trim() ?? string.Empty  },
             { "customerId", input.CustomerId },
             { "templateId", input.TemplateId },
+            {
+                "callbacks.projectCreatedCallback",
+                input.ProjectCreatedCallback ?? GetBridgeUrl(EventNames.ProjectCreated)
+            },
+            {
+                "callbacks.projectAcceptedCallback",
+                input.ProjectAcceptedCallback ?? GetBridgeUrl(EventNames.ProjectAccepted)
+            },
+            {
+                "callbacks.projectFinishedCallback",
+                input.ProjectFinishedCallback ?? GetBridgeUrl(EventNames.ProjectFinished)
+            },
+            { "callbacks.jobFinishedCallback", input.JobFinishedCallback ?? GetBridgeUrl(EventNames.JobFinished) },
+            {
+                "callbacks.analysisFinishedCallback",
+                input.AnalysisFinishedCallback ?? GetBridgeUrl(EventNames.AnalysisFinished)
+            },
+            {
+                "callbacks.workflowTransitionCallback",
+                input.WorkflowTransitionCallback ?? GetBridgeUrl(EventNames.WorkflowTransition)
+            },
+            {
+                "callbacks.invoiceStatusChangedCallback",
+                input.InvoiceStatusChangedCallback ?? GetBridgeUrl(EventNames.InvoiceStatusChanged)
+            }
         };
 
         if (input.DueDate.HasValue)
