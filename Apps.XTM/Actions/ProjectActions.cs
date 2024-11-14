@@ -292,6 +292,19 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
         return Client.ExecuteXtmWithJson<List<MetricsResponse>>(endpoint, Method.Get, null, Creds);
     }
 
+    [Action("Get project metrics", Description = "Get metrics for a specific project")]
+    public Task<List<MetricsByLanguage>> GetProjectMetrics([ActionParameter] ProjectRequest project, [ActionParameter] TargetLanguagesRequest languages)
+    {
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Metrics}";
+
+        if (languages.TargetLanguages is not null && languages.TargetLanguages.Any())
+        {
+            endpoint += "?targetLanguages=" + string.Join(",", languages.TargetLanguages);
+        }
+
+        return Client.ExecuteXtmWithJson<List<MetricsByLanguage>>(endpoint, Method.Get, null, Creds);
+    }
+
     [Action("Get project completion", Description = "Get project completion for a specific project")]
     public async Task<ProjectCompletionResponse> GetProjectCompletion([ActionParameter] ProjectRequest project)
     {
