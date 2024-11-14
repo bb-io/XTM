@@ -44,6 +44,7 @@ Before you can connect you need to make sure that:
 - **Reanalyze project**
 - **Delete project**
 - **Get project estimates**
+- **Get project metrics**
 
 ### LQA
 
