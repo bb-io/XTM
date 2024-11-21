@@ -278,6 +278,12 @@ public class FileActions : XtmInvocable
                 parameters.Add($"files[0].tagIds[{i}]", tags[i]);
         }
 
+        if (!string.IsNullOrWhiteSpace(input.ReanalyseProject)
+            && (input.ReanalyseProject =="YES" || input.ReanalyseProject=="NO"))
+        {
+            parameters.Add("reanalyseProject", input.ReanalyseProject);
+        }
+
         if (input.TargetLanguages is not null)
         {
             var langs = input.TargetLanguages.ToArray();
