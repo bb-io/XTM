@@ -34,4 +34,8 @@ public class UploadSourceFileRequest
     
     [Display("Metadata in JSON format")]
     public string? Metadata { get; set; }
+
+    [Display("Reanalyse project")]
+    [DataSource(typeof(ReanalyseDataHandler))]
+    public string? ReanalyseProject { get; set; } = "NO";
 }
