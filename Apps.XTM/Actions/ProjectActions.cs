@@ -298,18 +298,16 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
     {
         var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Metrics}";
 
-        if (languages?.TargetLanguages?.Any() ?? false)
+        if (languages.TargetLanguages is not null && languages.TargetLanguages.Any())
         {
             endpoint += "?targetLanguages=" + string.Join(",", languages.TargetLanguages);
         }
 
-        var jsonResponse = await Client.ExecuteXtmWithJson<string>(endpoint, Method.Get, null, Creds);
-
-        var metricsList = JsonConvert.DeserializeObject<List<MetricsByLanguage>>(jsonResponse);
+        var response = await Client.ExecuteXtmWithJson<List<MetricsByLanguage>>(endpoint, Method.Get, null, Creds);
 
         return new MetricByLanguagesResponse
         {
-            Metrics = metricsList
+            Metrics = response
         };
     }
 
