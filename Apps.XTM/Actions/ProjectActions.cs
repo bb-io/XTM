@@ -297,7 +297,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
     {
         var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Metrics}";
 
-        if (languages.TargetLanguages is not null && languages.TargetLanguages.Any())
+        if (languages?.TargetLanguages?.Any() == true)
         {
             endpoint += "?targetLanguages=" + string.Join(",", languages.TargetLanguages);
         }
