@@ -16,6 +16,7 @@ using Apps.XTM.Models.Response.Metrics;
 using System;
 using Apps.XTM.Models.Response.User;
 using Apps.XTM.Utils;
+using Newtonsoft.Json;
 
 namespace Apps.XTM.Actions;
 
@@ -280,7 +281,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
     }
 
     [Action("Get bundle metrics", Description = "Get metrics for a specific bundle")]
-    public Task<List<MetricsResponse>> GetBundleMetrics([ActionParameter] ProjectRequest project, [ActionParameter] BundleMetricsRequest request)
+    public async Task<List<MetricsResponse>> GetBundleMetrics([ActionParameter] ProjectRequest project, [ActionParameter] BundleMetricsRequest request)
     {
         var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Metrics}{ApiEndpoints.Bundles}";
 
@@ -289,20 +290,25 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             endpoint += $"?jobIds={request.JobId}";
         }
 
-        return Client.ExecuteXtmWithJson<List<MetricsResponse>>(endpoint, Method.Get, null, Creds);
+        return await Client.ExecuteXtmWithJson<List<MetricsResponse>>(endpoint, Method.Get, null, Creds);
     }
 
     [Action("Get project metrics", Description = "Get metrics for a specific project")]
-    public Task<List<MetricsByLanguage>> GetProjectMetrics([ActionParameter] ProjectRequest project, [ActionParameter] TargetLanguagesRequest languages)
+    public async Task<MetricByLanguagesResponse> GetProjectMetrics([ActionParameter] ProjectRequest project, [ActionParameter] TargetLanguagesMetricsRequest languages )
     {
-        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Metrics}";
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/{ApiEndpoints.Metrics}";
 
         if (languages.TargetLanguages is not null && languages.TargetLanguages.Any())
         {
             endpoint += "?targetLanguages=" + string.Join(",", languages.TargetLanguages);
         }
 
-        return Client.ExecuteXtmWithJson<List<MetricsByLanguage>>(endpoint, Method.Get, null, Creds);
+        var response = await Client.ExecuteXtmWithJson<List<MetricsByLanguage>>(endpoint, Method.Get, null, Creds);
+
+        return new MetricByLanguagesResponse
+        {
+            Metrics = response
+        };
     }
 
     [Action("Get project completion", Description = "Get project completion for a specific project")]
