@@ -2,10 +2,11 @@
 
 namespace Apps.XTM.Models.Response.Metrics
 {
+    [Display("Metrics per language")]
     public class MetricsByLanguage
     {
         [Display("Target language")]
-        public string targetLanguage { get; set; }
+        public string? targetLanguage { get; set; }
 
         [Display("Metrics")]
         public CoreMetrics coreMetrics { get; set; }
