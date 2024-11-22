@@ -16,6 +16,7 @@ using Apps.XTM.Models.Response.Metrics;
 using System;
 using Apps.XTM.Models.Response.User;
 using Apps.XTM.Utils;
+using Newtonsoft.Json;
 
 namespace Apps.XTM.Actions;
 
@@ -302,10 +303,14 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             endpoint += "?targetLanguages=" + string.Join(",", languages.TargetLanguages);
         }
 
-        return await Client.ExecuteXtmWithJson<MetricByLanguagesResponse>(endpoint, Method.Get, null, Creds);
+        var jsonResponse = await Client.ExecuteXtmWithJson<string>(endpoint, Method.Get, null, Creds);
 
-        //Make seperate request class
-        //Remove list 
+        var metricsList = JsonConvert.DeserializeObject<List<MetricsByLanguage>>(jsonResponse);
+
+        return new MetricByLanguagesResponse
+        {
+            Metrics = metricsList
+        };
     }
 
     [Action("Get project completion", Description = "Get project completion for a specific project")]
