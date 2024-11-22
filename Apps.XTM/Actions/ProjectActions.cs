@@ -296,7 +296,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
     [Action("Get project metrics", Description = "Get metrics for a specific project")]
     public async Task<MetricByLanguagesResponse> GetProjectMetrics([ActionParameter] ProjectRequest project, [ActionParameter] TargetLanguagesMetricsRequest languages )
     {
-        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Metrics}";
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/{ApiEndpoints.Metrics}";
 
         if (languages.TargetLanguages is not null && languages.TargetLanguages.Any())
         {
