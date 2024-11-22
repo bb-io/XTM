@@ -3,12 +3,11 @@ using Newtonsoft.Json;
 
 namespace Apps.XTM.Models.Response.Metrics
 {
-    [Display("Metrics per language")]
     public class MetricsByLanguage
     {
         [Display("Target language")]
         [JsonProperty("targetLanguage")]
-        public string? targetLanguage { get; set; }
+        public string targetLanguage { get; set; }
 
         [Display("Core metrics")]
         [JsonProperty("coreMetrics")]
