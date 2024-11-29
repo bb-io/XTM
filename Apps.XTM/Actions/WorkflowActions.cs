@@ -1,10 +1,12 @@
 ﻿using Apps.XTM.Constants;
 using Apps.XTM.Invocables;
+using Apps.XTM.Models.Request.Workflows;
 using Apps.XTM.Models.Response.Workflows;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using RestSharp;
+using static System.Net.WebRequestMethods;
 
 namespace Apps.XTM.Actions;
 
@@ -55,6 +57,30 @@ public class WorkflowActions : XtmInvocable
 
         return workflows.First();
     }
+
+
+    //Assign users to workflow
+    [Action("")]
+    public async Task<AssignUsersToWorkflowResponse> AssignUserToWorkflow([ActionParameter] WorkflowAssignmentInput input)
+    {   
+       var response = await Client.ExecuteXtmWithJson<AssignUsersToWorkflowResponse>($"{ApiEndpoints.Projects}/{input.ProjectId}/workflow/assign",Method.Post,input,Creds);
+
+        if (response == null || !response.Success)
+        {
+            throw new Exception($"Failed to assign users to workflow. Project ID: {input.ProjectId}");
+        }
+
+        return response;
+    }
+
+
+    //Move jobs to next workflow step
+
+
+    //Start workflow
+
+
+
 
     #endregion
 }
