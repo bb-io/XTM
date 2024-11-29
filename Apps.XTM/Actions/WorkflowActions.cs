@@ -60,7 +60,7 @@ public class WorkflowActions : XtmInvocable
 
 
     //Assign users to workflow
-    [Action("Assign to workflow", Description ="Asssining users to workflow ")]
+    [Action("Assign to workflow", Description ="Assining users to workflow ")]
     public async Task<AssignUsersToWorkflowResponse> AssignUserToWorkflow([ActionParameter] WorkflowAssignmentInput input)
     {   
        var response = await Client.ExecuteXtmWithJson<AssignUsersToWorkflowResponse>($"{ApiEndpoints.Projects}/{input.ProjectId}/workflow/assign",Method.Post,input,Creds);
@@ -78,9 +78,6 @@ public class WorkflowActions : XtmInvocable
 
 
     //Start workflow
-
-
-
 
     #endregion
 }

@@ -99,7 +99,7 @@ public class XTMClient : RestClient
 
         var response = await this.ExecuteAsync<TokenResponse>(request);
 
-        return response.Content;
+        return response.Data.Token;
     }
 
     private Exception GetXtmError(RestResponse response)
