@@ -7,9 +7,12 @@ using Blackbird.Applications.Sdk.Common;
 
 namespace Apps.XTM.Models.Response.Workflows
 {
-    public class AssignUsersToWorkflowResponse
+    public class WorkflowAssignmentResponse
     {
-        [Display("Status of operation")]
-        public bool Success {  get; set; }
+        [Display("Success")]
+        public bool Success { get; set; }
+
+        [Display("Errors")]
+        public List<string>? Errors { get; set; } 
     }
 }

@@ -1,10 +1,16 @@
 ﻿using Apps.XTM.Constants;
 using Apps.XTM.Invocables;
+using Apps.XTM.Models.Request;
+using Apps.XTM.Models.Request.Files;
+using Apps.XTM.Models.Request.Jobs;
+using Apps.XTM.Models.Request.Projects;
 using Apps.XTM.Models.Request.Workflows;
 using Apps.XTM.Models.Response.Workflows;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Newtonsoft.Json;
 using RestSharp;
 using static System.Net.WebRequestMethods;
 
@@ -59,25 +65,83 @@ public class WorkflowActions : XtmInvocable
     }
 
 
-    //Assign users to workflow
     [Action("Assign to workflow", Description ="Assining users to workflow ")]
-    public async Task<AssignUsersToWorkflowResponse> AssignUserToWorkflow([ActionParameter] WorkflowAssignmentInput input)
-    {   
-       var response = await Client.ExecuteXtmWithJson<AssignUsersToWorkflowResponse>($"{ApiEndpoints.Projects}/{input.ProjectId}/workflow/assign",Method.Post,input,Creds);
+    public async Task<WorkflowAssignmentResponse> AssignUserToWorkflow([ActionParameter] WorkflowAssignmentRequest assignmentRequest,
+        [ActionParameter] ProjectRequest inputProject)
+    {
+        var endpoint = $"{ApiEndpoints.Projects}/{inputProject.ProjectId}/workflow/assign";
 
-        if (response == null || !response.Success)
+        var requestBody = new[]
+    {
+        new
         {
-            throw new Exception($"Failed to assign users to workflow. Project ID: {input.ProjectId}");
+            user = new
+            {
+                id = assignmentRequest.UserId,
+                type = assignmentRequest.UserType ?? "INTERNAL_USER"
+            },
+            languages = assignmentRequest.Languages ?? new List<string>(),
+            stepNames = assignmentRequest.StepName ?? new List<string>(),
+            jobIds = assignmentRequest.JobIds ?? new List<string>(),
+            bundleIds = assignmentRequest.BundleIds ?? new List<string>()
+        }
+    };
+
+        Console.WriteLine("Request Body:");
+        Console.WriteLine(JsonConvert.SerializeObject(requestBody, Formatting.Indented));
+
+        var response = await Client.ExecuteXtmWithJson<WorkflowAssignmentResponse>(endpoint,Method.Post,requestBody,Creds);
+
+        return response;
+    }
+
+
+
+    [Action("Move jobs to next workflow step", Description = "Moves jobs to the next workflow step in the project")]
+    public async Task<MoveJobsToNextStepResponse> MoveJobsToNextWorkflowStep([ActionParameter] JobsRequest inputJobs,
+        [ActionParameter] ProjectRequest inputProject,
+        [ActionParameter] MailingRequest inputMail)
+    {
+        var endpoint = $"{ApiEndpoints.Projects}/{inputProject.ProjectId}/workflow/finish";
+
+        var queryParams = new
+        {
+            jobIds = inputJobs.JobIds,
+            mailing = inputMail.Mailing ?? "ENABLED"
+        };
+
+        var response = await Client.ExecuteXtmWithJson<MoveJobsToNextStepResponse>(
+            endpoint,
+            Method.Post,
+            queryParams,
+            Creds);
+
+        if (response == null)
+        {
+            throw new Exception($"Failed to move jobs to the next workflow step for Project ID: {inputProject.ProjectId}");
         }
 
         return response;
     }
 
 
-    //Move jobs to next workflow step
+    [Action("Start workflow in project", Description = "Activate the first workflow step for all jobs in the project")]
+    public async Task<StartWorkflowResponse> StartWorkflowInProject([ActionParameter] WorklowLanguagesRequest inputLanguage, 
+        [ActionParameter] ProjectRequest inputProject,
+        [ActionParameter] JobsRequest inputJob)
+    {
+        var endpoint = $"{ApiEndpoints.Projects}/{inputProject.ProjectId}/workflow/start";
 
+        var queryParams = new
+        {
+            jobIds = inputJob.JobIds,
+            targetLanguages = inputLanguage.TargetLanguages
+        };
 
-    //Start workflow
+        var response = await Client.ExecuteXtmWithJson<StartWorkflowResponse>(endpoint,Method.Post,queryParams,Creds);
+
+        return response;
+    }
 
     #endregion
 }
