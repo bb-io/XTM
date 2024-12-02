@@ -77,7 +77,7 @@ public class WorkflowActions : XtmInvocable
         {
             user = new
             {
-                id = assignmentRequest.UserId,
+                id = int.TryParse(assignmentRequest.UserId, out var parsedId) ? parsedId : throw new Exception("Invalid User ID"),
                 type = assignmentRequest.UserType ?? "INTERNAL_USER"
             },
             languages = assignmentRequest.Languages ?? new List<string>(),
@@ -86,10 +86,6 @@ public class WorkflowActions : XtmInvocable
             bundleIds = assignmentRequest.BundleIds ?? new List<string>()
         }
     };
-
-        Console.WriteLine("Request Body:");
-        Console.WriteLine(JsonConvert.SerializeObject(requestBody, Formatting.Indented));
-
         var response = await Client.ExecuteXtmWithJson<WorkflowAssignmentResponse>(endpoint,Method.Post,requestBody,Creds);
 
         return response;
@@ -115,12 +111,6 @@ public class WorkflowActions : XtmInvocable
             Method.Post,
             queryParams,
             Creds);
-
-        if (response == null)
-        {
-            throw new Exception($"Failed to move jobs to the next workflow step for Project ID: {inputProject.ProjectId}");
-        }
-
         return response;
     }
 
