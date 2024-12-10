@@ -1,20 +1,28 @@
 ﻿using System.Net;
 using System.Web;
+using Apps.XTM.Constants;
 using Apps.XTM.Models.Request.Customers;
 using Apps.XTM.Models.Request.Invoices;
 using Apps.XTM.Models.Request.Jobs;
 using Apps.XTM.Models.Request.Projects;
+using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.Webhooks.Handlers;
 using Apps.XTM.Webhooks.Models.Payload;
 using Apps.XTM.Webhooks.Models.Response;
 using Blackbird.Applications.Sdk.Common.Webhooks;
 using Newtonsoft.Json;
+using RestSharp;
+using Apps.XTM.Invocables;
+using Blackbird.Applications.Sdk.Common.Invocation;
 
 namespace Apps.XTM.Webhooks;
 
 [WebhookList]
-public class WebhookList
+public class WebhookList : XtmInvocable
 {
+    public WebhookList(InvocationContext invocationContext) : base(invocationContext)
+    {
+    }
     #region Manual webhooks
 
     [Webhook("On analysis finished (manual)", Description = "On project analysis finished (manual)")]
@@ -23,8 +31,9 @@ public class WebhookList
     {
         var data = HandleFormDataRequest<AnalysisFinishedPayload>(request);
         var result = new AnalysisFinishedResponse(data);
-        
-        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+
+        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
         {
             return GetPreflightResponse<AnalysisFinishedResponse>();
         }
@@ -43,8 +52,9 @@ public class WebhookList
     {
         var data = HandleFormDataRequest<WorkflowTransitionPayload>(request);
         var result = new WorkflowTransitionResponse(data);
-        
-        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+
+        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
         {
             return GetPreflightResponse<WorkflowTransitionResponse>();
         }
@@ -78,8 +88,9 @@ public class WebhookList
         {
             return GetPreflightResponse<JobFinishedPayload>();
         }
-        
-        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+
+        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
         {
             return GetPreflightResponse<JobFinishedPayload>();
         }
@@ -115,8 +126,9 @@ public class WebhookList
             ExternalProjectId = request.QueryParameters["xtmExternalProjectId"],
             Uuid = request.QueryParameters["xtmUuid"]
         };
-        
-        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+
+        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
         {
             return GetPreflightResponse<ProjectAcceptedPayload>();
         }
@@ -138,8 +150,9 @@ public class WebhookList
             CustomerId = request.QueryParameters["xtmCustomerId"],
             Uuid = request.QueryParameters["xtmUuid"]
         };
-        
-        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+
+        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
         {
             return GetPreflightResponse<ProjectFinishedPayload>();
         }
@@ -167,8 +180,9 @@ public class WebhookList
         {
             return GetPreflightResponse<InvoiceStatusChangedPayload>();
         }
-        
-        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+
+        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
         {
             return GetPreflightResponse<InvoiceStatusChangedPayload>();
         }
@@ -191,8 +205,9 @@ public class WebhookList
     {
         var data = HandleBridgeWebhookRequest<AnalysisFinishedPayload>(request);
         var result = new AnalysisFinishedResponse(data.Payload);
-        
-        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+
+        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
         {
             return GetPreflightResponse<AnalysisFinishedResponse>();
         }
@@ -212,8 +227,9 @@ public class WebhookList
     {
         var data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
         var result = new WorkflowTransitionResponse(data.Payload);
-        
-        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+
+        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
         {
             return GetPreflightResponse<WorkflowTransitionResponse>();
         }
@@ -249,7 +265,8 @@ public class WebhookList
             return GetPreflightResponse<JobFinishedPayload>();
         }
         
-        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        if((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
         {
             return GetPreflightResponse<JobFinishedPayload>();
         }
@@ -290,7 +307,8 @@ public class WebhookList
             Uuid = data.Parameters["xtmUuid"]
         };
         
-        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        if((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
         {
             return GetPreflightResponse<ProjectAcceptedPayload>();
         }
@@ -314,12 +332,13 @@ public class WebhookList
             CustomerId = data.Parameters["xtmCustomerId"],
             Uuid = data.Parameters["xtmUuid"]
         };
-        
-        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+
+        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
         {
             return GetPreflightResponse<ProjectFinishedPayload>();
         }
-        
+
         return Task.FromResult(new WebhookResponse<ProjectFinishedPayload>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
@@ -345,8 +364,9 @@ public class WebhookList
         {
             return GetPreflightResponse<InvoiceStatusChangedPayload>();
         }
-        
-        if(projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+
+        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
         {
             return GetPreflightResponse<InvoiceStatusChangedPayload>();
         }
@@ -382,6 +402,12 @@ public class WebhookList
             Result = null,
             ReceivedWebhookRequestType = WebhookRequestType.Preflight
         });
+    }
+
+    private bool ProjectNameContainsString(string projectId, string containsStr)
+    {
+        var projectInfo = Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{projectId}", Method.Get, null, Creds).Result;
+        return projectInfo.Name.Contains(containsStr);
     }
 
     #endregion  
