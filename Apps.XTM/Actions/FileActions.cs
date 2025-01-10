@@ -16,6 +16,7 @@ using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using Newtonsoft.Json;
 using RestSharp;
 using System.ComponentModel.DataAnnotations;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 
 namespace Apps.XTM.Actions;
 
@@ -296,7 +297,7 @@ public class FileActions : XtmInvocable
         string fileName = input.Name ?? input.File.Name;
         if (string.IsNullOrEmpty(fileName))
         {
-            throw new("File name is required");
+            throw new PluginMisconfigurationException("File name is required");
         }
 
         var fileStream = await _fileManagementClient.DownloadAsync(input.File);
@@ -304,7 +305,23 @@ public class FileActions : XtmInvocable
         request.AddFile("files[0].file", fileBytes, fileName);
         request.AlwaysMultipartFormData = true;
 
-        return await Client.ExecuteXtm<CreateProjectResponse>(request);
+        try 
+        {
+            return await Client.ExecuteXtm<CreateProjectResponse>(request);
+        } 
+        catch (Exception e)
+        {
+            if (e.Message.Contains("Please wait for analysis"))
+            {
+                throw new PluginMisconfigurationException("File cannot be uploaded because the project is under analysis. " +
+                    "Consider using a Checkpoint, set the reanalize project optional input to false or adding retries in the error handling tab");
+            }
+            else
+            {
+                throw new PluginApplicationException(e.Message);
+            }
+        }
+       
     }
 
     [Action("Upload translation file", Description = "Upload translation file to project")]
