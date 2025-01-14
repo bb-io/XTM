@@ -17,6 +17,7 @@ using System;
 using Apps.XTM.Models.Response.User;
 using Apps.XTM.Utils;
 using Newtonsoft.Json;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 
 namespace Apps.XTM.Actions;
 
@@ -303,12 +304,27 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             endpoint += "?targetLanguages=" + string.Join(",", languages.TargetLanguages);
         }
 
-        var response = await Client.ExecuteXtmWithJson<List<MetricsByLanguage>>(endpoint, Method.Get, null, Creds);
-
-        return new MetricByLanguagesResponse
+        try 
         {
-            Metrics = response
-        };
+            var response = await Client.ExecuteXtmWithJson<List<MetricsByLanguage>>(endpoint, Method.Get, null, Creds);
+
+            return new MetricByLanguagesResponse
+            {
+                Metrics = response
+            };
+        } catch (Exception ex) 
+        {
+            if (ex.Message.Contains("Please wait for analysis"))
+            {
+                throw new PluginMisconfigurationException("This request cannot be processed at the moment because the specified project is under analysis. " +
+                    "Consider using a Checkpoint or adding retries in the error handling tab");
+            }
+            else
+            {
+                throw new PluginApplicationException(ex.Message);
+            }
+        }
+        
     }
 
     [Action("Get project completion", Description = "Get project completion for a specific project")]
