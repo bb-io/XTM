@@ -105,13 +105,24 @@ public class WorkflowActions : XtmInvocable
             jobIds = inputJobs.JobIds,
             mailing = inputMail.Mailing ?? "ENABLED"
         };
-
-        var response = await Client.ExecuteXtmWithJson<MoveJobsToNextStepResponse>(
+        try 
+        {
+            var response = await Client.ExecuteXtmWithJson<MoveJobsToNextStepResponse>(
             endpoint,
             Method.Post,
             queryParams,
             Creds);
-        return response;
+            return response;
+        } catch (Exception ex) 
+        {
+            if (ex.Message.Contains("check the state of workflow")) 
+            { throw new PluginMisconfigurationException(ex.Message); } 
+            else 
+            {
+                throw new PluginApplicationException(ex.Message);
+            }
+        }
+        
     }
 
 
