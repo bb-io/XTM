@@ -17,6 +17,7 @@ using Newtonsoft.Json;
 using RestSharp;
 using System.ComponentModel.DataAnnotations;
 using Blackbird.Applications.Sdk.Common.Exceptions;
+using Apps.XTM.Models.Response.Workflows;
 
 namespace Apps.XTM.Actions;
 
@@ -357,15 +358,28 @@ public class FileActions : XtmInvocable
         request.AddFile("translationFile.file", fileBytes, input.Name ?? input.File.Name);
         request.AlwaysMultipartFormData = true;
 
-        var response = await Client.ExecuteXtm<FileUploadResponse>(request);
-
-        var uploadStatusResponse = await PollFileStatusAsync(project.ProjectId, response.File.FileId, input.FileType);
-        return new()
+        try
         {
-            FileId = response.File.FileId,
-            JobId = response.File.JobId,
-            Status = uploadStatusResponse.Status
-        };
+            var response = await Client.ExecuteXtm<FileUploadResponse>(request);
+
+            var uploadStatusResponse = await PollFileStatusAsync(project.ProjectId, response.File.FileId, input.FileType);
+            return new()
+            {
+                FileId = response.File.FileId,
+                JobId = response.File.JobId,
+                Status = uploadStatusResponse.Status
+            };
+        }
+        catch (Exception ex)
+        {
+            if (ex.Message.Contains("Failed to upload translation file"))
+            { throw new PluginMisconfigurationException(ex.Message); }
+            else
+            {
+                throw new PluginApplicationException(ex.Message);
+            }
+        }
+       
     }
 
     private async Task<UploadStatusResponse> PollFileStatusAsync(string projectId, string fileId, string fileType)
