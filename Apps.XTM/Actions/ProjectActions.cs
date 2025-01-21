@@ -125,10 +125,25 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             parameters.Add("dueDate", input.DueDate.Value.ToString("yyyy-MM-ddThh:mm:ssZ"));
         }
 
-        return Client.ExecuteXtmWithFormData<CreateProjectResponse>(ApiEndpoints.Projects,
+        try 
+        {
+            return Client.ExecuteXtmWithFormData<CreateProjectResponse>(ApiEndpoints.Projects,
             Method.Post,
             parameters,
             Creds);
+        }
+        catch (Exception e)
+        {
+            if (e.Message.Contains("Incorrect parameters"))
+            {
+                throw new PluginMisconfigurationException("Please check the input values on this action." + e.Message);
+            }
+            else
+            {
+                throw new PluginApplicationException(e.Message);
+            }
+        }
+        
     }
 
     [Action("Create new project from template",
@@ -178,11 +193,25 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
         {
             parameters.Add("dueDate", input.DueDate.Value.ToString("yyyy-MM-ddThh:mm:ssZ"));
         }
-
-        return Client.ExecuteXtmWithFormData<CreateProjectResponse>(ApiEndpoints.Projects,
-            Method.Post,
-            parameters,
-            Creds);
+        try 
+        {
+            return Client.ExecuteXtmWithFormData<CreateProjectResponse>(ApiEndpoints.Projects,
+                Method.Post,
+                parameters,
+                Creds);
+        } 
+        catch (Exception e) 
+        {
+            if (e.Message.Contains("Incorrect parameters"))
+            {
+                throw new PluginMisconfigurationException("Please check the input values on this action." + e.Message);
+            }
+            else 
+            {
+                throw new PluginApplicationException(e.Message);
+            }
+        }
+        
     }
 
     [Action("Clone project", Description = "Create a new project based on the provided project")]
