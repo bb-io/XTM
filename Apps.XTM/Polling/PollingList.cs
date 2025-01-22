@@ -7,6 +7,7 @@ using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.Polling.Models.Memory;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dictionaries;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Common.Polling;
 using RestSharp;
@@ -94,6 +95,40 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             Memory = new()
             {
                 Status = projectEntity.Status
+            }
+        };
+    }
+
+    [PollingEvent("On project analysis finished (polling)", "On analysis of a specific project finished")]
+    public async Task<PollingEventResponse<ProjectStatusMemory, ProjectAnalysis>> OnProjectAnalysisFinished(
+       PollingEventRequest<ProjectStatusMemory> request,
+       [PollingEventParameter] ProjectRequest project)
+    {
+        var projectAnalysisEntity = (await Client.ExecuteXtmWithJson<ProjectAnalysis>(
+            $"{ApiEndpoints.Projects}/{project.ProjectId}/analysis",
+            Method.Get,
+            null,
+            Creds)) ?? throw new PluginMisconfigurationException("No project found with the provided ID");
+
+        if (request.Memory is null)
+        {
+            return new()
+            {
+                FlyBird = projectAnalysisEntity.Status.ToLower() == "finished" ? true : false,
+                Memory = new()
+                {
+                    Status = projectAnalysisEntity.Status
+                }
+            };
+        }
+
+        return new()
+        {
+            FlyBird = request.Memory.Status.ToLower() != "finished" && projectAnalysisEntity.Status == "finished",
+            Result = projectAnalysisEntity,
+            Memory = new()
+            {
+                Status = projectAnalysisEntity.Status
             }
         };
     }
