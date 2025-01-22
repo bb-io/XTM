@@ -61,8 +61,23 @@ public class FileActions : XtmInvocable
             Method = Method.Post
         }, await Client.GetToken(Creds));
 
-        var response = await Client.ExecuteXtm<GeneratedFileResponse[]>(request);
-        return new(response);
+        try 
+        {
+            var response = await Client.ExecuteXtm<GeneratedFileResponse[]>(request);
+            return new(response);
+        } 
+        catch (Exception e) 
+        {
+            if (e.Message.Contains("Request parameter seems to be invalid."))
+            {
+                throw new PluginMisconfigurationException("Please check that the inputs are correct. " + e.Message);
+            }
+            else 
+            {
+                throw new PluginApplicationException(e.Message);
+            }
+        }
+        
     }
 
     [Action("Download source files as ZIP",
@@ -295,11 +310,8 @@ public class FileActions : XtmInvocable
 
         parameters.ToList().ForEach(x => request.AddParameter(x.Key, x.Value));
 
-        string fileName = input.Name ?? input.File.Name;
-        if (string.IsNullOrEmpty(fileName))
-        {
-            throw new PluginMisconfigurationException("File name is required");
-        }
+        string fileName = input.Name ?? input.File.Name ?? throw new PluginMisconfigurationException("File name is required");
+       
 
         var fileStream = await _fileManagementClient.DownloadAsync(input.File);
         var fileBytes = await fileStream.GetByteData();
@@ -372,12 +384,8 @@ public class FileActions : XtmInvocable
         }
         catch (Exception ex)
         {
-            if (ex.Message.Contains("Failed to upload translation file"))
-            { throw new PluginMisconfigurationException(ex.Message); }
-            else
-            {
-                throw new PluginApplicationException(ex.Message);
-            }
+           throw new PluginApplicationException(ex.Message);
+            
         }
        
     }
