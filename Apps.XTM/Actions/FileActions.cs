@@ -310,11 +310,8 @@ public class FileActions : XtmInvocable
 
         parameters.ToList().ForEach(x => request.AddParameter(x.Key, x.Value));
 
-        string fileName = input.Name ?? input.File.Name;
-        if (string.IsNullOrEmpty(fileName))
-        {
-            throw new PluginMisconfigurationException("File name is required");
-        }
+        string fileName = input.Name ?? input.File.Name ?? throw new PluginMisconfigurationException("File name is required");
+       
 
         var fileStream = await _fileManagementClient.DownloadAsync(input.File);
         var fileBytes = await fileStream.GetByteData();
