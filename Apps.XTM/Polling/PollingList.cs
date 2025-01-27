@@ -99,9 +99,9 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
         };
     }
 
-    [PollingEvent("On project analysis finished (polling)", "On analysis of a specific project finished")]
-    public async Task<PollingEventResponse<ProjectStatusMemory, ProjectAnalysis>> OnProjectAnalysisFinished(
-       PollingEventRequest<ProjectStatusMemory> request,
+    [PollingEvent("On analysis finished (polling)", "On analysis of a specific project finished")]
+    public async Task<PollingEventResponse<AnalysisStatusMemory, ProjectAnalysis>> OnProjectAnalysisFinished(
+       PollingEventRequest<AnalysisStatusMemory> request,
        [PollingEventParameter] ProjectRequest project)
     {
         var projectAnalysisEntity = (await Client.ExecuteXtmWithJson<ProjectAnalysis>(
@@ -114,21 +114,26 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
         {
             return new()
             {
-                FlyBird = projectAnalysisEntity.Status.ToLower() == "finished" ? true : false,
+                FlyBird = projectAnalysisEntity.Status.ToLower() == "finished",
+                Result = projectAnalysisEntity,
                 Memory = new()
                 {
-                    Status = projectAnalysisEntity.Status
+                    Status = projectAnalysisEntity.Status,
+                    ProjectID = projectAnalysisEntity.Id
                 }
             };
         }
 
         return new()
         {
-            FlyBird = request.Memory.Status.ToLower() != "finished" && projectAnalysisEntity.Status == "finished",
+            FlyBird = request.Memory.ProjectID == projectAnalysisEntity.Id?
+            request.Memory.Status.ToLower() != "finished" && projectAnalysisEntity.Status == "finished":
+            projectAnalysisEntity.Status == "finished",
             Result = projectAnalysisEntity,
             Memory = new()
             {
-                Status = projectAnalysisEntity.Status
+                Status = projectAnalysisEntity.Status,
+                ProjectID = projectAnalysisEntity.Id
             }
         };
     }
