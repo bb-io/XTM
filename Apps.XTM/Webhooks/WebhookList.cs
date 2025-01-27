@@ -25,174 +25,174 @@ public class WebhookList : XtmInvocable
     }
     #region Manual webhooks
 
-    [Webhook("On analysis finished (manual)", Description = "On project analysis finished (manual)")]
-    public Task<WebhookResponse<AnalysisFinishedResponse>> OnAnalysisFinishedManual(WebhookRequest request,
-        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
-    {
-        var data = HandleFormDataRequest<AnalysisFinishedPayload>(request);
-        var result = new AnalysisFinishedResponse(data);
+    //[Webhook("On analysis finished (manual)", Description = "On project analysis finished (manual)")]
+    //public Task<WebhookResponse<AnalysisFinishedResponse>> OnAnalysisFinishedManual(WebhookRequest request,
+    //    [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
+    //{
+    //    var data = HandleFormDataRequest<AnalysisFinishedPayload>(request);
+    //    var result = new AnalysisFinishedResponse(data);
 
-        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
-        {
-            return GetPreflightResponse<AnalysisFinishedResponse>();
-        }
+    //    if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+    //       (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
+    //    {
+    //        return GetPreflightResponse<AnalysisFinishedResponse>();
+    //    }
         
-        return Task.FromResult(new WebhookResponse<AnalysisFinishedResponse>
-        {
-            HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = result
-        });
-    }
+    //    return Task.FromResult(new WebhookResponse<AnalysisFinishedResponse>
+    //    {
+    //        HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
+    //        Result = result
+    //    });
+    //}
 
-    [Webhook("On workflow transition (manual)", Description = "On any transition in active workflow steps (manual)")]
-    public Task<WebhookResponse<WorkflowTransitionResponse>> OnWorkflowTransitionManual(WebhookRequest request,
-        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
-        [WebhookParameter] CustomerOptionalRequest customerOptionalRequest)
-    {
-        var data = HandleFormDataRequest<WorkflowTransitionPayload>(request);
-        var result = new WorkflowTransitionResponse(data);
+    //[Webhook("On workflow transition (manual)", Description = "On any transition in active workflow steps (manual)")]
+    //public Task<WebhookResponse<WorkflowTransitionResponse>> OnWorkflowTransitionManual(WebhookRequest request,
+    //    [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
+    //    [WebhookParameter] CustomerOptionalRequest customerOptionalRequest)
+    //{
+    //    var data = HandleFormDataRequest<WorkflowTransitionPayload>(request);
+    //    var result = new WorkflowTransitionResponse(data);
 
-        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
-        {
-            return GetPreflightResponse<WorkflowTransitionResponse>();
-        }
+    //    if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+    //       (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
+    //    {
+    //        return GetPreflightResponse<WorkflowTransitionResponse>();
+    //    }
         
-        if(customerOptionalRequest.CustomerId != null && customerOptionalRequest.CustomerId != result.CustomerId)
-        {
-            return GetPreflightResponse<WorkflowTransitionResponse>();
-        }
+    //    if(customerOptionalRequest.CustomerId != null && customerOptionalRequest.CustomerId != result.CustomerId)
+    //    {
+    //        return GetPreflightResponse<WorkflowTransitionResponse>();
+    //    }
         
-        return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
-        {
-            HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = result
-        });
-    }
+    //    return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
+    //    {
+    //        HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
+    //        Result = result
+    //    });
+    //}
 
-    [Webhook("On job finished (manual)", Description = "On a specific job finished (manual)")]
-    public Task<WebhookResponse<JobFinishedPayload>> OnJobFinishedManual(WebhookRequest request,
-        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
-        [WebhookParameter] JobOptionalRequest jobOptionalRequest)
-    {
-        var result = new JobFinishedPayload
-        {
-            ProjectId = request.QueryParameters["xtmProjectId"],
-            CustomerId = request.QueryParameters["xtmCustomerId"],
-            JobId = request.QueryParameters["xtmJobId"],
-            Uuid = request.QueryParameters["xtmUuid"]
-        };
+    //[Webhook("On job finished (manual)", Description = "On a specific job finished (manual)")]
+    //public Task<WebhookResponse<JobFinishedPayload>> OnJobFinishedManual(WebhookRequest request,
+    //    [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
+    //    [WebhookParameter] JobOptionalRequest jobOptionalRequest)
+    //{
+    //    var result = new JobFinishedPayload
+    //    {
+    //        ProjectId = request.QueryParameters["xtmProjectId"],
+    //        CustomerId = request.QueryParameters["xtmCustomerId"],
+    //        JobId = request.QueryParameters["xtmJobId"],
+    //        Uuid = request.QueryParameters["xtmUuid"]
+    //    };
         
-        if(jobOptionalRequest.JobId != null && jobOptionalRequest.JobId != result.JobId)
-        {
-            return GetPreflightResponse<JobFinishedPayload>();
-        }
+    //    if(jobOptionalRequest.JobId != null && jobOptionalRequest.JobId != result.JobId)
+    //    {
+    //        return GetPreflightResponse<JobFinishedPayload>();
+    //    }
 
-        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
-        {
-            return GetPreflightResponse<JobFinishedPayload>();
-        }
+    //    if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+    //       (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
+    //    {
+    //        return GetPreflightResponse<JobFinishedPayload>();
+    //    }
         
-        return Task.FromResult(new WebhookResponse<JobFinishedPayload>
-        {
-            HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = result
-        });
-    }  
+    //    return Task.FromResult(new WebhookResponse<JobFinishedPayload>
+    //    {
+    //        HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
+    //        Result = result
+    //    });
+    //}  
     
-    [Webhook("On project created (manual)", Description = "On a new project created (manual)")]
-    public Task<WebhookResponse<ProjectCreatedPayload>> OnProjectCreatedManual(WebhookRequest request)
-    {
-        return Task.FromResult(new WebhookResponse<ProjectCreatedPayload>
-        {
-            HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = new()
-            {
-                ProjectId = request.QueryParameters["xtmProjectId"],
-                Uuid = request.QueryParameters["xtmUuid"]
-            }
-        });
-    }    
+    //[Webhook("On project created (manual)", Description = "On a new project created (manual)")]
+    //public Task<WebhookResponse<ProjectCreatedPayload>> OnProjectCreatedManual(WebhookRequest request)
+    //{
+    //    return Task.FromResult(new WebhookResponse<ProjectCreatedPayload>
+    //    {
+    //        HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
+    //        Result = new()
+    //        {
+    //            ProjectId = request.QueryParameters["xtmProjectId"],
+    //            Uuid = request.QueryParameters["xtmUuid"]
+    //        }
+    //    });
+    //}    
     
-    [Webhook("On project accepted (manual)", Description = "On a specific project accepted (manual)")]
-    public Task<WebhookResponse<ProjectAcceptedPayload>> OnProjectAcceptedManual(WebhookRequest request,
-        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
-    {
-        var result = new ProjectAcceptedPayload
-        {
-            ProjectId = request.QueryParameters["xtmProjectId"],
-            ExternalProjectId = request.QueryParameters["xtmExternalProjectId"],
-            Uuid = request.QueryParameters["xtmUuid"]
-        };
+    //[Webhook("On project accepted (manual)", Description = "On a specific project accepted (manual)")]
+    //public Task<WebhookResponse<ProjectAcceptedPayload>> OnProjectAcceptedManual(WebhookRequest request,
+    //    [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
+    //{
+    //    var result = new ProjectAcceptedPayload
+    //    {
+    //        ProjectId = request.QueryParameters["xtmProjectId"],
+    //        ExternalProjectId = request.QueryParameters["xtmExternalProjectId"],
+    //        Uuid = request.QueryParameters["xtmUuid"]
+    //    };
 
-        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
-        {
-            return GetPreflightResponse<ProjectAcceptedPayload>();
-        }
+    //    if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+    //       (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
+    //    {
+    //        return GetPreflightResponse<ProjectAcceptedPayload>();
+    //    }
         
-        return Task.FromResult(new WebhookResponse<ProjectAcceptedPayload>
-        {
-            HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = result
-        });
-    } 
+    //    return Task.FromResult(new WebhookResponse<ProjectAcceptedPayload>
+    //    {
+    //        HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
+    //        Result = result
+    //    });
+    //} 
     
-    [Webhook("On project finished (manual)", Description = "On a specific project finished (manual)")]
-    public Task<WebhookResponse<ProjectFinishedPayload>> OnProjectFinishedManual(WebhookRequest request,
-        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
-    {
-        var result = new ProjectFinishedPayload
-        {
-            ProjectId = request.QueryParameters["xtmProjectId"],
-            CustomerId = request.QueryParameters["xtmCustomerId"],
-            Uuid = request.QueryParameters["xtmUuid"]
-        };
+    //[Webhook("On project finished (manual)", Description = "On a specific project finished (manual)")]
+    //public Task<WebhookResponse<ProjectFinishedPayload>> OnProjectFinishedManual(WebhookRequest request,
+    //    [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
+    //{
+    //    var result = new ProjectFinishedPayload
+    //    {
+    //        ProjectId = request.QueryParameters["xtmProjectId"],
+    //        CustomerId = request.QueryParameters["xtmCustomerId"],
+    //        Uuid = request.QueryParameters["xtmUuid"]
+    //    };
 
-        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
-        {
-            return GetPreflightResponse<ProjectFinishedPayload>();
-        }
+    //    if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+    //       (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
+    //    {
+    //        return GetPreflightResponse<ProjectFinishedPayload>();
+    //    }
         
-        return Task.FromResult(new WebhookResponse<ProjectFinishedPayload>
-        {
-            HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = result
-        });
-    }
+    //    return Task.FromResult(new WebhookResponse<ProjectFinishedPayload>
+    //    {
+    //        HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
+    //        Result = result
+    //    });
+    //}
     
-    [Webhook("On invoice status changed (manual)", Description = "On invoice changed for any project (manual)")]
-    public Task<WebhookResponse<InvoiceStatusChangedPayload>> OnInvoiceStatusChangedManual(WebhookRequest request,
-        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
-        [WebhookParameter] InvoiceOptionalRequest invoiceStatusChangedRequest)
-    {
-        var result = new InvoiceStatusChangedPayload
-        {
-            ProjectId = request.QueryParameters["xtmProjectId"],
-            InvoiceStatus = request.QueryParameters["xtmInvoiceStatus"],
-            Uuid = request.QueryParameters["xtmUuid"]
-        };
+    //[Webhook("On invoice status changed (manual)", Description = "On invoice changed for any project (manual)")]
+    //public Task<WebhookResponse<InvoiceStatusChangedPayload>> OnInvoiceStatusChangedManual(WebhookRequest request,
+    //    [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
+    //    [WebhookParameter] InvoiceOptionalRequest invoiceStatusChangedRequest)
+    //{
+    //    var result = new InvoiceStatusChangedPayload
+    //    {
+    //        ProjectId = request.QueryParameters["xtmProjectId"],
+    //        InvoiceStatus = request.QueryParameters["xtmInvoiceStatus"],
+    //        Uuid = request.QueryParameters["xtmUuid"]
+    //    };
         
-        if(invoiceStatusChangedRequest.InvoiceId != null && invoiceStatusChangedRequest.InvoiceId != result.Uuid)
-        {
-            return GetPreflightResponse<InvoiceStatusChangedPayload>();
-        }
+    //    if(invoiceStatusChangedRequest.InvoiceId != null && invoiceStatusChangedRequest.InvoiceId != result.Uuid)
+    //    {
+    //        return GetPreflightResponse<InvoiceStatusChangedPayload>();
+    //    }
 
-        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
-        {
-            return GetPreflightResponse<InvoiceStatusChangedPayload>();
-        }
+    //    if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
+    //       (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
+    //    {
+    //        return GetPreflightResponse<InvoiceStatusChangedPayload>();
+    //    }
         
-        return Task.FromResult(new WebhookResponse<InvoiceStatusChangedPayload>
-        {
-            HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = result
-        });
-    }
+    //    return Task.FromResult(new WebhookResponse<InvoiceStatusChangedPayload>
+    //    {
+    //        HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
+    //        Result = result
+    //    });
+    //}
 
     #endregion
 
