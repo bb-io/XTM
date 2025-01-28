@@ -37,6 +37,8 @@ public class FileActions : XtmInvocable
         [ActionParameter] ProjectRequest project,
         [ActionParameter] GenerateFileRequest input)
     {
+        var checkProject = Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.ProjectId}", Method.Get,null,Creds);
+        
         var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/generate";
 
         if (input.jobIds == null)
@@ -79,6 +81,8 @@ public class FileActions : XtmInvocable
         }
         
     }
+
+
 
     [Action("Download source files as ZIP",
         Description = "Download the source files for project or specific jobs as ZIP")]
