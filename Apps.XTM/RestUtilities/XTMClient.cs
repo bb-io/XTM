@@ -3,6 +3,7 @@ using Apps.XTM.Extensions;
 using Apps.XTM.Models.Request;
 using Apps.XTM.Models.Response;
 using Blackbird.Applications.Sdk.Common.Authentication;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Utils.Extensions.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -110,7 +111,7 @@ public class XTMClient : RestClient
                       + (error?.IncorrectParameters != null
                           ? ": " + error.IncorrectParameters.ToLower().Replace("_", " ") + "."
                           : ".");
-        return new(message);
+        throw new PluginApplicationException($"Error: {message}");
     }
 
     #endregion
