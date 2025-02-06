@@ -45,7 +45,7 @@ public class XTMClient : RestClient
         var response = await ExecuteAsync(request);
 
         if (!response.IsSuccessStatusCode)
-            throw GetXtmError(response);
+            throw new PluginApplicationException(GetXtmError(response).Message);
 
         return response;
     }
