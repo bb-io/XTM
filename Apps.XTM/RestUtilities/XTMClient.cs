@@ -111,7 +111,7 @@ public class XTMClient : RestClient
                       + (error?.IncorrectParameters != null
                           ? ": " + error.IncorrectParameters.ToLower().Replace("_", " ") + "."
                           : ".");
-        return new(message);
+        throw new PluginApplicationException($"Error: {message}");
     }
 
     #endregion
