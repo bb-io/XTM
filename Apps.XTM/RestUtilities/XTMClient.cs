@@ -3,6 +3,7 @@ using Apps.XTM.Extensions;
 using Apps.XTM.Models.Request;
 using Apps.XTM.Models.Response;
 using Blackbird.Applications.Sdk.Common.Authentication;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Utils.Extensions.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -44,7 +45,7 @@ public class XTMClient : RestClient
         var response = await ExecuteAsync(request);
 
         if (!response.IsSuccessStatusCode)
-            throw GetXtmError(response);
+            throw new PluginApplicationException(GetXtmError(response).Message);
 
         return response;
     }
