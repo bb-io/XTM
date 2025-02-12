@@ -34,7 +34,7 @@ public class ProjectCompletionResponse
                 Steps = new List<StepResponse>()
             };
 
-            foreach (var step in job.steps)
+            foreach (var step in job.steps ?? Array.Empty<xtmStepStatusResponseAPI>())
             {
                 var stepResponse = new StepResponse
                 {
@@ -42,7 +42,6 @@ public class ProjectCompletionResponse
                     StepName = step.stepDescriptor.workflowStepName,
                     DueToDate = step.dueDate
                 };
-
                 jobResponse.Steps.Add(stepResponse);
             }
 
