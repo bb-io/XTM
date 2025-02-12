@@ -378,7 +378,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
         };
 
         checkProjectCompletionResponse result = await this.ProjectManagerMTOClient.checkProjectCompletionAsync(loginApi, xtmProjectDescriptorApi, new xtmCheckProjectCompletionOptionsAPI());
-        return new(result);
+         return new(result);
     }
     
     [Action("Get project status", Description = "Get project status for a specific project")]
