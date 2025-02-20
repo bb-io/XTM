@@ -1,13 +1,20 @@
-﻿using System.Net.Mime;
+﻿using System.Linq;
+using System.Net.Mime;
 using Apps.XTM.Constants;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request.TranslationMemory;
 using Apps.XTM.Models.Response.Files;
 using Apps.XTM.Models.Response.TranslationMemory;
+using Apps.XTM.RestUtilities;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Blackbird.Applications.Sdk.Utils.Extensions.Files;
+using Blackbird.Applications.Sdk.Utils.Extensions.Sdk;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
+using DocumentFormat.OpenXml.Office2016.Excel;
+using Newtonsoft.Json;
 using RestSharp;
 
 namespace Apps.XTM.Actions;
@@ -46,6 +53,77 @@ public class TranslationMemoryActions : XtmInvocable
         var file = await _fileManagementClient.UploadAsync(stream,
             response.ContentType ?? MediaTypeNames.Application.Octet, $"TMFile-{fileId}");
         return new(file);
+    }
+
+
+    [Action("Import TM file", Description = "Import translation memory file")]
+    public async Task<ImportTMResponse> ImportTMFile([ActionParameter] ImportTMRequest request)
+    {
+        var url = $"{ApiEndpoints.TMFiles}/import";
+        var token = await Client.GetToken(Creds);
+
+        var parameters = new Dictionary<string, string>
+            {
+                { "customerId", request.CustomerId },
+                { "importProjectName", request.ImportProjectName },
+                { "sourceLanguage", request.SourceLanguage },
+                { "targetLanguage", request.TargetLanguage }
+            };
+
+        if (!string.IsNullOrEmpty(request.TmStatus))
+            parameters.Add("tmStatus", request.TmStatus);
+        if (!string.IsNullOrEmpty(request.TmStatusImportType))
+            parameters.Add("tmStatusImportType", request.TmStatusImportType);
+        if (!string.IsNullOrEmpty(request.WhitespacesFormattingType))
+            parameters.Add("whitespacesFormattingType", request.WhitespacesFormattingType);
+        if (!string.IsNullOrEmpty(request.AltTransElementsImport))
+            parameters.Add("altTransElementsImport", request.AltTransElementsImport);
+        if (!string.IsNullOrEmpty(request.SegmentsImportType))
+            parameters.Add("segmentsImportType", request.SegmentsImportType);
+        if (!string.IsNullOrEmpty(request.BilingualTerminologyAction))
+            parameters.Add("bilingualTerminologyAction", request.BilingualTerminologyAction);
+
+        if (!string.IsNullOrEmpty(request.TagGroupIds) && request.TagIds != null && request.TagIds.Any())
+        {
+            if (long.TryParse(request.TagGroupIds, out var groupId))
+            {
+                var tagsList = request.TagIds
+                    .Where(x => long.TryParse(x, out _))
+                    .Select(x => new { id = long.Parse(x) })
+                    .ToList();
+
+                var tagGroups = new[] { new { id = groupId, tags = tagsList } };
+                var tagGroupsJson = JsonConvert.SerializeObject(tagGroups);
+                parameters.Add("tagGroups", tagGroupsJson);
+            }
+        }
+
+        var xtmRequest = new XTMRequest(new()
+        {
+            Url = Creds.Get(CredsNames.Url) + url,
+            Method = Method.Post
+        }, token);
+
+        foreach (var param in parameters)
+        {
+            xtmRequest.AddParameter(param.Key, param.Value, encode: false);
+        }
+
+        var fileStream = await _fileManagementClient.DownloadAsync(request.File);
+        var fileBytes = await fileStream.GetByteData();
+
+        xtmRequest.AddFile("file", fileBytes, request.File.Name);
+        xtmRequest.AlwaysMultipartFormData = true;
+
+        try
+        {
+            var response = await Client.ExecuteXtm<ImportTMResponse>(xtmRequest);
+            return response;
+        }
+        catch (Exception ex)
+        {
+            throw new PluginApplicationException(ex.Message);
+        }
     }
 
     #endregion
