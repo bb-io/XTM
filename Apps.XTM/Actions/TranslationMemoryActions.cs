@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using System.Net.Mime;
+using System.Text;
 using Apps.XTM.Constants;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request.TranslationMemory;
@@ -59,12 +60,13 @@ public class TranslationMemoryActions : XtmInvocable
     [Action("Import TM file", Description = "Import translation memory file")]
     public async Task<ImportTMResponse> ImportTMFile([ActionParameter] ImportTMRequest request)
     {
-        var url = $"{ApiEndpoints.TMFiles}/import";
+        var baseUrl = Creds.Get(CredsNames.Url).Value;
+        var url = baseUrl + $"{ApiEndpoints.TMFiles}/import";
         var token = await Client.GetToken(Creds);
 
-        var parameters = new Dictionary<string, string>
+        var parameters = new Dictionary<string, object>
             {
-                { "customerId", request.CustomerId },
+                { "customerId", int.Parse(request.CustomerId) },
                 { "importProjectName", request.ImportProjectName },
                 { "sourceLanguage", request.SourceLanguage },
                 { "targetLanguage", request.TargetLanguage }
@@ -100,13 +102,13 @@ public class TranslationMemoryActions : XtmInvocable
 
         var xtmRequest = new XTMRequest(new()
         {
-            Url = Creds.Get(CredsNames.Url) + url,
+            Url =  url,
             Method = Method.Post
         }, token);
 
         foreach (var param in parameters)
         {
-            xtmRequest.AddParameter(param.Key, param.Value, encode: false);
+            xtmRequest.AddParameter(param.Key, param.Value, ParameterType.GetOrPost);
         }
 
         var fileStream = await _fileManagementClient.DownloadAsync(request.File);
@@ -117,8 +119,8 @@ public class TranslationMemoryActions : XtmInvocable
 
         try
         {
-            var response = await Client.ExecuteXtm<ImportTMResponse>(xtmRequest);
-            return response;
+            var response = await Client.ExecuteXtm<IEnumerable<ImportTMResponse>>(xtmRequest);
+            return response.FirstOrDefault();
         }
         catch (Exception ex)
         {

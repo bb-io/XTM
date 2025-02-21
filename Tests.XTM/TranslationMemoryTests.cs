@@ -23,11 +23,15 @@ namespace Tests.XTM
                 CustomerId = "2028",
                 File = new FileReference
                 {
-                    Name = "test2.tmx"
+                    Name = "test.tmx"
                 },
                 ImportProjectName = "TestProject",
-                SourceLanguage = "en",
-                TargetLanguage = "de"
+                SourceLanguage = "en_US",
+                TargetLanguage = "fr_FR",
+                TmStatus = "APPROVED",
+                TmStatusImportType = "NONE",
+                WhitespacesFormattingType = "KEEP_ALL_WHITESPACES",
+
             });
         }
     }
