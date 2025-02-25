@@ -28,7 +28,7 @@ namespace Tests.XTM
         public async Task GetProjectReturnsValues()
         {
             var action = new ProjectActions(InvocationContext,FileManager);
-            var input = new ProjectRequest { ProjectId = "58737" };
+            var input = new ProjectRequest { ProjectId = "66245898" };
             var response = await action.GetProject(input);
            
             Console.WriteLine($"{response.Id} - {response.Name}");
@@ -40,7 +40,7 @@ namespace Tests.XTM
         public async Task GetProjectDetailsReturnsValues()
         {
             var action = new ProjectActions(InvocationContext, FileManager);
-            var input = new ProjectRequest { ProjectId = "66091423" };
+            var input = new ProjectRequest { ProjectId = "66245898" };
             var response = await action.GetProjectDetails(input);
 
             Console.WriteLine($"{response.ProjectStatus.CompletionStatus}");
