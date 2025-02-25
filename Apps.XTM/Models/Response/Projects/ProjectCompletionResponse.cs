@@ -18,19 +18,24 @@ public class ProjectCompletionResponse
 
     public ProjectCompletionResponse(checkProjectCompletionResponse response)
     {
-        Activity = response.@return.project.activity.ToString();
-        Jobs = new();
-        JobIds = response.@return.project.jobs.Select(x => x.jobDescriptor.id.ToString()).ToList();
+        Activity = response?.@return?.project?.activity.ToString() ?? string.Empty;
+        Jobs = new List<JobResponse>();
 
-        foreach (var job in response.@return.project.jobs)
+        var jobList = response?.@return?.project?.jobs ?? Enumerable.Empty<xtmJobStatusResponseAPI>();
+
+        JobIds = jobList
+               .Select(x => x.jobDescriptor?.id.ToString() ?? string.Empty)
+               .ToList();
+
+        foreach (var job in jobList)
         {
             var jobResponse = new JobResponse
             {
-                JobId = job.jobDescriptor.id.ToString(),
+                JobId = job.jobDescriptor.id.ToString() ?? string.Empty,
                 FileName = job.fileName,
-                SourceFileId = job.sourceFileId.ToString(),
-                TargetLanguage = job.targetLanguage.ToString(),
-                JoinFilesType = job.joinFilesType.ToString(),
+                SourceFileId = job.sourceFileId.ToString() ?? "",
+                TargetLanguage = job.targetLanguage.ToString() ?? "",
+                JoinFilesType = job.joinFilesType.ToString() ?? "",
                 Steps = new List<StepResponse>()
             };
 
