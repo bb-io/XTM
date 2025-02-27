@@ -1,4 +1,5 @@
 ﻿using Apps.XTM.Constants;
+using Apps.XTM.Extensions;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request;
 using Apps.XTM.Models.Request.Files;
@@ -6,11 +7,13 @@ using Apps.XTM.Models.Request.Jobs;
 using Apps.XTM.Models.Request.Projects;
 using Apps.XTM.Models.Request.Workflows;
 using Apps.XTM.Models.Response.Workflows;
+using Apps.XTM.RestUtilities;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using RestSharp;
 using static System.Net.WebRequestMethods;
 
@@ -98,31 +101,19 @@ public class WorkflowActions : XtmInvocable
         [ActionParameter] ProjectRequest inputProject,
         [ActionParameter] MailingRequest inputMail)
     {
-        var endpoint = $"{ApiEndpoints.Projects}/{inputProject.ProjectId}/workflow/finish";
+        var token = await Client.GetToken(Creds);
+        var request = new XTMRequest(new()
+        {
+            Url = Creds.Get(CredsNames.Url) + $"{ApiEndpoints.Projects}/{inputProject.ProjectId}/workflow/finish",
+            Method = Method.Post
+        }, token);
 
-        var queryParams = new
-        {
-            jobIds = inputJobs.JobIds,
-            mailing = inputMail.Mailing ?? "ENABLED"
-        };
-        try 
-        {
-            var response = await Client.ExecuteXtmWithJson<MoveJobsToNextStepResponse>(
-            endpoint,
-            Method.Post,
-            queryParams,
-            Creds);
-            return response;
-        } catch (Exception ex) 
-        {
-            if (ex.Message.Contains("check the state of workflow")) 
-            { throw new PluginMisconfigurationException(ex.Message); } 
-            else 
-            {
-                throw new PluginApplicationException(ex.Message);
-            }
-        }
-        
+        request.AddQueryParameter("jobIds", string.Join(",", inputJobs.JobIds));
+        var mailing = inputMail.Mailing ?? "DISABLED";
+        request.AddQueryParameter("mailing", mailing);
+
+        var response = await Client.ExecuteXtm<MoveJobsToNextStepResponse>(request);
+        return response;
     }
 
 
