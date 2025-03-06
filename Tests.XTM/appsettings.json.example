@@ -1,7 +1,10 @@
 {
-    "ConnectionDefinition": {
-        "apiKey": "YOUR_API_KEY",
-        "url": "YOUR_URL"
-    },
-    "TestFolder": "YOUR_TEST_FOLDER"
+  "ConnectionDefinition": {
+    "apiKey": "XTM-Basic [YOUR_TOKEN]",
+    "url": "[YOUR_URL]",
+    "client": "[YOUR_CLIENT]",
+    "userId": "[YOUR_USERID]",
+    "password": "[YOUR_PASSWORD]"
+  },
+  "TestFolder": "[YOUR_TEST_FOLDER]"
 }

@@ -101,11 +101,18 @@ public class XTMClient : RestClient
 
         var response = await this.ExecuteAsync<TokenResponse>(request);
 
+        if (!response.IsSuccessStatusCode)
+            throw new PluginApplicationException(GetXtmError(response).Message);
+
         return response.Data.Token;
     }
 
     private Exception GetXtmError(RestResponse response)
     {
+        if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
+        {
+            throw new PluginApplicationException(response?.ErrorException?.Message);
+        }
         var error = JsonConvert.DeserializeObject<ErrorResponse>(response.Content);
         var message = (error?.Reason.TrimEnd('.') ?? response.StatusCode.ToString())
                       + (error?.IncorrectParameters != null
