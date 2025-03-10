@@ -1,4 +1,5 @@
-﻿using Apps.XTM.Constants;
+﻿using System.Text;
+using Apps.XTM.Constants;
 using Apps.XTM.Extensions;
 using Apps.XTM.Models.Request;
 using Apps.XTM.Models.Response;
@@ -43,6 +44,11 @@ public class XTMClient : RestClient
     public async Task<RestResponse> ExecuteXtm(XTMRequest request)
     {
         var response = await ExecuteAsync(request);
+
+        if (response.RawBytes != null && Encoding.UTF8.GetString(response.RawBytes).Contains("CANNOT_FIND_THE_FILE"))
+        {
+            throw new PluginApplicationException("The file was not found, please check your input and try again");
+        }
 
         if (!response.IsSuccessStatusCode)
             throw new PluginApplicationException(GetXtmError(response).Message);

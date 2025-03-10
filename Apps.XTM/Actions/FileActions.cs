@@ -18,6 +18,8 @@ using RestSharp;
 using System.ComponentModel.DataAnnotations;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Apps.XTM.Models.Response.Workflows;
+using Blackbird.Applications.Sdk.Utils.Models;
+using System.Text;
 
 namespace Apps.XTM.Actions;
 
@@ -156,14 +158,28 @@ public class FileActions : XtmInvocable
             Method.Get,
             null,
             Creds);
+
         using var fileStream = new MemoryStream(response.RawBytes);
-        var file = (await fileStream.GetFilesFromZip()).First();
-        var xtmFileDescription = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
-            (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString()).First();
+        IEnumerable<BlackbirdZipEntry> files;
+        try
+        {
+            files = await fileStream.GetFilesFromZip();
+        }
+        catch (Exception ex)
+        {
+            throw new PluginApplicationException($"The file returned from server is empty or damaged. Please check and try again. Message: {ex.Message}");
+        }
+        var file = files.First();
+
+        var xtmFileDescription = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>(
+            response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString())
+            .First();
         xtmFileDescription.FileName = file.UploadName;
-        var uploadedFile =
-            await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
-        return new()
+
+        var uploadedFile = await _fileManagementClient.UploadAsync(
+            file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
+
+        return new FileWithData<XtmProjectFileDescription>
         {
             Content = uploadedFile,
             FileDescription = xtmFileDescription
