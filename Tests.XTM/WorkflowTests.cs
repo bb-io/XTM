@@ -18,7 +18,7 @@ namespace Tests.XTM
         public async Task MoveWorkflowsToNextStep_ReturnsValue()
         {
             var action = new WorkflowActions(InvocationContext);
-            var project = new ProjectRequest { ProjectId=""};
+            var project = new ProjectRequest { ProjectId= "" };
             var jobs = new JobsRequest { JobIds = new List<string> { "" } };
             var mailing = new MailingRequest { Mailing = "DISABLED" };
 
