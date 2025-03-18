@@ -78,6 +78,11 @@ Before you can connect you need to make sure that:
 - **Update customer**
 - **Delete customer**
 
+### Glossaries
+
+- **Import glossary**
+- **Export glossary**
+
 ## Events
 
 >Note: XTM uses callback URLs that can only be set at the time of project creation, this means that only projects that have been created through Blackbird will work with non-polling Events. To trigger Birds based on Events regarding projects that were not created via Blackbird, use a [polling trigger](https://docs.blackbird.io/concepts/triggers/#polling) - identified below as **polling**.
