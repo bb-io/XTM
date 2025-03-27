@@ -20,6 +20,7 @@ using Blackbird.Applications.Sdk.Common.Exceptions;
 using Apps.XTM.Models.Response.Workflows;
 using Blackbird.Applications.Sdk.Utils.Models;
 using System.Text;
+using Apps.XTM.Models.Response;
 
 namespace Apps.XTM.Actions;
 
@@ -45,9 +46,18 @@ public class FileActions : XtmInvocable
 
         if (input.jobIds == null)
         {
-            var projectActions = new ProjectActions(InvocationContext, _fileManagementClient);
-            var projectCompletion = await projectActions.GetProjectCompletion(project);
-            input.jobIds = projectCompletion.JobIds;
+            var assignmentEndpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/workflow/assignment";
+
+            var assignmentResponse = await Client.ExecuteXtmWithJson<WorkflowAssignmentJobResponse>(
+                assignmentEndpoint,
+                Method.Get,
+                null,
+                Creds
+            );
+
+            input.jobIds = assignmentResponse.Jobs
+                .Select(j => j.JobId)
+                .ToArray();
         }
 
         var queryParameters = new Dictionary<string, string>
