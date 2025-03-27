@@ -243,9 +243,6 @@ public class FileActions : XtmInvocable
 
         return new(result);
     }
-    //var outputFolder = @"C:\Users\user\source\repos\bb-io\XTM\Tests.XTM\TestFiles\Output";
-    //var outputPath = Path.Combine(outputFolder, "DownloadedFiles.zip");
-    //System.IO.File.WriteAllBytes(outputPath, response.RawBytes);
 
     [Action("Download translated files", Description = "Download project's translated files")]
     public async Task<DownloadFilesResponse<XtmProjectFileDescription>> DownloadTranslations(
