@@ -243,6 +243,9 @@ public class FileActions : XtmInvocable
 
         return new(result);
     }
+    //var outputFolder = @"C:\Users\user\source\repos\bb-io\XTM\Tests.XTM\TestFiles\Output";
+    //var outputPath = Path.Combine(outputFolder, "DownloadedFiles.zip");
+    //System.IO.File.WriteAllBytes(outputPath, response.RawBytes);
 
     [Action("Download translated files", Description = "Download project's translated files")]
     public async Task<DownloadFilesResponse<XtmProjectFileDescription>> DownloadTranslations(
@@ -252,10 +255,10 @@ public class FileActions : XtmInvocable
         var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/download";
 
         var queryParameters = new Dictionary<string, string>
-        {
-            { "fileScope", "JOB" },
-            { "fileType", "TARGET" }
-        };
+    {
+        { "fileScope", "JOB" },
+        { "fileType", "TARGET" }
+    };
 
         if (input.JobIds != null)
             queryParameters.Add("jobIds", string.Join(",", input.JobIds));
@@ -270,23 +273,57 @@ public class FileActions : XtmInvocable
 
         using var fileStream = new MemoryStream(response.RawBytes);
         var files = await fileStream.GetFilesFromZip();
-        var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
-            (response.Headers.FirstOrDefault(header => header.Name == "xtm-file-descrption").Value.ToString());
+
+        IEnumerable<XtmProjectFileDescription> xtmFileDescriptions = null;
+        var header = response.Headers.FirstOrDefault(h => h.Name == "xtm-file-descrption");
+        if (header != null)
+        {
+            xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>(header.Value.ToString());
+        }
 
         var result = new List<FileWithData<XtmProjectFileDescription>>();
+
         foreach (var file in files)
         {
-            var uploadedFile =
-                await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet,
-                    file.UploadName);
-            result.Add(new()
+            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
+
+            var description = xtmFileDescriptions?.FirstOrDefault(d => (d.TargetLanguage + "_" + d.FileName) == file.UploadName);
+
+            if (description == null)
+            {
+                var parts = file.UploadName.Split('_');
+                if (parts.Length >= 3)
+                {
+                    var targetLang = $"{parts[0]}_{parts[1]}";
+                    var fileName = string.Join("_", parts.Skip(2));
+                    description = new XtmProjectFileDescription
+                    {
+                        FileId = "",
+                        FileName = fileName,
+                        JobId = "", 
+                        TargetLanguage = targetLang
+                    };
+                }
+                else
+                {
+                    description = new XtmProjectFileDescription
+                    {
+                        FileId = "",
+                        FileName = file.UploadName,
+                        JobId = "",
+                        TargetLanguage = ""
+                    };
+                }
+            }
+
+            result.Add(new FileWithData<XtmProjectFileDescription>
             {
                 Content = uploadedFile,
-                FileDescription = xtmFileDescriptions.FirstOrDefault(d => d.TargetLanguage+"_"+d.FileName == file.UploadName)
+                FileDescription = description
             });
         }
 
-        return new(result);
+        return new DownloadFilesResponse<XtmProjectFileDescription>(result);
     }
 
     [Action("Upload source file", Description = "Upload source files for a project")]
