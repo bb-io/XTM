@@ -35,6 +35,20 @@ namespace Tests.XTM
            
         }
 
+        [TestMethod]
+        public async Task ProjectDataHandlerReturnsValues()
+        {
+            var action = new ProjectDataHandler(InvocationContext);
+
+            var response = await action.GetDataAsync(new DataSourceContext { }, CancellationToken.None);
+
+            foreach (var project in response)
+            {
+                Console.WriteLine($"{project.Value} - {project.Key}");
+            }
+
+        }
+
 
         [TestMethod]
         public async Task GetProjectDetailsReturnsValues()
