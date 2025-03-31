@@ -80,7 +80,7 @@ public class WorkflowActions : XtmInvocable
         {
             user = new
             {
-                id = int.TryParse(assignmentRequest.UserId, out var parsedId) ? parsedId : throw new Exception("Invalid User ID"),
+                id = int.TryParse(assignmentRequest.UserId, out var parsedId) ? parsedId : throw new PluginMisconfigurationException("Invalid User ID"),
                 type = assignmentRequest.UserType ?? "INTERNAL_USER"
             },
             languages = assignmentRequest.Languages ?? new List<string>(),
