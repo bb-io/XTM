@@ -27,7 +27,7 @@ namespace Tests.XTM.TestFiles
 
 
         [TestMethod]
-        public async Task DownloadFiles_IsSucces()
+        public async Task DownloadTranslatedFiles_IsSucces()
         {
             var action = new FileActions(InvocationContext, FileManager);
             var project = new ProjectRequest { ProjectId = "69721875" };
@@ -46,6 +46,20 @@ namespace Tests.XTM.TestFiles
                 }
 
             }
+            Assert.IsNotNull(response);
+        }
+
+        [TestMethod]
+        public async Task DownloadProjectFiles_IsSucces()
+        {
+            var action = new FileActions(InvocationContext, FileManager);
+            var project = new ProjectRequest { ProjectId = "107731759" };
+            var fileGenerate = new DownloadProjectFileRequest { FileScope = "JOB", FileId = "107965948" };
+
+            //var project = new ProjectRequest { ProjectId = "107906245" };
+            //var fileGenerate = new DownloadProjectFileRequest { FileScope = "JOB", FileId = "107986869" };
+            var response = await action.DownloadProjectFile(project, fileGenerate);
+
             Assert.IsNotNull(response);
         }
     }

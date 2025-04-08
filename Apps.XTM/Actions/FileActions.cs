@@ -181,6 +181,13 @@ public class FileActions : XtmInvocable
         }
         var file = files.First();
 
+        var header = response.Headers.FirstOrDefault(header => header.Name.Equals("xtm-file-descrption", StringComparison.OrdinalIgnoreCase));
+
+        if (header == null)
+        {
+            throw new PluginApplicationException("Header 'xtm-file-descrption' not found in the answer from server. Please check the file status and try again");
+        }
+
         var xtmFileDescription = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>(
             response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString())
             .First();
