@@ -117,7 +117,7 @@ public class XTMClient : RestClient
     {
         if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
         {
-            throw new PluginApplicationException(response?.ErrorException?.Message);
+            throw new PluginApplicationException(response?.ErrorException?.Message + " "+ response?.Content);
         }
         var error = JsonConvert.DeserializeObject<ErrorResponse>(response.Content);
         var message = (error?.Reason.TrimEnd('.') ?? response.StatusCode.ToString())
