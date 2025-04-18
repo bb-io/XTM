@@ -101,6 +101,11 @@ public class WorkflowActions : XtmInvocable
         [ActionParameter] ProjectRequest inputProject,
         [ActionParameter] MailingRequest inputMail)
     {
+        if (inputJobs?.JobIds == null || !inputJobs.JobIds.Any())
+        {
+            throw new PluginMisconfigurationException("Input jobIds can not be empty or null. Please check your input and try again");
+        }
+
         var token = await Client.GetToken(Creds);
         var request = new XTMRequest(new()
         {
