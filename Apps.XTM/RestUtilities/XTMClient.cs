@@ -44,6 +44,16 @@ public class XTMClient : RestClient
     public async Task<RestResponse> ExecuteXtm(XTMRequest request)
     {
         var response = await ExecuteAsync(request);
+        var content = response.RawBytes != null
+               ? Encoding.UTF8.GetString(response.RawBytes)
+               : string.Empty;
+
+        if (response.ContentType?.Contains("html") == true
+        || content.TrimStart().StartsWith("<"))
+        {
+            throw new PluginApplicationException(
+                $"Expected JSON but received HTML:\n{content}");
+        }
 
         if (response.RawBytes != null && Encoding.UTF8.GetString(response.RawBytes).Contains("CANNOT_FIND_THE_FILE"))
         {
