@@ -125,10 +125,6 @@ public class XTMClient : RestClient
 
     private Exception GetXtmError(RestResponse response)
     {
-        if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
-        {
-            throw new PluginApplicationException(response?.ErrorException?.Message + " "+ response?.Content);
-        }
         var error = JsonConvert.DeserializeObject<ErrorResponse>(response.Content);
         var message = (error?.Reason.TrimEnd('.') ?? response.StatusCode.ToString())
                       + (error?.IncorrectParameters != null
