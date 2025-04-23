@@ -207,7 +207,7 @@ public class WebhookList : XtmInvocable
         var result = new AnalysisFinishedResponse(data.Payload);
 
         if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectPollFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains)))
         {
             return GetPreflightResponse<AnalysisFinishedResponse>();
         }
@@ -229,7 +229,7 @@ public class WebhookList : XtmInvocable
         var result = new WorkflowTransitionResponse(data.Payload);
 
         if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectPollFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains)))
         {
             return GetPreflightResponse<WorkflowTransitionResponse>();
         }
@@ -266,7 +266,7 @@ public class WebhookList : XtmInvocable
         }
         
         if((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectPollFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains)))
         {
             return GetPreflightResponse<JobFinishedPayload>();
         }
@@ -308,7 +308,7 @@ public class WebhookList : XtmInvocable
         };
         
         if((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectPollFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains)))
         {
             return GetPreflightResponse<ProjectAcceptedPayload>();
         }
@@ -334,7 +334,7 @@ public class WebhookList : XtmInvocable
         };
 
         if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectPollFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains)))
         {
             return GetPreflightResponse<ProjectFinishedPayload>();
         }
@@ -366,7 +366,7 @@ public class WebhookList : XtmInvocable
         }
 
         if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
+           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectPollFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains)))
         {
             return GetPreflightResponse<InvoiceStatusChangedPayload>();
         }
@@ -404,10 +404,11 @@ public class WebhookList : XtmInvocable
         });
     }
 
-    private bool ProjectNameContainsString(string projectId, string containsStr)
+    private bool ProjectPollFilter(string projectId, string projectNameContains, string CustomerNameContains)
     {
         var projectInfo = Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{projectId}", Method.Get, null, Creds).Result;
-        return projectInfo.Name.Contains(containsStr);
+
+        return projectInfo.Name.Contains(projectNameContains) && projectInfo.CustomerName.Contains(CustomerNameContains);
     }
 
     #endregion  
