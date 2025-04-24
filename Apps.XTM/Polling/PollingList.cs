@@ -19,12 +19,12 @@ namespace Apps.XTM.Polling;
 public class PollingList(InvocationContext invocationContext) : XtmInvocable(invocationContext)
 {
     [PollingEvent("On projects created (polling)", "On any new projects created")]
-    public Task<PollingEventResponse<DateMemory, ListFullProjectsResponse>> OnProjectsCreated(
+    public Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsCreated(
         PollingEventRequest<DateMemory> request) => ProcessProjectsPolling(request,
         $"createdDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
 
     [PollingEvent("On projects updated (polling)", "On any projects are updated")]
-    public async Task<PollingEventResponse<DateMemory, ListFullProjectsResponse>> OnProjectsUpdated(
+    public async Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsUpdated(
         PollingEventRequest<DateMemory> request,
         [PollingEventParameter] ProjectOptionalRequest projectOptionalRequest)
     {
@@ -46,7 +46,16 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
 
         if (!String.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains))
         {
-            var filteredProjects = result.Result?.Projects?.Where(x => x.CustomerName.Contains(projectOptionalRequest.CustomerNameContains)).ToList();
+            var filteredProjects = new List<SimpleProject>();
+            foreach (var project in result.Result?.Projects)
+            {
+                var projectInfo = await Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.Id}", Method.Get, null, Creds);
+                if (projectInfo.CustomerName.Contains(projectOptionalRequest.CustomerNameContains))
+                {
+                    filteredProjects.Add(project);
+                }
+            }
+
             if (filteredProjects != null && filteredProjects.Count > 0)
             {
                 result.Result = new(filteredProjects);
@@ -74,7 +83,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
     }
 
     [PollingEvent("On projects finished (polling)", "On any projects are finished")]
-    public async Task<PollingEventResponse<DateMemory, ListFullProjectsResponse>> OnProjectsFinished(
+    public async Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsFinished(
         PollingEventRequest<DateMemory> request,
         [PollingEventParameter] ProjectOptionalRequest projectOptionalRequest)
     {
@@ -95,7 +104,16 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
 
         if (!String.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains))
         {
-            var filteredProjects = result.Result?.Projects?.Where(x => x.CustomerName.Contains(projectOptionalRequest.CustomerNameContains)).ToList();
+            var filteredProjects = new List<SimpleProject>();
+            foreach (var project in result.Result?.Projects)
+            {
+                var projectInfo =  await Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.Id}",Method.Get,null,Creds);
+                if (projectInfo.CustomerName.Contains(projectOptionalRequest.CustomerNameContains))
+                {
+                    filteredProjects.Add(project);
+                }
+            }
+            
             if (filteredProjects != null && filteredProjects.Count > 0)
             {
                 result.Result = new(filteredProjects);
@@ -198,7 +216,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
         };
     }
 
-    private async Task<PollingEventResponse<DateMemory, ListFullProjectsResponse>> ProcessProjectsPolling(
+    private async Task<PollingEventResponse<DateMemory, ListProjectsResponse>> ProcessProjectsPolling(
         PollingEventRequest<DateMemory> request,
         string query)
     {
@@ -214,13 +232,13 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             };
         }
 
-        var result = new List<FullProject>();
+        var result = new List<SimpleProject>();
         var page = 1;
 
-        List<FullProject> response;
+        List<SimpleProject> response;
         do
         {
-            response = await Client.ExecuteXtmWithJson<List<FullProject>>(
+            response = await Client.ExecuteXtmWithJson<List<SimpleProject>>(
                 $"{ApiEndpoints.Projects}?{query}&page={page}",
                 Method.Get,
                 null,
