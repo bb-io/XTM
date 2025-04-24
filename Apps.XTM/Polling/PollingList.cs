@@ -43,15 +43,40 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
                 result.FlyBird = false;
             }
         }
-        
+
+        if (!String.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains))
+        {
+            var filteredProjects = result.Result?.Projects?.Where(x => x.CustomerName.Contains(projectOptionalRequest.CustomerNameContains)).ToList();
+            if (filteredProjects != null && filteredProjects.Count > 0)
+            {
+                result.Result = new(filteredProjects);
+            }
+            else
+            {
+                result.FlyBird = false;
+            }
+        }
+
+        if (!String.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains))
+        {
+            var filteredProjects = result.Result?.Projects?.Where(x => x.Name.Contains(projectOptionalRequest.ProjectNameContains)).ToList();
+            if (filteredProjects != null && filteredProjects.Count > 0)
+            {
+                result.Result = new(filteredProjects);
+            }
+            else
+            {
+                result.FlyBird = false;
+            }
+        }
+
         return result;
     }
 
     [PollingEvent("On projects finished (polling)", "On any projects are finished")]
     public async Task<PollingEventResponse<DateMemory, ListFullProjectsResponse>> OnProjectsFinished(
         PollingEventRequest<DateMemory> request,
-        [PollingEventParameter] ProjectOptionalRequest projectOptionalRequest,
-        [PollingEventParameter] string? Customer)
+        [PollingEventParameter] ProjectOptionalRequest projectOptionalRequest)
     {
         var result = await ProcessProjectsPolling(request,
             $"finishedDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
@@ -68,9 +93,9 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             }
         }
 
-        if (!String.IsNullOrEmpty(Customer))
+        if (!String.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains))
         {
-            var filteredProjects = result.Result?.Projects?.Where(x => x.CustomerName == Customer).ToList();
+            var filteredProjects = result.Result?.Projects?.Where(x => x.CustomerName.Contains(projectOptionalRequest.CustomerNameContains)).ToList();
             if (filteredProjects != null && filteredProjects.Count > 0)
             {
                 result.Result = new(filteredProjects);
@@ -80,7 +105,20 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
                 result.FlyBird = false;
             }
         }
-        
+
+        if (!String.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains))
+        {
+            var filteredProjects = result.Result?.Projects?.Where(x => x.Name.Contains(projectOptionalRequest.ProjectNameContains)).ToList();
+            if (filteredProjects != null && filteredProjects.Count > 0)
+            {
+                result.Result = new(filteredProjects);
+            }
+            else
+            {
+                result.FlyBird = false;
+            }
+        }
+
         return result;
     }
 
