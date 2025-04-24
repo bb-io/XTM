@@ -3,6 +3,7 @@ using Apps.XTM.Constants;
 using Apps.XTM.DataSourceHandlers.EnumHandlers;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request.Projects;
+using Apps.XTM.Models.Response;
 using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.Polling.Models.Memory;
 using Blackbird.Applications.Sdk.Common;
@@ -18,12 +19,12 @@ namespace Apps.XTM.Polling;
 public class PollingList(InvocationContext invocationContext) : XtmInvocable(invocationContext)
 {
     [PollingEvent("On projects created (polling)", "On any new projects created")]
-    public Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsCreated(
+    public Task<PollingEventResponse<DateMemory, ListFullProjectsResponse>> OnProjectsCreated(
         PollingEventRequest<DateMemory> request) => ProcessProjectsPolling(request,
         $"createdDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
 
     [PollingEvent("On projects updated (polling)", "On any projects are updated")]
-    public async Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsUpdated(
+    public async Task<PollingEventResponse<DateMemory, ListFullProjectsResponse>> OnProjectsUpdated(
         PollingEventRequest<DateMemory> request,
         [PollingEventParameter] ProjectOptionalRequest projectOptionalRequest)
     {
@@ -37,15 +38,20 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             {
                 result.Result = new(filteredProjects);
             }
+            else 
+            {
+                result.FlyBird = false;
+            }
         }
         
         return result;
     }
 
     [PollingEvent("On projects finished (polling)", "On any projects are finished")]
-    public async Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsFinished(
+    public async Task<PollingEventResponse<DateMemory, ListFullProjectsResponse>> OnProjectsFinished(
         PollingEventRequest<DateMemory> request,
-        [PollingEventParameter] ProjectOptionalRequest projectOptionalRequest)
+        [PollingEventParameter] ProjectOptionalRequest projectOptionalRequest,
+        [PollingEventParameter] string? Customer)
     {
         var result = await ProcessProjectsPolling(request,
             $"finishedDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
@@ -56,6 +62,22 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             if (filteredProjects != null && filteredProjects.Count > 0)
             {
                 result.Result = new(filteredProjects);
+            } else 
+            {
+                result.FlyBird = false;
+            }
+        }
+
+        if (!String.IsNullOrEmpty(Customer))
+        {
+            var filteredProjects = result.Result?.Projects?.Where(x => x.CustomerName == Customer).ToList();
+            if (filteredProjects != null && filteredProjects.Count > 0)
+            {
+                result.Result = new(filteredProjects);
+            }
+            else
+            {
+                result.FlyBird = false;
             }
         }
         
@@ -138,7 +160,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
         };
     }
 
-    private async Task<PollingEventResponse<DateMemory, ListProjectsResponse>> ProcessProjectsPolling(
+    private async Task<PollingEventResponse<DateMemory, ListFullProjectsResponse>> ProcessProjectsPolling(
         PollingEventRequest<DateMemory> request,
         string query)
     {
@@ -154,13 +176,13 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             };
         }
 
-        var result = new List<SimpleProject>();
+        var result = new List<FullProject>();
         var page = 1;
 
-        List<SimpleProject> response;
+        List<FullProject> response;
         do
         {
-            response = await Client.ExecuteXtmWithJson<List<SimpleProject>>(
+            response = await Client.ExecuteXtmWithJson<List<FullProject>>(
                 $"{ApiEndpoints.Projects}?{query}&page={page}",
                 Method.Get,
                 null,
