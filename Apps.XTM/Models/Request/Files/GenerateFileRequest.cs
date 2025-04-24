@@ -20,4 +20,9 @@ public class GenerateFileRequest
 
     [Display("Job IDs")]
     public IEnumerable<string>? jobIds { get; set; }
+
+    [Display("Include in extended table")]
+    [DataSource(typeof(ExtendedTablePropertiesDataSourceHandler))]
+    public IEnumerable<string>? PropertiesToInclude { get; set; }
+
 }
