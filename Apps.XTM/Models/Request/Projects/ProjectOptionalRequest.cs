@@ -12,4 +12,8 @@ public class ProjectOptionalRequest
 
     [Display("Project name contains")]
     public string? ProjectNameContains { get; set; }
+
+    [Display("Customer name contains")]
+
+    public string? CustomerNameContains { get; set; }
 }

@@ -21,6 +21,7 @@ using Apps.XTM.Models.Response.Workflows;
 using Blackbird.Applications.Sdk.Utils.Models;
 using System.Text;
 using Apps.XTM.Models.Response;
+using Microsoft.Extensions.Options;
 
 namespace Apps.XTM.Actions;
 
@@ -74,6 +75,53 @@ public class FileActions : XtmInvocable
             Url = Creds.Get(CredsNames.Url) + endpoint.WithQuery(queryParameters),
             Method = Method.Post
         }, await Client.GetToken(Creds));
+
+        if (input.FileType is "HTML_EXTENDED_TABLE" or "PDF_EXTENDED_TABLE" or "EXCEL_EXTENDED_TABLE")
+        {
+            if (input.PropertiesToInclude is null || !input.PropertiesToInclude.Any(x => x.StartsWith("include")))
+            {
+                throw new PluginMisconfigurationException("Please specify the properties to include in the extended table file");
+            }
+
+            var tableType = "";
+            switch (input.FileType)
+            {
+                case "HTML_EXTENDED_TABLE":
+                    tableType = "htmlOptions";
+                    break;
+                case "PDF_EXTENDED_TABLE":
+                    tableType = "pdfOptions";
+                    break;
+                case "EXCEL_EXTENDED_TABLE":
+                    tableType = "excelOptions";
+                    break;
+            }
+
+            var tableOptions = new Dictionary<string, string>();
+
+            foreach (var key in input.PropertiesToInclude.Where(x => x.StartsWith("include")))
+            {
+                tableOptions[key] = "INCLUDE";
+            }
+
+            tableOptions["populateTargetWithSource"] = input.PropertiesToInclude.Contains("populateTargetWithSource") ? "POPULATE" : "DO_NOT_POPULATE";
+            tableOptions["languagesType"] = input.TargetLanguage != null ? "SELECTED_LANGUAGES" : "ALL_LANGUAGES";
+            tableOptions["extendedReportType"] = input.PropertiesToInclude.Contains("extendedReportType") ? "ALL_PROJECT_FILES_SINGLE_REPORT" :
+                "ALL_PROJECT_FILES_MULTIPLE_REPORTS";
+
+
+            var extendedTableOptions = new Dictionary<string, object>
+            {
+                [tableType] = tableOptions
+            };
+
+            var requestBody = new
+            {
+                extendedTableOptions = extendedTableOptions
+            };
+
+            request.AddJsonBody(requestBody);
+        }
 
         try 
         {

@@ -3,6 +3,7 @@ using Apps.XTM.Constants;
 using Apps.XTM.DataSourceHandlers.EnumHandlers;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request.Projects;
+using Apps.XTM.Models.Response;
 using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.Polling.Models.Memory;
 using Blackbird.Applications.Sdk.Common;
@@ -37,8 +38,47 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             {
                 result.Result = new(filteredProjects);
             }
+            else 
+            {
+                result.FlyBird = false;
+            }
         }
-        
+
+        if (!String.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains) && result.Result?.Projects != null)
+        {
+            var filteredProjects = new List<SimpleProject>();
+            foreach (var project in result.Result?.Projects!)
+            {
+                var projectInfo = await Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.Id}", Method.Get, null, Creds);
+                if (projectInfo.CustomerName.Contains(projectOptionalRequest.CustomerNameContains))
+                {
+                    filteredProjects.Add(project);
+                }
+            }
+
+            if (filteredProjects.Count > 0)
+            {
+                result.Result = new(filteredProjects);
+            }
+            else
+            {
+                result.FlyBird = false;
+            }
+        }
+
+        if (!String.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains))
+        {
+            var filteredProjects = result.Result?.Projects?.Where(x => x.Name.Contains(projectOptionalRequest.ProjectNameContains)).ToList();
+            if (filteredProjects != null && filteredProjects.Count > 0)
+            {
+                result.Result = new(filteredProjects);
+            }
+            else
+            {
+                result.FlyBird = false;
+            }
+        }
+
         return result;
     }
 
@@ -56,9 +96,47 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             if (filteredProjects != null && filteredProjects.Count > 0)
             {
                 result.Result = new(filteredProjects);
+            } else 
+            {
+                result.FlyBird = false;
             }
         }
-        
+
+        if (!String.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains) && result.Result?.Projects != null)
+        {
+            var filteredProjects = new List<SimpleProject>();
+            foreach (var project in result.Result?.Projects!)
+            {
+                var projectInfo =  await Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.Id}",Method.Get,null,Creds);
+                if (projectInfo.CustomerName.Contains(projectOptionalRequest.CustomerNameContains))
+                {
+                    filteredProjects.Add(project);
+                }
+            }
+            
+            if  (filteredProjects.Count > 0)
+            {
+                result.Result = new(filteredProjects);
+            }
+            else
+            {
+                result.FlyBird = false;
+            }
+        }
+
+        if (!String.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains))
+        {
+            var filteredProjects = result.Result?.Projects?.Where(x => x.Name.Contains(projectOptionalRequest.ProjectNameContains)).ToList();
+            if (filteredProjects != null && filteredProjects.Count > 0)
+            {
+                result.Result = new(filteredProjects);
+            }
+            else
+            {
+                result.FlyBird = false;
+            }
+        }
+
         return result;
     }
 
