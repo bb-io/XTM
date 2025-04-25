@@ -44,10 +44,10 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             }
         }
 
-        if (!String.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains))
+        if (!String.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains) && result.Result?.Projects != null)
         {
             var filteredProjects = new List<SimpleProject>();
-            foreach (var project in result.Result?.Projects)
+            foreach (var project in result.Result?.Projects!)
             {
                 var projectInfo = await Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.Id}", Method.Get, null, Creds);
                 if (projectInfo.CustomerName.Contains(projectOptionalRequest.CustomerNameContains))
@@ -56,7 +56,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
                 }
             }
 
-            if (filteredProjects != null && filteredProjects.Count > 0)
+            if (filteredProjects.Count > 0)
             {
                 result.Result = new(filteredProjects);
             }
@@ -105,7 +105,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
         if (!String.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains) && result.Result?.Projects != null)
         {
             var filteredProjects = new List<SimpleProject>();
-            foreach (var project in result.Result?.Projects)
+            foreach (var project in result.Result?.Projects!)
             {
                 var projectInfo =  await Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.Id}",Method.Get,null,Creds);
                 if (projectInfo.CustomerName.Contains(projectOptionalRequest.CustomerNameContains))
