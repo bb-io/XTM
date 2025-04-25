@@ -207,7 +207,8 @@ public class WebhookList : XtmInvocable
         var result = new AnalysisFinishedResponse(data.Payload);
 
         if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectPollFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains)))
+           (!string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains) && !result.Customer.Name.Contains(projectOptionalRequest.CustomerNameContains))
+           || (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains)))
         {
             return GetPreflightResponse<AnalysisFinishedResponse>();
         }
@@ -228,13 +229,18 @@ public class WebhookList : XtmInvocable
         var data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
         var result = new WorkflowTransitionResponse(data.Payload);
 
-        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectPollFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains)))
+        if (projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)           
         {
             return GetPreflightResponse<WorkflowTransitionResponse>();
         }
-        
-        if(customerOptionalRequest.CustomerId != null && customerOptionalRequest.CustomerId != result.CustomerId)
+
+        if ((!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) || !string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains))
+           && !ProjectFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains))
+        {
+            return GetPreflightResponse<WorkflowTransitionResponse>();
+        }
+
+        if (customerOptionalRequest.CustomerId != null && customerOptionalRequest.CustomerId != result.CustomerId)
         {
             return GetPreflightResponse<WorkflowTransitionResponse>();
         }
@@ -264,13 +270,18 @@ public class WebhookList : XtmInvocable
         {
             return GetPreflightResponse<JobFinishedPayload>();
         }
-        
-        if((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectPollFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains)))
+
+        if (projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
         {
             return GetPreflightResponse<JobFinishedPayload>();
         }
-        
+
+        if ((!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) || !string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains))
+           && !ProjectFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains))
+        {
+            return GetPreflightResponse<JobFinishedPayload>();
+        }
+
         return Task.FromResult(new WebhookResponse<JobFinishedPayload>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
@@ -306,13 +317,18 @@ public class WebhookList : XtmInvocable
             ExternalProjectId = data.Parameters["xtmExternalProjectId"],
             Uuid = data.Parameters["xtmUuid"]
         };
-        
-        if((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectPollFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains)))
+
+        if (projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
         {
             return GetPreflightResponse<ProjectAcceptedPayload>();
         }
-        
+
+        if ((!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) || !string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains))
+           && !ProjectFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains))
+        {
+            return GetPreflightResponse<ProjectAcceptedPayload>();
+        }
+
         return Task.FromResult(new WebhookResponse<ProjectAcceptedPayload>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
@@ -333,8 +349,13 @@ public class WebhookList : XtmInvocable
             Uuid = data.Parameters["xtmUuid"]
         };
 
-        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectPollFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains)))
+        if (projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        {
+            return GetPreflightResponse<ProjectFinishedPayload>();
+        }
+
+        if ((!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) || !string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains))
+           && !ProjectFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains))
         {
             return GetPreflightResponse<ProjectFinishedPayload>();
         }
@@ -365,12 +386,17 @@ public class WebhookList : XtmInvocable
             return GetPreflightResponse<InvoiceStatusChangedPayload>();
         }
 
-        if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-           (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectPollFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains)))
+        if (projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
         {
             return GetPreflightResponse<InvoiceStatusChangedPayload>();
         }
-        
+
+        if ((!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) || !string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains))
+           && !ProjectFilter(result.ProjectId, projectOptionalRequest.ProjectNameContains, projectOptionalRequest.CustomerNameContains))
+        {
+            return GetPreflightResponse<InvoiceStatusChangedPayload>();
+        }
+
         return Task.FromResult(new WebhookResponse<InvoiceStatusChangedPayload>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
@@ -404,11 +430,23 @@ public class WebhookList : XtmInvocable
         });
     }
 
-    private bool ProjectPollFilter(string projectId, string projectNameContains, string CustomerNameContains)
+    private bool ProjectFilter(string projectId, string projectNameContains, string CustomerNameContains)
     {
         var projectInfo = Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{projectId}", Method.Get, null, Creds).Result;
 
-        return projectInfo.Name.Contains(projectNameContains) && projectInfo.CustomerName.Contains(CustomerNameContains);
+        if (!String.IsNullOrEmpty(projectNameContains) && !projectInfo.Name.Contains(projectNameContains))
+        {
+            return false;
+        }
+
+        if (!String.IsNullOrEmpty(CustomerNameContains) && !projectInfo.CustomerName.Contains(CustomerNameContains))
+        {
+            return false;
+        }
+
+        return true;
+
+
     }
 
     #endregion  
