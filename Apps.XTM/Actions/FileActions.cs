@@ -245,19 +245,61 @@ public class FileActions : XtmInvocable
         {
             throw new PluginApplicationException($"The file returned from server is empty or damaged. Please check and try again. Message: {ex.Message}");
         }
-        var file = files.First();
-
-        var header = response.Headers.FirstOrDefault(header => header.Name.Equals("xtm-file-descrption", StringComparison.OrdinalIgnoreCase));
-
-        if (header == null)
+        var file = files.FirstOrDefault();
+        if (file == null)
         {
-            throw new PluginApplicationException("Header 'xtm-file-descrption' not found in the answer from server. Please check the file status and try again");
+            throw new PluginApplicationException("No files found in the ZIP archive returned from the server.");
         }
 
-        var xtmFileDescription = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>(
-            response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString())
-            .First();
-        xtmFileDescription.FileName = file.UploadName;
+        XtmProjectFileDescription xtmFileDescription;
+        var header = response.Headers.FirstOrDefault(header => header.Name.Equals("xtm-file-descrption", StringComparison.OrdinalIgnoreCase));
+
+        if (header != null)
+        {
+            try
+            {
+                xtmFileDescription = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>(
+                    header.Value.ToString()).FirstOrDefault();
+                if (xtmFileDescription != null)
+                {
+                    xtmFileDescription.FileName = file.UploadName;
+                }
+                else
+                {
+                    throw new PluginApplicationException("Failed to deserialize xtm-file-description header content.");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new PluginApplicationException($"Error deserializing xtm-file-description header: {ex.Message}");
+            }
+        }
+        else
+        {
+            var parts = file.UploadName.Split('_');
+            if (parts.Length >= 3)
+            {
+                var targetLang = $"{parts[0]}_{parts[1]}";
+                var fileName = string.Join("_", parts.Skip(2));
+                xtmFileDescription = new XtmProjectFileDescription
+                {
+                    FileId = input.FileId,
+                    FileName = fileName,
+                    JobId = "",
+                    TargetLanguage = targetLang
+                };
+            }
+            else
+            {
+                xtmFileDescription = new XtmProjectFileDescription
+                {
+                    FileId = input.FileId,
+                    FileName = file.UploadName,
+                    JobId = "",
+                    TargetLanguage = ""
+                };
+            }
+        }
 
         var uploadedFile = await _fileManagementClient.UploadAsync(
             file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
@@ -294,27 +336,89 @@ public class FileActions : XtmInvocable
             Creds);
 
         using var fileStream = new MemoryStream(response.RawBytes);
-        var files = await fileStream.GetFilesFromZip();
-        var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>
-            (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString());
+        IEnumerable<BlackbirdZipEntry> files;
+        try
+        {
+            files = await fileStream.GetFilesFromZip();
+        }
+        catch (Exception ex)
+        {
+            throw new PluginApplicationException($"The file returned from server is empty or damaged. Please check and try again. Message: {ex.Message}");
+        }
+
+        if (!files.Any())
+        {
+            throw new PluginApplicationException("No files found in the ZIP archive returned from the server.");
+        }
+
+        IEnumerable<XtmProjectFileDescription> xtmFileDescriptions = null;
+        var header = response.Headers.FirstOrDefault(header => header.Name.Equals("xtm-file-descrption", StringComparison.OrdinalIgnoreCase));
+
+        if (header != null)
+        {
+            try
+            {
+                xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>(header.Value.ToString());
+            }
+            catch (Exception ex)
+            {
+                throw new PluginApplicationException($"Error deserializing xtm-file-descrption header: {ex.Message}");
+            }
+        }
 
         var result = new List<FileWithData<XtmProjectFileDescription>>();
         foreach (var file in files)
         {
-            var uploadedFile =
-                await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet,
-                    file.UploadName);
-            var language = file.Path.Split('/').FirstOrDefault();
-            var name = file.Path.Split('/').LastOrDefault();
-            result.Add(new()
+            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
+
+            XtmProjectFileDescription description=null;
+            if (xtmFileDescriptions != null)
+            {
+                var language = file.Path.Split('/').FirstOrDefault();
+                var name = file.Path.Split('/').LastOrDefault();
+                description = xtmFileDescriptions.FirstOrDefault(d => d.TargetLanguage == language && d.FileName == name);
+
+                if (description != null)
+                {
+                    description.FileName = file.UploadName; 
+                }
+            }
+
+            if (description == null)
+            {
+                var parts = file.UploadName.Split('_');
+                if (parts.Length >= 3)
+                {
+                    var targetLang = $"{parts[0]}_{parts[1]}";
+                    var fileName = string.Join("_", parts.Skip(2));
+                    description = new XtmProjectFileDescription
+                    {
+                        FileId = "",
+                        FileName = fileName,
+                        JobId = "",
+                        TargetLanguage = targetLang
+                    };
+                }
+                else
+                {
+                    description = new XtmProjectFileDescription
+                    {
+                        FileId = "",
+                        FileName = file.UploadName,
+                        JobId = "",
+                        TargetLanguage = ""
+                    };
+                }
+            }
+
+            result.Add(new FileWithData<XtmProjectFileDescription>
             {
                 Content = uploadedFile,
-                FileDescription = xtmFileDescriptions.FirstOrDefault(description =>
-                    description.TargetLanguage == language && description.FileName == name)
+                FileDescription = description
             });
         }
 
-        return new(result);
+        return new DownloadFilesResponse<XtmProjectFileDescription>(result);
     }
 
     [Action("Download translated files", Description = "Download project's translated files")]
