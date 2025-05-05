@@ -45,20 +45,38 @@ public class FileActions : XtmInvocable
         
         var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/generate";
 
+        var jobIds = new List<string>();
+
         if (input.jobIds == null)
         {
             var assignmentEndpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/workflow/assignment";
 
-            var assignmentResponse = await Client.ExecuteXtmWithJson<WorkflowAssignmentJobResponse>(
-                assignmentEndpoint,
-                Method.Get,
-                null,
-                Creds
-            );
+            int page = 1;
+            const int pageSize = 100;
+            while (true)
+            {
+                var queryParams = new Dictionary<string, string>
+            {
+                { "page", page.ToString() },
+                { "pageSize", pageSize.ToString() }
+            };
 
-            input.jobIds = assignmentResponse.Jobs
-                .Select(j => j.JobId)
-                .ToArray();
+                var assignmentResponse = await Client.ExecuteXtmWithJson<WorkflowAssignmentJobResponse>(
+                    assignmentEndpoint.WithQuery(queryParams),
+                    Method.Get,
+                    null,
+                    Creds
+                );
+
+                if (assignmentResponse.Jobs == null || assignmentResponse.Jobs.Count == 0)
+                    break;
+
+                jobIds.AddRange(assignmentResponse.Jobs.Select(j => j.JobId));
+
+                page++;
+            }
+
+            input.jobIds = jobIds.ToArray();
         }
 
         var queryParameters = new Dictionary<string, string>
