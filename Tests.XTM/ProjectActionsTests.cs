@@ -29,11 +29,15 @@ namespace Tests.XTM
         public async Task DownloadProjectFile_successful()
         {
             var action = new FileActions(InvocationContext, FileManager);
-            var projectrequest= new ProjectRequest { ProjectId = "105836057" };
-            var fileRequest = new DownloadProjectFileRequest { FileId = "106028856", FileScope= "JOB" };
+            //var projectrequest = new ProjectRequest { ProjectId = "187237893" };
+            //var fileRequest = new DownloadProjectFileRequest { FileId = "187430508", FileScope = "PROJECT" };
+
+            var projectrequest = new ProjectRequest { ProjectId = "187028359" };
+            var fileRequest = new DownloadProjectFileRequest { FileId = "187451330", FileScope = "PROJECT" };
             var response = await action.DownloadProjectFile(projectrequest, fileRequest);
 
             Assert.IsNotNull(response);
         }
     }
 }
+//2358445
