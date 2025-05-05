@@ -44,8 +44,11 @@ namespace Tests.XTM
         public async Task DownloadProjectFiles_successful()
         {
             var action = new FileActions(InvocationContext, FileManager);
-            var projectrequest = new ProjectRequest { ProjectId = "187189509" };
-            var fileRequest = new DownloadAllProjectFilesRequest { FileScope = "PROJECT", FileType= "HTML_EXTENDED_TABLE" };
+            //var projectrequest = new ProjectRequest { ProjectId = "187189509" };
+            //var fileRequest = new DownloadAllProjectFilesRequest { FileScope = "PROJECT", FileType= "HTML_EXTENDED_TABLE" };
+
+            var projectrequest = new ProjectRequest { ProjectId = "187363559" };
+            var fileRequest = new DownloadAllProjectFilesRequest { FileScope = "PROJECT", FileType = "HTML_EXTENDED_TABLE" };
 
             var response = await action.DownloadProjectFiles(projectrequest, fileRequest);
 
