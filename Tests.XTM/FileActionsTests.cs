@@ -17,7 +17,7 @@ namespace Tests.XTM
         public async Task GenerateFiles_IsSuccess()
         {
             var action = new FileActions(InvocationContext, FileManager);
-            var project = new ProjectRequest { ProjectId = "94058" };
+            var project = new ProjectRequest { ProjectId = "108698822" };
 
             var fileGenerate = new GenerateFileRequest { FileType = "XLIFF" };
             var response = await action.GenerateFiles(project, fileGenerate);

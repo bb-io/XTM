@@ -245,19 +245,61 @@ public class FileActions : XtmInvocable
         {
             throw new PluginApplicationException($"The file returned from server is empty or damaged. Please check and try again. Message: {ex.Message}");
         }
-        var file = files.First();
-
-        var header = response.Headers.FirstOrDefault(header => header.Name.Equals("xtm-file-descrption", StringComparison.OrdinalIgnoreCase));
-
-        if (header == null)
+        var file = files.FirstOrDefault();
+        if (file == null)
         {
-            throw new PluginApplicationException("Header 'xtm-file-descrption' not found in the answer from server. Please check the file status and try again");
+            throw new PluginApplicationException("No files found in the ZIP archive returned from the server.");
         }
 
-        var xtmFileDescription = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>(
-            response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString())
-            .First();
-        xtmFileDescription.FileName = file.UploadName;
+        XtmProjectFileDescription xtmFileDescription;
+        var header = response.Headers.FirstOrDefault(header => header.Name.Equals("xtm-file-descrption", StringComparison.OrdinalIgnoreCase));
+
+        if (header != null)
+        {
+            try
+            {
+                xtmFileDescription = JsonConvert.DeserializeObject<IEnumerable<XtmProjectFileDescription>>(
+                    header.Value.ToString()).FirstOrDefault();
+                if (xtmFileDescription != null)
+                {
+                    xtmFileDescription.FileName = file.UploadName;
+                }
+                else
+                {
+                    throw new PluginApplicationException("Failed to deserialize xtm-file-description header content.");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new PluginApplicationException($"Error deserializing xtm-file-description header: {ex.Message}");
+            }
+        }
+        else
+        {
+            var parts = file.UploadName.Split('_');
+            if (parts.Length >= 3)
+            {
+                var targetLang = $"{parts[0]}_{parts[1]}";
+                var fileName = string.Join("_", parts.Skip(2));
+                xtmFileDescription = new XtmProjectFileDescription
+                {
+                    FileId = input.FileId,
+                    FileName = fileName,
+                    JobId = "",
+                    TargetLanguage = targetLang
+                };
+            }
+            else
+            {
+                xtmFileDescription = new XtmProjectFileDescription
+                {
+                    FileId = input.FileId,
+                    FileName = file.UploadName,
+                    JobId = "",
+                    TargetLanguage = ""
+                };
+            }
+        }
 
         var uploadedFile = await _fileManagementClient.UploadAsync(
             file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
