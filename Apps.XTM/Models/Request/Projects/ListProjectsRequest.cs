@@ -11,7 +11,7 @@ public class ListProjectsRequest
     [Display("Project name")]
     public string? Name { get; set; }
 
-    [DataSource(typeof(ProjectStatusHandler))]
+    [StaticDataSource(typeof(ProjectStatusHandler))]
     public string? Status { get; set; }
 
     [Display("Created from")]
