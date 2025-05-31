@@ -18,6 +18,7 @@ using Apps.XTM.Models.Response.User;
 using Apps.XTM.Utils;
 using Newtonsoft.Json;
 using Blackbird.Applications.Sdk.Common.Exceptions;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace Apps.XTM.Actions;
 
@@ -46,7 +47,47 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             {
                 queryParams.Add("name", request.Name);
             }
-            
+
+            if (request.Status != null)
+            {
+                queryParams.Add("status", request.Status);
+            }
+
+            if (request.Activity != null)
+            {
+                queryParams.Add("activity", request.Activity);
+            }
+
+            if (request.CustomerIds != null)
+            {
+                queryParams.Add("customerIds", string.Join(",", request.CustomerIds));
+            }
+
+            if (request.CreatedFrom.HasValue)
+            {
+                queryParams.Add("createdDateFrom", request.CreatedFrom.Value.ToString("yyyy-MM-ddThh:mm:ssZ"));
+            }
+            if (request.CreatedTo.HasValue)
+            {
+                queryParams.Add("createdDateTo", request.CreatedTo.Value.ToString("yyyy-MM-ddThh:mm:ssZ"));
+            }
+            if (request.FinishedFrom.HasValue)
+            {
+                queryParams.Add("finishedDateFrom", request.FinishedFrom.Value.ToString("yyyy-MM-ddThh:mm:ssZ"));
+            }
+            if (request.FinishedTo.HasValue)
+            {
+                queryParams.Add("finishedDateTo", request.FinishedTo.Value.ToString("yyyy-MM-ddThh:mm:ssZ"));
+            }
+            if (request.ModifiedFrom.HasValue)
+            {
+                queryParams.Add("modifiedDateFrom", request.ModifiedFrom.Value.ToString("yyyy-MM-ddThh:mm:ssZ"));
+            }
+            if (request.ModifiedTo.HasValue)
+            {
+                queryParams.Add("modifiedDateTo", request.ModifiedTo.Value.ToString("yyyy-MM-ddThh:mm:ssZ"));
+            }
+
             var endpoint = $"{ApiEndpoints.Projects}?{queryParams.ToQueryString()}";
             var response = await Client.ExecuteXtmWithJson<List<SimpleProject>?>(endpoint,
                 Method.Get,
