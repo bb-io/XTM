@@ -102,7 +102,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             }
         }
 
-        if (!String.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains) && result.Result?.Projects != null)
+        if (!string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains) && result.Result?.Projects != null)
         {
             var filteredProjects = new List<SimpleProject>();
             foreach (var project in result.Result?.Projects!)
@@ -124,7 +124,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             }
         }
 
-        if (!String.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains))
+        if (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains))
         {
             var filteredProjects = result.Result?.Projects?.Where(x => x.Name.Contains(projectOptionalRequest.ProjectNameContains)).ToList();
             if (filteredProjects != null && filteredProjects.Count > 0)
