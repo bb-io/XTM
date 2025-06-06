@@ -20,7 +20,10 @@ namespace Tests.XTM
         {
             var action = new ProjectActions(InvocationContext,FileManager);
 
-            var response = await action.ListProjects(new Apps.XTM.Models.Request.Projects.ListProjectsRequest() {});
+            var response = await action.ListProjects(new ListProjectsRequest() { CustomerIds = ["35961951"] });
+
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            Console.WriteLine(json);
 
             Assert.IsNotNull(response.Projects);
         }
