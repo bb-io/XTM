@@ -39,4 +39,7 @@ public class ListProjectsRequest
     [Display("Modified to")]
     public DateTime? ModifiedTo { get; set; }
 
+    [Display("Name must match exactly")]
+    public bool? NameExactMatch { get; set; }
+
 }

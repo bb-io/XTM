@@ -19,6 +19,7 @@ using Apps.XTM.Utils;
 using Newtonsoft.Json;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Linq;
 
 namespace Apps.XTM.Actions;
 
@@ -103,6 +104,15 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             {
                 hasMorePages = false;
             }
+        }
+
+        if (request.NameExactMatch.HasValue && request.NameExactMatch.Value && !String.IsNullOrEmpty(request.Name))
+        {
+            if (allProjects.Any(x => x.Name == request.Name))
+            {
+                return new ListProjectsResponse(allProjects.Where(x => x.Name == request.Name).ToList());
+            }
+            return new ListProjectsResponse(new List<SimpleProject>());            
         }
 
         return new ListProjectsResponse(allProjects);
