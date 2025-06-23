@@ -435,8 +435,12 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
     [Action("Get project status", Description = "Get project status for a specific project")]
     public async Task<ProjectStatusResponse> GetProjectStatus([ActionParameter] ProjectRequest project)
     {
-        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Status}";
-        return await Client.ExecuteXtmWithJson<ProjectStatusResponse>(endpoint, Method.Get, null, Creds);
+        return await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
+        {
+            var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Status}";
+            return await Client.ExecuteXtmWithJson<ProjectStatusResponse>(endpoint, Method.Get, null, Creds);
+        });
+       
     }
     
     [Action("Get project users", Description = "Get users assigned to a specific project")]

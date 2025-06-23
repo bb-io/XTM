@@ -57,5 +57,18 @@ namespace Tests.XTM
 
             Assert.IsNotNull(response);
         }
+
+        [TestMethod]
+        public async Task GetProjectStatus_successful()
+        {
+            var action = new ProjectActions(InvocationContext, FileManager);
+
+            var response = await action.GetProjectStatus(new ProjectRequest { ProjectId= "113735837" });
+
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            Console.WriteLine(json);
+
+            Assert.IsNotNull(response);
+        }
     }
 }
