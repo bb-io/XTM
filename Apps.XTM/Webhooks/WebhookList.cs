@@ -14,6 +14,7 @@ using Newtonsoft.Json;
 using RestSharp;
 using Apps.XTM.Invocables;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Apps.XTM.Models.Request;
 
 namespace Apps.XTM.Webhooks;
 
@@ -224,7 +225,8 @@ public class WebhookList : XtmInvocable
         Description = "On any transition in active workflow steps")]
     public Task<WebhookResponse<WorkflowTransitionResponse>> OnWorkflowTransition(WebhookRequest request,
         [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
-        [WebhookParameter] CustomerOptionalRequest customerOptionalRequest)
+        [WebhookParameter] CustomerOptionalRequest customerOptionalRequest,
+        [WebhookParameter] WorkflowStepOptionalRequest workflowOptionalRequest)
     {
         var data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
         var result = new WorkflowTransitionResponse(data.Payload);
@@ -244,7 +246,19 @@ public class WebhookList : XtmInvocable
         {
             return GetPreflightResponse<WorkflowTransitionResponse>();
         }
-        
+
+        if (!string.IsNullOrEmpty(workflowOptionalRequest.WorkflowStep))
+        {
+            var anyMatch = data.Payload.Events
+                .SelectMany(e => e.Tasks)
+                .Any(t => string.Equals(t.Step.WorkflowStepName, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(t.Step.WorkflowStep, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase));
+
+            if (!anyMatch)
+                return GetPreflightResponse<WorkflowTransitionResponse>();
+        }
+
+
         return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
