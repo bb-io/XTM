@@ -60,5 +60,34 @@ namespace Tests.XTM
             Console.WriteLine($"{response.ProjectStatus.CompletionStatus}");
             Assert.IsNotNull(response.ProjectStatus.CompletionStatus);
         }
+
+
+        [TestMethod]
+        public async Task WorkflowStepDataHandlerReturnsValues()
+        {
+            var action = new WorkflowStepDataHandler(InvocationContext);
+
+            var response = await action.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);
+
+            foreach (var project in response)
+            {
+                Console.WriteLine($"{project.Value} - {project.Key}");
+                Assert.IsNotNull(project.Key);
+            }
+        }
+
+        [TestMethod]
+        public async Task WorkflowDataHandlerReturnsValues()
+        {
+            var action = new WorkflowDataHandler(InvocationContext);
+
+            var response = await action.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);
+
+            foreach (var project in response)
+            {
+                Console.WriteLine($"{project.Value} - {project.Key}");
+                Assert.IsNotNull(project.Key);
+            }
+        }
     }
 }
