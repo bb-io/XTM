@@ -18,10 +18,13 @@ namespace Tests.XTM.TestFiles
         public async Task GenerateFiles_IsSucces()
         {
             var action = new FileActions(InvocationContext, FileManager);
-            var project = new ProjectRequest { ProjectId = "103838155" };//107212836 
+            var project = new ProjectRequest { ProjectId = "113735837" };//107212836 
             //var project = new ProjectRequest { ProjectId = "107212836" };
             var fileGenerate = new GenerateFileRequest {FileType="XLIFF"};
             var response = await action.GenerateFiles(project, fileGenerate);
+
+            var json = Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
+            Console.WriteLine(json);
             Assert.IsNotNull(response);
         }
 

@@ -4,6 +4,7 @@ using Apps.XTM.Models.Response.User;
 using Apps.XTM.RestUtilities;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Authentication;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using RestSharp;
 using TermService;
@@ -34,7 +35,7 @@ public class XtmInvocable : BaseInvocable
     {
         return long.TryParse(value, out var result) 
             ? result 
-            : throw new($"Failed to parse {value} to long");
+            : throw new PluginMisconfigurationException($"Failed to parse {value} to long. Please check your input and try again");
     }
     
     protected async Task<UserResponse> GetUserById(string id)
@@ -45,7 +46,7 @@ public class XtmInvocable : BaseInvocable
             Creds);
         
         if(response.Count == 0)
-            throw new Exception($"User with id {id} not found");
+            throw new PluginMisconfigurationException($"User with id {id} not found");
         
         return response.First();
     }
