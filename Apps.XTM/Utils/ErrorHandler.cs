@@ -39,5 +39,13 @@ namespace Apps.XTM.Utils
                 throw new PluginApplicationException(ex.Message);
             }
         }
+
+        public static TEnum ParseOrMisconfig<TEnum>(string value, string paramName)
+            where TEnum : struct, Enum
+        {
+            if (!Enum.TryParse<TEnum>(value, ignoreCase: true, out var result))
+                throw new PluginMisconfigurationException($"No matching value `{paramName}`: {value}. Please check your input and try again");
+            return result;
+        }
     }
 }

@@ -16,6 +16,8 @@ using System.Net.Mime;
 using System.Xml;
 using DocumentFormat.OpenXml.Office2016.Excel;
 using Blackbird.Applications.Sdk.Common.Files;
+using Blackbird.Applications.Sdk.Common.Exceptions;
+using Apps.XTM.Utils;
 
 
 namespace Apps.XTM.Actions
@@ -34,29 +36,34 @@ namespace Apps.XTM.Actions
         [Action("Export glossary", Description = "Export glossary")]
         public async Task<ExportGlossaryResponse> ExportGlossary([ActionParameter] GlossaryRequest request)
         {
-            var result = await TermWebServiceClient.exportTermAsync(GetLoginAPIObj(), new xtmExportTermAPI[] {
+            var exportOptions = new xtmExportTermAPI[] {
                 new xtmExportTermAPI() {
                     fileType = xtmTermFileTypeEnum.TBX,
                     fileTypeSpecified = true,
-                    status = request.Status != null ? Enum.Parse<xtmTermStatusEnum>(request.Status) : xtmTermStatusEnum.ALL,
+                    status = request.Status != null ? ErrorHandler.ParseOrMisconfig<xtmTermStatusEnum>(request.Status, nameof(request.Status)) : xtmTermStatusEnum.ALL,
                     statusSpecified = true,
                     allLanguages = request.AllLanguages != null ? request.AllLanguages.Value : false,
                     allLanguagesSpecified = true,
-                    mainLanguage = request.MainLanguage != null ? Enum.Parse<TermService.languageCODE>(request.MainLanguage) : default,
+                    mainLanguage = request.MainLanguage != null? ErrorHandler.ParseOrMisconfig<TermService.languageCODE>(request.MainLanguage,nameof(request.MainLanguage)): default,
                     mainLanguageSpecified = request.MainLanguage != null,
                     customer = GetTermsCustomer(request.CustomerId),
                     domain = request.Domain != null ? new xtmTermDomainAPI(){ name = request.Domain } : default,
-                    columnsToExport = request.Columns != null ? request.Columns.Select(x => (xtmTermColumnsEnum?)Enum.Parse<xtmTermColumnsEnum>(x)).ToArray() : default,
-                    translationLanguages = request.Languages == null ?
-                    Enum.GetValues(typeof(TermService.languageCODE)).Cast<TermService.languageCODE?>().ToArray() :
-                    request.Languages.Select(x => (TermService.languageCODE?)Enum.Parse<TermService.languageCODE>(x)).ToArray()
+                    columnsToExport = request.Columns != null? request.Columns.Select(x => (xtmTermColumnsEnum?) ErrorHandler.ParseOrMisconfig<xtmTermColumnsEnum>(x,nameof(request.Columns))).ToArray(): default,
+                    translationLanguages = request.Languages == null? Enum.GetValues(typeof(TermService.languageCODE))
+                    .Cast<TermService.languageCODE?>().ToArray(): request.Languages.Select(x => (TermService.languageCODE?)
+                    ErrorHandler.ParseOrMisconfig<TermService.languageCODE>(x,nameof(request.Languages))).ToArray()
                 }
-            }, new xtmExportTermOptionsAPI()) ;
+            };
+
+            var result = await ErrorHandler.ExecuteWithErrorHandlingAsync(() =>
+            TermWebServiceClient.exportTermAsync(GetLoginAPIObj(), exportOptions, new xtmExportTermOptionsAPI()));
 
             var fileDescriptors = result.@return.Select(x => new xtmTermBaseFileDescriptorAPI() { id = x.id, idSpecified = true }).ToArray();
             await PollTermFileOperationStatus(fileDescriptors);
 
-            var resultFile = await TermWebServiceClient.downloadTermMTOMAsync(GetLoginAPIObj(), fileDescriptors, new xtmDownloadTermMTOMOptionsAPI());
+            var resultFile = await ErrorHandler.ExecuteWithErrorHandlingAsync(() => 
+            TermWebServiceClient.downloadTermMTOMAsync(GetLoginAPIObj(), fileDescriptors, new xtmDownloadTermMTOMOptionsAPI()));
+
             return new ExportGlossaryResponse() { File = await XTMToBlackbirdGlossary(resultFile.@return.First()) };
         }
 
@@ -106,7 +113,7 @@ namespace Apps.XTM.Actions
                 if (checkRes.@return.First().status == xtmTermCompletionStatusEnum.FINISHED)
                     break;
                 else if (checkRes.@return.First().status != xtmTermCompletionStatusEnum.IN_PROGRESS)
-                    throw new ArgumentException($"Error during terms operation. Status: {checkRes.@return.First().status.ToString()}");
+                    throw new PluginApplicationException($"Error during terms operation. Status: {checkRes.@return.First().status.ToString()}");
                 await Task.Delay(1000);
             }
         }
