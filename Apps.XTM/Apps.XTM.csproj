@@ -4,7 +4,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <Product>XTM</Product>
-        <Version>3.2.46</Version>
+        <Version>3.2.47</Version>
         <Description>Translation management system that centralizes localization assets and enables fast, accurate translation and deployment of content tailored to any audience in any territory</Description>
         <AssemblyName>Apps.XTM</AssemblyName>
         <LangVersion>12</LangVersion>
