@@ -6,5 +6,9 @@ namespace Apps.XTM.Models.Response.Metrics
     {
         [Display("Metrics per language")]
         public IEnumerable<MetricsByLanguage> Metrics { get; set; }
+
+        [Display("Total words")]
+
+        public int? TotalWords { get; set; }
     }
 }

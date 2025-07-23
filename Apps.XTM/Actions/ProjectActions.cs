@@ -390,8 +390,10 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
 
             return new MetricByLanguagesResponse
             {
-                Metrics = response
+                Metrics = response,
+                TotalWords = response?.Count > 0 ? response.Sum(x => x.coreMetrics.totalWords): 0           
             };
+
         } catch (Exception ex) 
         {
             if (ex.Message.Contains("Please wait for analysis"))
