@@ -356,3 +356,6 @@ healthchecksdb
 *.env
 /ConsoleApp1
 /Tests.XTM/appsettings.json
+
+/Tests.XTM/TestFiles/Output/**
+!/Tests.XTM/TestFiles/Output/.gitkeep
