@@ -1,8 +1,7 @@
 {
   "ConnectionDefinition": {
-    "apiKey": "XTM-Basic [YOUR_TOKEN]",
-    "url": "[YOUR_URL]",
-    "client": "[YOUR_CLIENT]",
+    "url": "https://api.api-test.xtm-intl.com/rest-api",
+    "client": "Blackbirdio",
     "userId": "[YOUR_USERID]",
     "password": "[YOUR_PASSWORD]"
   },

@@ -1,5 +1,4 @@
-﻿using System.Net.Mime;
-using Apps.XTM.Constants;
+﻿using Apps.XTM.Constants;
 using Apps.XTM.Extensions;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request.Files;
@@ -15,13 +14,10 @@ using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using Newtonsoft.Json;
 using RestSharp;
-using System.ComponentModel.DataAnnotations;
 using Blackbird.Applications.Sdk.Common.Exceptions;
-using Apps.XTM.Models.Response.Workflows;
 using Blackbird.Applications.Sdk.Utils.Models;
-using System.Text;
 using Apps.XTM.Models.Response;
-using Microsoft.Extensions.Options;
+using MoreLinq;
 
 namespace Apps.XTM.Actions;
 
@@ -168,19 +164,11 @@ public class FileActions : XtmInvocable
         [ActionParameter] ProjectRequest project,
         [ActionParameter] JobsRequest jobs)
     {
-        var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/sources/download";
+        var zip = await DownloadSourceFilesZip(project.ProjectId, jobs.JobIds);
+        using var stream = new MemoryStream(zip);
 
-        if (jobs.JobIds != null)
-            url += $"?{string.Join("&", jobs.JobIds.Select(x => $"jobIds={x}"))}";
-
-        var response = await Client.ExecuteXtmWithJson(url,
-            Method.Get,
-            null,
-            Creds);
-
-        using var stream = new MemoryStream(response.RawBytes);
-        var file = await _fileManagementClient.UploadAsync(stream,
-            response.ContentType ?? MediaTypeNames.Application.Octet, $"Project-{project.ProjectId}SourceFiles.zip");
+        var fileName = $"Project-{project.ProjectId}-SourceFiles.zip";
+        var file = await _fileManagementClient.UploadAsync(stream, MimeTypes.GetMimeType(fileName), fileName);
 
         return new(file);
     }
@@ -188,38 +176,69 @@ public class FileActions : XtmInvocable
     [Action("Download source files", Description = "Download the source files for project or specific jobs")]
     public async Task<DownloadFilesResponse<XtmSourceFileDescription>> DownloadSourceFiles(
         [ActionParameter] ProjectRequest project,
-        [ActionParameter] JobsRequest jobs)
+        [ActionParameter] JobsRequest jobsRequest)
     {
-        var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/sources/download";
-
-        if (jobs.JobIds != null)
-            url += $"?{string.Join("&", jobs.JobIds.Select(x => $"jobIds={x}"))}";
-
-        var response = await Client.ExecuteXtmWithJson(url,
+        // XTM API won't reliably return file info for 50+ files,
+        // so instead of asking for all files at once
+        // we will fetch them in batches of 50
+        var projectJobLevelStatusJobResponse = await Client.ExecuteXtmWithJson<ProjectJobLevelStatusDto>(
+            $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Status}?fetchLevel=JOBS",
             Method.Get,
             null,
             Creds);
-        using var fileStream = new MemoryStream(response.RawBytes);
-        var files = await fileStream.GetFilesFromZip();
-        var xtmFileDescriptions = JsonConvert.DeserializeObject<IEnumerable<XtmSourceFileDescription>>
-            (response.Headers.First(header => header.Name == "xtm-file-descrption").Value.ToString());
 
-        var result = new List<FileWithData<XtmSourceFileDescription>>();
+        var jobStatusByFileName = projectJobLevelStatusJobResponse
+            .Jobs
+            .Where(j => !string.Equals(j.CompletionStatus, "DELETED", StringComparison.OrdinalIgnoreCase))
+            .Where(j => jobsRequest.JobIds?.Count() > 0 ? jobsRequest.JobIds.Contains(j.JobId.ToString()) : true)
+            .ToLookup(j => j.FileName);
 
-        foreach (var file in files)
+        var sourceFilesWithFirstActiveJob = jobStatusByFileName
+            .ToDictionary(g => g.Key, g => g.FirstOrDefault());
+
+        var sourceFiles = new List<FileWithData<XtmSourceFileDescription>>();
+
+        foreach (var batch in sourceFilesWithFirstActiveJob.Batch(20))
         {
-            var uploadedFile =
-                await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet,
-                    file.UploadName);
-            result.Add(new()
+            // When passing multiple Job IDs per source file
+            // XTM API won't return more than one job per source file
+            // and will change filenames by adding a job ID like this: "filename(jobId).extention"
+            // so we have to get one job ID per source file
+            // and then rebuild the file description ourselves
+            var jobIds = batch
+                .Select(j => j.Value?.JobId.ToString() ?? string.Empty)
+                .Where(jobId => !string.IsNullOrWhiteSpace(jobId));
+
+            var zip = await DownloadSourceFilesZip(project.ProjectId, jobIds);
+
+            using var fileStream = new MemoryStream(zip ?? []);
+            var files = await fileStream.GetFilesFromZip();
+
+            foreach (var file in files)
             {
-                Content = uploadedFile,
-                FileDescription =
-                    xtmFileDescriptions?.FirstOrDefault(description => description.FileName == file.UploadName)
-            });
+                var fileReference = await _fileManagementClient.UploadAsync(
+                        file.FileStream,
+                        MimeTypes.GetMimeType(file.UploadName),
+                        file.UploadName);
+
+                var fileDescription = new XtmSourceFileDescription
+                {
+                    FileId = jobStatusByFileName[file.UploadName].FirstOrDefault()?.SourceFileId.ToString() ?? string.Empty,
+                    FileName = file.UploadName,
+                    JobIds = jobStatusByFileName[file.UploadName]
+                        .Where(j => j.FileName == file.UploadName)
+                        .Select(j => j.JobId.ToString())
+                };
+
+                sourceFiles.Add(new()
+                {
+                    Content = fileReference,
+                    FileDescription = fileDescription,
+                });
+            }
         }
 
-        return new(result);
+        return new(sourceFiles);
     }
 
     [Action("Download project file", Description = "Download a single, generated project file based on its ID")]
@@ -302,7 +321,7 @@ public class FileActions : XtmInvocable
         }
 
         var uploadedFile = await _fileManagementClient.UploadAsync(
-            file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
+            file.FileStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
 
         return new FileWithData<XtmProjectFileDescription>
         {
@@ -369,7 +388,7 @@ public class FileActions : XtmInvocable
         var result = new List<FileWithData<XtmProjectFileDescription>>();
         foreach (var file in files)
         {
-            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
+            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
 
             XtmProjectFileDescription description=null;
             if (xtmFileDescriptions != null)
@@ -459,7 +478,7 @@ public class FileActions : XtmInvocable
 
         foreach (var file in files)
         {
-            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MediaTypeNames.Application.Octet, file.UploadName);
+            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
 
             var description = xtmFileDescriptions?.FirstOrDefault(d => (d.TargetLanguage + "_" + d.FileName) == file.UploadName);
 
@@ -658,5 +677,17 @@ public class FileActions : XtmInvocable
         } while (uploadStatusResponse.Status != "FINISHED");
 
         return uploadStatusResponse;
+    }
+
+    private async Task<byte[]> DownloadSourceFilesZip(string projectId, IEnumerable<string>? jobIds)
+    {
+        var url = $"{ApiEndpoints.Projects}/{projectId}/files/sources/download";
+
+        if (jobIds?.Count() > 0)
+            url += $"?{string.Join("&", jobIds.Select(x => $"jobIds={x}"))}";
+
+        var response = await Client.ExecuteXtmWithJson(url, Method.Get, null, Creds);
+
+        return response.RawBytes ?? [];
     }
 }
