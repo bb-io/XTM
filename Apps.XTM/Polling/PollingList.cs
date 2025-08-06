@@ -89,7 +89,13 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
     {
         var result = await ProcessProjectsPolling(request,
             $"finishedDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
-        
+
+        if (result.Result == null || result.Result.Projects == null)
+        {
+            result.FlyBird = false;
+            return result;
+        }
+
         if (projectOptionalRequest.ProjectId != null)
         {
             var filteredProjects = result.Result?.Projects?.Where(x => x.Id == projectOptionalRequest.ProjectId).ToList();
@@ -126,7 +132,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
 
         if (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains))
         {
-            var filteredProjects = result.Result?.Projects?.Where(x => x.Name.Contains(projectOptionalRequest.ProjectNameContains)).ToList();
+            var filteredProjects = result.Result?.Projects?.Where(x => !string.IsNullOrEmpty(x.Name) && x.Name.Contains(projectOptionalRequest.ProjectNameContains, StringComparison.OrdinalIgnoreCase)).ToList();
             if (filteredProjects != null && filteredProjects.Count > 0)
             {
                 result.Result = new(filteredProjects);

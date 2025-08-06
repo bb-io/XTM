@@ -14,7 +14,8 @@ namespace Tests.XTM
         {
             var polling = new PollingList(InvocationContext);
 
-            var oldDate = new DateTime(2025, 6, 4, 16, 29, 41, DateTimeKind.Utc);
+            //var oldDate = new DateTime(2025, 6, 4, 16, 29, 41, DateTimeKind.Utc);
+            var oldDate = DateTime.UtcNow.AddDays(1);
             var request = new PollingEventRequest<DateMemory>
             {
                 Memory = new DateMemory
@@ -23,7 +24,7 @@ namespace Tests.XTM
                 }
             };
 
-            var result = await polling.OnProjectsFinished(request, new ProjectOptionalRequest { });
+            var result = await polling.OnProjectsFinished(request, new ProjectOptionalRequest { CustomerNameContains= "Webtoon" });
 
             var json = Newtonsoft.Json.JsonConvert.SerializeObject(result, Newtonsoft.Json.Formatting.Indented);
             Console.WriteLine(json);
