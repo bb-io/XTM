@@ -38,7 +38,7 @@ public class WebhookList : XtmInvocable
     //    {
     //        return GetPreflightResponse<AnalysisFinishedResponse>();
     //    }
-        
+
     //    return Task.FromResult(new WebhookResponse<AnalysisFinishedResponse>
     //    {
     //        HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
@@ -46,31 +46,49 @@ public class WebhookList : XtmInvocable
     //    });
     //}
 
-    //[Webhook("On workflow transition (manual)", Description = "On any transition in active workflow steps (manual)")]
-    //public Task<WebhookResponse<WorkflowTransitionResponse>> OnWorkflowTransitionManual(WebhookRequest request,
-    //    [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
-    //    [WebhookParameter] CustomerOptionalRequest customerOptionalRequest)
-    //{
-    //    var data = HandleFormDataRequest<WorkflowTransitionPayload>(request);
-    //    var result = new WorkflowTransitionResponse(data);
+    [Webhook("On workflow transition (manual)", Description = "On any transition in active workflow steps (manual)")]
+    public Task<WebhookResponse<WorkflowTransitionResponse>> OnWorkflowTransitionManual(WebhookRequest request,
+        [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
+        [WebhookParameter] CustomerOptionalRequest customerOptionalRequest,
+        [WebhookParameter] WorkflowStepOptionalRequest workflowOptionalRequest)
+    {
+        var data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
+        var result = new WorkflowTransitionResponse(data.Payload);
 
-    //    if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
-    //       (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) && !ProjectNameContainsString(result.ProjectId, projectOptionalRequest.ProjectNameContains)))
-    //    {
-    //        return GetPreflightResponse<WorkflowTransitionResponse>();
-    //    }
-        
-    //    if(customerOptionalRequest.CustomerId != null && customerOptionalRequest.CustomerId != result.CustomerId)
-    //    {
-    //        return GetPreflightResponse<WorkflowTransitionResponse>();
-    //    }
-        
-    //    return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
-    //    {
-    //        HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-    //        Result = result
-    //    });
-    //}
+        if (projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+        {
+            return GetPreflightResponse<WorkflowTransitionResponse>();
+        }
+
+        if ((!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) || !string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains))
+           && !ProjectFilter(result.ProjectId, projectOptionalRequest?.ProjectNameContains ?? "", projectOptionalRequest.CustomerNameContains ?? ""))
+        {
+            return GetPreflightResponse<WorkflowTransitionResponse>();
+        }
+
+        if (customerOptionalRequest.CustomerId != null && customerOptionalRequest.CustomerId != result.CustomerId)
+        {
+            return GetPreflightResponse<WorkflowTransitionResponse>();
+        }
+
+        if (!string.IsNullOrEmpty(workflowOptionalRequest.WorkflowStep))
+        {
+            var anyMatch = data.Payload.Events
+                .SelectMany(e => e.Tasks)
+                .Any(t => string.Equals(t.Step.WorkflowStepName, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase)
+                 || string.Equals(t.Step.WorkflowStep, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase));
+
+            if (!anyMatch)
+                return GetPreflightResponse<WorkflowTransitionResponse>();
+        }
+
+
+        return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
+        {
+            HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
+            Result = result
+        });
+    }
 
     //[Webhook("On job finished (manual)", Description = "On a specific job finished (manual)")]
     //public Task<WebhookResponse<JobFinishedPayload>> OnJobFinishedManual(WebhookRequest request,
@@ -84,7 +102,7 @@ public class WebhookList : XtmInvocable
     //        JobId = request.QueryParameters["xtmJobId"],
     //        Uuid = request.QueryParameters["xtmUuid"]
     //    };
-        
+
     //    if(jobOptionalRequest.JobId != null && jobOptionalRequest.JobId != result.JobId)
     //    {
     //        return GetPreflightResponse<JobFinishedPayload>();
@@ -95,14 +113,14 @@ public class WebhookList : XtmInvocable
     //    {
     //        return GetPreflightResponse<JobFinishedPayload>();
     //    }
-        
+
     //    return Task.FromResult(new WebhookResponse<JobFinishedPayload>
     //    {
     //        HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
     //        Result = result
     //    });
     //}  
-    
+
     //[Webhook("On project created (manual)", Description = "On a new project created (manual)")]
     //public Task<WebhookResponse<ProjectCreatedPayload>> OnProjectCreatedManual(WebhookRequest request)
     //{
@@ -116,7 +134,7 @@ public class WebhookList : XtmInvocable
     //        }
     //    });
     //}    
-    
+
     //[Webhook("On project accepted (manual)", Description = "On a specific project accepted (manual)")]
     //public Task<WebhookResponse<ProjectAcceptedPayload>> OnProjectAcceptedManual(WebhookRequest request,
     //    [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
@@ -133,14 +151,14 @@ public class WebhookList : XtmInvocable
     //    {
     //        return GetPreflightResponse<ProjectAcceptedPayload>();
     //    }
-        
+
     //    return Task.FromResult(new WebhookResponse<ProjectAcceptedPayload>
     //    {
     //        HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
     //        Result = result
     //    });
     //} 
-    
+
     //[Webhook("On project finished (manual)", Description = "On a specific project finished (manual)")]
     //public Task<WebhookResponse<ProjectFinishedPayload>> OnProjectFinishedManual(WebhookRequest request,
     //    [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
@@ -157,14 +175,14 @@ public class WebhookList : XtmInvocable
     //    {
     //        return GetPreflightResponse<ProjectFinishedPayload>();
     //    }
-        
+
     //    return Task.FromResult(new WebhookResponse<ProjectFinishedPayload>
     //    {
     //        HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
     //        Result = result
     //    });
     //}
-    
+
     //[Webhook("On invoice status changed (manual)", Description = "On invoice changed for any project (manual)")]
     //public Task<WebhookResponse<InvoiceStatusChangedPayload>> OnInvoiceStatusChangedManual(WebhookRequest request,
     //    [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
@@ -176,7 +194,7 @@ public class WebhookList : XtmInvocable
     //        InvoiceStatus = request.QueryParameters["xtmInvoiceStatus"],
     //        Uuid = request.QueryParameters["xtmUuid"]
     //    };
-        
+
     //    if(invoiceStatusChangedRequest.InvoiceId != null && invoiceStatusChangedRequest.InvoiceId != result.Uuid)
     //    {
     //        return GetPreflightResponse<InvoiceStatusChangedPayload>();
@@ -187,7 +205,7 @@ public class WebhookList : XtmInvocable
     //    {
     //        return GetPreflightResponse<InvoiceStatusChangedPayload>();
     //    }
-        
+
     //    return Task.FromResult(new WebhookResponse<InvoiceStatusChangedPayload>
     //    {
     //        HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
