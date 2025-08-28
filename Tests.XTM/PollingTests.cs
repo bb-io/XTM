@@ -15,7 +15,7 @@ namespace Tests.XTM
             var polling = new PollingList(InvocationContext);
 
             //var oldDate = new DateTime(2025, 6, 4, 16, 29, 41, DateTimeKind.Utc);
-            var oldDate = DateTime.UtcNow.AddDays(1);
+            var oldDate = new DateTime(2025, 8, 13, 12, 23, 41, DateTimeKind.Utc);
             var request = new PollingEventRequest<DateMemory>
             {
                 Memory = new DateMemory
