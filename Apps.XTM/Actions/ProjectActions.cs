@@ -442,9 +442,9 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
         var response = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
         await Client.ExecuteXtmWithJson<ProjectStatusRawResponse>(endpoint, Method.Get, null, Creds));
 
-        var dueUtc = response.DueDate.HasValue
-        ? DateTimeOffset.FromUnixTimeSeconds(response.DueDate.Value).UtcDateTime
-        : (DateTime?)null;
+        var dueUtc = response.DueDate.HasValue && response.DueDate.Value > 0
+            ? DateTimeOffset.FromUnixTimeMilliseconds(response.DueDate.Value).UtcDateTime
+            : (DateTime?)null;
 
         return new ProjectStatusResponse
         {
