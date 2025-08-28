@@ -63,7 +63,7 @@ namespace Tests.XTM
         {
             var action = new ProjectActions(InvocationContext, FileManager);
 
-            var response = await action.GetProjectStatus(new ProjectRequest { ProjectId= "113735837" });
+            var response = await action.GetProjectStatus(new ProjectRequest { ProjectId= "2723018" });
 
             var json = Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
             Console.WriteLine(json);

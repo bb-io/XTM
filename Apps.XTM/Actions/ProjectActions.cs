@@ -433,18 +433,31 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
         checkProjectCompletionResponse result = await this.ProjectManagerMTOClient.checkProjectCompletionAsync(loginApi, xtmProjectDescriptorApi, new xtmCheckProjectCompletionOptionsAPI());
          return new(result);
     }
-    
+
     [Action("Get project status", Description = "Get project status for a specific project")]
     public async Task<ProjectStatusResponse> GetProjectStatus([ActionParameter] ProjectRequest project)
     {
-        return await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Status}";
+
+        var response = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
+        await Client.ExecuteXtmWithJson<ProjectStatusRawResponse>(endpoint, Method.Get, null, Creds));
+
+        var dueUtc = response.DueDate.HasValue && response.DueDate.Value > 0
+            ? DateTimeOffset.FromUnixTimeMilliseconds(response.DueDate.Value).UtcDateTime
+            : (DateTime?)null;
+
+        return new ProjectStatusResponse
         {
-            var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Status}";
-            return await Client.ExecuteXtmWithJson<ProjectStatusResponse>(endpoint, Method.Get, null, Creds);
-        });
-       
+            ProjectId = response.ProjectId,
+            CompletionStatus = response.CompletionStatus,
+            Activity = response.Activity,
+            SourceLanguage = response.SourceLanguage,
+            DueDate = dueUtc,
+            JoinFilesType = response.JoinFilesType,
+            ContractorType = response.ContractorType
+        };
     }
-    
+
     [Action("Get project users", Description = "Get users assigned to a specific project")]
     public async Task<ProjectUsersResponse> GetProjectUsers([ActionParameter] ProjectRequest project)
     {
