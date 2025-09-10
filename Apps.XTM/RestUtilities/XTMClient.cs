@@ -128,9 +128,9 @@ public class XTMClient : RestClient
 
     private Exception GetXtmError(RestResponse response)
     {
-        if (response.StatusCode == HttpStatusCode.NotFound)
+        if (response.StatusCode == HttpStatusCode.NotFound && response.ContentType == "text/html")
         {
-            throw new PluginMisconfigurationException($"The requested instance URL was not found. Please refer to https://docs.blackbird.io/apps/xtm/#connecting");
+            throw new PluginMisconfigurationException(ExtractHtmlErrorMessage(response.Content));
         }
 
         var error = JsonConvert.DeserializeObject<ErrorResponse>(response.Content);
@@ -140,7 +140,6 @@ public class XTMClient : RestClient
                           : ".");
         throw new PluginApplicationException($"Error: {message}");
     }
-
 
     private string ExtractHtmlErrorMessage(string htmlContent)
     {
