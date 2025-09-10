@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net;
+using System.Text;
 using System.Text.RegularExpressions;
 using Apps.XTM.Constants;
 using Apps.XTM.Extensions;
@@ -127,6 +128,11 @@ public class XTMClient : RestClient
 
     private Exception GetXtmError(RestResponse response)
     {
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            throw new PluginMisconfigurationException($"The requested instance URL was not found. Please refer to https://docs.blackbird.io/apps/xtm/#connecting");
+        }
+
         var error = JsonConvert.DeserializeObject<ErrorResponse>(response.Content);
         var message = (error?.Reason.TrimEnd('.') ?? response.StatusCode.ToString())
                       + (error?.IncorrectParameters != null
