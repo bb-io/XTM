@@ -20,10 +20,8 @@ public class ProjectEstimates
     [JsonProperty("deliveryDate")]
     public long? DeliveryDate { get; set; }
 
-    [Display("Delivery date in DateTime")]
-    public string? DeliveryDateFormatted => DeliveryDate is > 0 ? DateTime.UnixEpoch.AddMilliseconds(DeliveryDate.Value)
-                .ToUniversalTime()
-                .ToString("yyyy-MM-dd'T'HH:mm:ss'Z'") : null;
+    [Display("Delivery date (UTC)")]
+    public DateTime? DeliveryDateFormatted { get; set; }
 
     [JsonProperty("currency")]
     public string Currency { get; set; }
