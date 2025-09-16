@@ -340,6 +340,9 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
     [Action("Get project estimates", Description = "Get specific project estimates")]
     public Task<ProjectEstimates> GetProjectEstimates([ActionParameter] ProjectRequest project)
     {
+        if (string.IsNullOrWhiteSpace(project?.ProjectId))
+            throw new PluginMisconfigurationException("Project ID is not provided. Please specify a valid Project ID.");
+
         return Client.ExecuteXtmWithJson<ProjectEstimates>($"{ApiEndpoints.Projects}/{project.ProjectId}/proposal",
             Method.Get,
             null,

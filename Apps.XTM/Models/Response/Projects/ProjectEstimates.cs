@@ -18,10 +18,12 @@ public class ProjectEstimates
 
     [Display("Delivery date in UNIX")]
     [JsonProperty("deliveryDate")]
-    public long DeliveryDate { get; set; }
+    public long? DeliveryDate { get; set; }
 
-    [Display("Delivery date in DateTime")] 
-    public DateTime DeliveryDateFormatted => DateTimeOffset.FromUnixTimeMilliseconds(DeliveryDate).DateTime;
+    public DateTime? DeliveryDateFormatted =>
+            DeliveryDate is > 0
+                ? DateTimeOffset.FromUnixTimeMilliseconds(DeliveryDate.Value).UtcDateTime
+                : (DateTime?)null;
 
     [JsonProperty("currency")]
     public string Currency { get; set; }
