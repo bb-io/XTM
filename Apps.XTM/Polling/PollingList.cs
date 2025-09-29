@@ -3,7 +3,6 @@ using Apps.XTM.Constants;
 using Apps.XTM.DataSourceHandlers.EnumHandlers;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request.Projects;
-using Apps.XTM.Models.Response;
 using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.Polling.Models.Memory;
 using Blackbird.Applications.Sdk.Common;
@@ -87,63 +86,72 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
         PollingEventRequest<DateMemory> request,
         [PollingEventParameter] ProjectOptionalRequest projectOptionalRequest)
     {
-        var result = await ProcessProjectsPolling(request,
-            $"finishedDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
-
-        if (result.Result == null || result.Result.Projects == null)
+        try
         {
-            result.FlyBird = false;
-            return result;
-        }
+            var result = await ProcessProjectsPolling(request,
+                $"finishedDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
 
-        if (projectOptionalRequest.ProjectId != null)
-        {
-            var filteredProjects = result.Result?.Projects?.Where(x => x.Id == projectOptionalRequest.ProjectId).ToList();
-            if (filteredProjects != null && filteredProjects.Count > 0)
-            {
-                result.Result = new(filteredProjects);
-            } else 
+            if (result.Result == null || result.Result.Projects == null)
             {
                 result.FlyBird = false;
+                return result;
             }
-        }
 
-        if (!string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains) && result.Result?.Projects != null)
-        {
-            var filteredProjects = new List<SimpleProject>();
-            foreach (var project in result.Result?.Projects!)
+            if (projectOptionalRequest.ProjectId != null)
             {
-                var projectInfo =  await Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.Id}",Method.Get,null,Creds);
-                if (projectInfo.CustomerName.Contains(projectOptionalRequest.CustomerNameContains))
+                var filteredProjects = result.Result?.Projects?.Where(x => x.Id == projectOptionalRequest.ProjectId).ToList();
+                if (filteredProjects != null && filteredProjects.Count > 0)
                 {
-                    filteredProjects.Add(project);
+                    result.Result = new(filteredProjects);
+                }
+                else
+                {
+                    result.FlyBird = false;
                 }
             }
-            
-            if  (filteredProjects.Count > 0)
-            {
-                result.Result = new(filteredProjects);
-            }
-            else
-            {
-                result.FlyBird = false;
-            }
-        }
 
-        if (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains))
+            if (!string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains) && result.Result?.Projects != null)
+            {
+                var filteredProjects = new List<SimpleProject>();
+                foreach (var project in result.Result?.Projects!)
+                {
+                    var projectInfo = await Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.Id}", Method.Get, null, Creds);
+                    if (projectInfo.CustomerName.Contains(projectOptionalRequest.CustomerNameContains))
+                    {
+                        filteredProjects.Add(project);
+                    }
+                }
+
+                if (filteredProjects.Count > 0)
+                {
+                    result.Result = new(filteredProjects);
+                }
+                else
+                {
+                    result.FlyBird = false;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains))
+            {
+                var filteredProjects = result.Result?.Projects?.Where(x => !string.IsNullOrEmpty(x.Name) && x.Name.Contains(projectOptionalRequest.ProjectNameContains, StringComparison.OrdinalIgnoreCase)).ToList();
+                if (filteredProjects != null && filteredProjects.Count > 0)
+                {
+                    result.Result = new(filteredProjects);
+                }
+                else
+                {
+                    result.FlyBird = false;
+                }
+            }
+
+            return result;
+        }
+        catch (Exception ex)
         {
-            var filteredProjects = result.Result?.Projects?.Where(x => !string.IsNullOrEmpty(x.Name) && x.Name.Contains(projectOptionalRequest.ProjectNameContains, StringComparison.OrdinalIgnoreCase)).ToList();
-            if (filteredProjects != null && filteredProjects.Count > 0)
-            {
-                result.Result = new(filteredProjects);
-            }
-            else
-            {
-                result.FlyBird = false;
-            }
+            InvocationContext.Logger?.LogError($"[XTM OnProjectsFinished] Event failed. {ex.Message}", null);
+            throw;
         }
-
-        return result;
     }
 
     [PollingEvent("On project status changed (polling)", "On status of the specific project changed")]

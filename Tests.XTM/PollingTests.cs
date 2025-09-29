@@ -12,20 +12,18 @@ public class PollingTests : TestBase
     [TestMethod]
     public async Task OnProjectsFinished_IsSuccess()
     {
+        // Arrange
         var polling = new PollingList(InvocationContext);
-
-        //var oldDate = new DateTime(2025, 6, 4, 16, 29, 41, DateTimeKind.Utc);
-        var oldDate = new DateTime(2025, 8, 13, 12, 23, 41, DateTimeKind.Utc);
+        var oldDate = new DateTime(2025, 09, 27, 12, 0, 0);
         var request = new PollingEventRequest<DateMemory>
         {
-            Memory = new DateMemory
-            {
-                LastInteractionDate = oldDate
-            }
+            Memory = new DateMemory { LastInteractionDate = oldDate }
         };
 
-        var result = await polling.OnProjectsFinished(request, new ProjectOptionalRequest { CustomerNameContains= "Webtoon" });
+        // Act
+        var result = await polling.OnProjectsFinished(request, new ProjectOptionalRequest { CustomerNameContains = "Track OMC" });
 
+        // Assert
         var json = Newtonsoft.Json.JsonConvert.SerializeObject(result, Newtonsoft.Json.Formatting.Indented);
         Console.WriteLine(json);
     }
@@ -38,10 +36,7 @@ public class PollingTests : TestBase
         var oldDate = new DateTime(2025, 9, 10, 8, 5, 00, DateTimeKind.Utc);
         var request = new PollingEventRequest<DateMemory>
         {
-            Memory = new DateMemory
-            {
-                LastInteractionDate = oldDate
-            }
+            Memory = new DateMemory { LastInteractionDate = oldDate }
         };
 
         // Act
