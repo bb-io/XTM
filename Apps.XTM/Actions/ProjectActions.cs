@@ -338,12 +338,18 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
     }
 
     [Action("Get project estimates", Description = "Get specific project estimates")]
-    public Task<ProjectEstimates> GetProjectEstimates([ActionParameter] ProjectRequest project)
+    public async Task<ProjectEstimates> GetProjectEstimates([ActionParameter] ProjectRequest project)
     {
-        return Client.ExecuteXtmWithJson<ProjectEstimates>($"{ApiEndpoints.Projects}/{project.ProjectId}/proposal",
-            Method.Get,
-            null,
-            Creds);
+        if (string.IsNullOrWhiteSpace(project?.ProjectId))
+            throw new PluginMisconfigurationException("Project ID is not provided. Please specify a valid Project ID.");
+
+        var estimates = await Client.ExecuteXtmWithJson<ProjectEstimates>($"{ApiEndpoints.Projects}/{project.ProjectId}/proposal",Method.Get, null,Creds);
+
+        estimates.DeliveryDateFormatted = estimates.DeliveryDate is > 0 ? DateTime.UnixEpoch
+          .AddMilliseconds(estimates.DeliveryDate!.Value)
+          .ToUniversalTime(): (DateTime?)null;
+
+        return estimates;
     }
 
     [Action("Download metrics", Description = "Download metrics file for a specific file in XLSX format")]
