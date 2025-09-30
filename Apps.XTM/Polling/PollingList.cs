@@ -149,7 +149,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
         }
         catch (Exception ex)
         {
-            InvocationContext.Logger?.LogError($"[XTM OnProjectsFinished] Event failed. {ex.Message}", null);
+            InvocationContext.Logger?.LogError($"[XTM OnProjectsFinished] Event failed. {ex.Message} - {ex.StackTrace}", null);
             throw;
         }
     }
