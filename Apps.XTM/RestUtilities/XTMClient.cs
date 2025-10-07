@@ -48,7 +48,7 @@ public class XTMClient : RestClient
         var response = await ExecuteAsync(request);
         var content = response.RawBytes != null
                ? Encoding.UTF8.GetString(response.RawBytes)
-               : string.Empty;
+               : response.Content ?? string.Empty;
 
         if (response.ContentType?.Contains("html") == true
         || content.TrimStart().StartsWith("<"))
