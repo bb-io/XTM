@@ -2,6 +2,7 @@
 using Apps.XTM.Polling;
 using Apps.XTM.Polling.Models.Memory;
 using Blackbird.Applications.Sdk.Common.Polling;
+using Newtonsoft.Json;
 using XTMTests.Base;
 
 namespace Tests.XTM;
@@ -24,8 +25,8 @@ public class PollingTests : TestBase
         var result = await polling.OnProjectsFinished(request, new ProjectOptionalRequest { CustomerNameContains = "Track OMC" });
 
         // Assert
-        var json = Newtonsoft.Json.JsonConvert.SerializeObject(result, Newtonsoft.Json.Formatting.Indented);
-        Console.WriteLine(json);
+        Console.WriteLine(JsonConvert.SerializeObject(result, Formatting.Indented));
+        Assert.IsNotNull(result);
     }
 
     [TestMethod]
@@ -43,7 +44,26 @@ public class PollingTests : TestBase
         var result = await polling.OnProjectsUpdated(request, new ProjectOptionalRequest { ProjectNameContains = "Test 1_1" });
 
         // Assert
-        var json = Newtonsoft.Json.JsonConvert.SerializeObject(result, Newtonsoft.Json.Formatting.Indented);
-        Console.WriteLine(json);
+        Console.WriteLine(JsonConvert.SerializeObject(result, Formatting.Indented));
+        Assert.IsNotNull(result);
+    }
+
+    [TestMethod]
+    public async Task OnProjectsCreated_IsSuccess()
+    {
+        // Arrange
+        var polling = new PollingList(InvocationContext);
+        var oldDate = DateTime.UtcNow - TimeSpan.FromDays(30);
+        var request = new PollingEventRequest<DateMemory>
+        {
+            Memory = new DateMemory { LastInteractionDate = oldDate }
+        };
+
+        // Act
+        var result = await polling.OnProjectsCreated(request);
+
+        // Assert
+        Console.WriteLine(JsonConvert.SerializeObject(result, Formatting.Indented));
+        Assert.IsNotNull(result);
     }
 }
