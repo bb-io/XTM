@@ -4,14 +4,15 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <Product>XTM</Product>
-        <Version>3.2.55</Version>
+        <Version>3.2.56</Version>
         <Description>Translation management system that centralizes localization assets and enables fast, accurate translation and deployment of content tailored to any audience in any territory</Description>
         <AssemblyName>Apps.XTM</AssemblyName>
         <LangVersion>12</LangVersion>
     </PropertyGroup>
     <ItemGroup>
+        <PackageReference Include="Blackbird.Applications.SDK.Blueprints" Version="1.0.0-rc.10308" />
         <PackageReference Include="Blackbird.Applications.Sdk.Glossaries.Utils" Version="1.0.1" />
-        <PackageReference Include="Blackbird.Applications.Sdk.Utils" Version="1.0.22" />
+        <PackageReference Include="Blackbird.Applications.Sdk.Utils" Version="1.0.26" />
         <PackageReference Include="MimeTypes" Version="2.5.2">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -23,7 +24,6 @@
         <PackageReference Include="System.ServiceModel.NetTcp" Version="4.10.*" />
         <PackageReference Include="System.ServiceModel.Primitives" Version="8.0.0" />
         <PackageReference Include="System.ServiceModel.Security" Version="4.10.*" />
-        <PackageReference Include="Blackbird.Applications.Sdk.Common" Version="2.11.0" />
     </ItemGroup>
     <ItemGroup>
         <EmbeddedResource CopyToOutputDirectory="Always" Include="image\icon.png" />
