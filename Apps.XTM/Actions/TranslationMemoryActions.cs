@@ -36,6 +36,7 @@ public class TranslationMemoryActions : XtmInvocable
     [Action("Generate TM file", Description = "Generate translation memory file")]
     public Task<TranslationMemoryResponse> GenerateTMFile([ActionParameter] GenerateTMRequest input)
     {
+        input.fileType = string.IsNullOrEmpty(input.fileType) ? "TMX" : input.fileType;
         return Client.ExecuteXtmWithJson<TranslationMemoryResponse>($"{ApiEndpoints.TMFiles}/generate",
             Method.Post,
             input,
@@ -52,7 +53,7 @@ public class TranslationMemoryActions : XtmInvocable
 
         using var stream = new MemoryStream(response.RawBytes);
         var file = await _fileManagementClient.UploadAsync(stream,
-            response.ContentType ?? MediaTypeNames.Application.Octet, $"TMFile-{fileId}");
+            response.ContentType ?? MediaTypeNames.Application.Octet, $"TMFile-{fileId}.zip");
         return new(file);
     }
 

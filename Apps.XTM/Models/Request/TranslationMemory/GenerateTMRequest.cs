@@ -8,7 +8,7 @@ namespace Apps.XTM.Models.Request.TranslationMemory;
 
 public class GenerateTMRequest : CustomerRequest
 {
-    [Display("Project")] 
+    [Display("Project ID")] 
     [DataSource(typeof(ProjectDataHandler))]
     public string? ProjectId { get; set; }
     
@@ -19,4 +19,8 @@ public class GenerateTMRequest : CustomerRequest
     [Display("Target language")]
     [DataSource(typeof(LanguageDataHandler))]
     public string? TargetLanguage { get; set; }
+
+    [Display("Output file type")]
+    [DataSource(typeof(TmFileTypeDataHandler))]
+    public string? fileType { get; set; }
 }
