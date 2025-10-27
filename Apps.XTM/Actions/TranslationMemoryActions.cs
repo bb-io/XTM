@@ -53,7 +53,7 @@ public class TranslationMemoryActions : XtmInvocable
 
         using var stream = new MemoryStream(response.RawBytes);
         var file = await _fileManagementClient.UploadAsync(stream,
-            response.ContentType ?? MediaTypeNames.Application.Octet, $"TMFile-{fileId}");
+            response.ContentType ?? MediaTypeNames.Application.Octet, $"TMFile-{fileId}.zip");
         return new(file);
     }
 
