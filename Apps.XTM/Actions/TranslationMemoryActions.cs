@@ -36,6 +36,7 @@ public class TranslationMemoryActions : XtmInvocable
     [Action("Generate TM file", Description = "Generate translation memory file")]
     public Task<TranslationMemoryResponse> GenerateTMFile([ActionParameter] GenerateTMRequest input)
     {
+        input.fileType = string.IsNullOrEmpty(input.fileType) ? "TMX" : input.fileType;
         return Client.ExecuteXtmWithJson<TranslationMemoryResponse>($"{ApiEndpoints.TMFiles}/generate",
             Method.Post,
             input,
