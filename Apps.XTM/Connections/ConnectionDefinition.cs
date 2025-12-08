@@ -36,16 +36,22 @@ public class ConnectionDefinition : IConnectionDefinition
     public IEnumerable<AuthenticationCredentialsProvider> CreateAuthorizationCredentialsProviders(
         Dictionary<string, string> values)
     {
+        var providers = new List<AuthenticationCredentialsProvider>();
+
         if (values.TryGetValue(CredsNames.Url, out var url))
-            values[CredsNames.Url] = url.TrimEnd('/') + "/project-manager-api-rest";
-
-        var providers = values.Select(x => new AuthenticationCredentialsProvider(x.Key, x.Value)).ToList();
-
-        var connectionType = values[nameof(ConnectionPropertyGroup)] switch
         {
-            var ct when ConnectionTypes.SupportedConnectionTypes.Contains(ct) => ct,
-            _ => throw new Exception($"Unknown connection type: {values[nameof(ConnectionPropertyGroup)]}")
-        };
+            var safeUrl = url.TrimEnd('/') + "/project-manager-api-rest";
+            providers.Add(new AuthenticationCredentialsProvider(CredsNames.Url, safeUrl));
+        }
+
+        foreach (var kv in values.Where(x => x.Key != CredsNames.Url))
+            providers.Add(new AuthenticationCredentialsProvider(kv.Key, kv.Value));
+
+        var rawConnectionType = values[nameof(ConnectionPropertyGroup)];
+        var connectionType = ConnectionTypes.SupportedConnectionTypes.Contains(rawConnectionType)
+            ? rawConnectionType
+            : throw new Exception($"Unknown connection type: {rawConnectionType}");
+
         providers.Add(new AuthenticationCredentialsProvider(CredsNames.ConnectionType, connectionType));
         return providers;
     }
