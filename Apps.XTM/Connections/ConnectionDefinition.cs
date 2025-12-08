@@ -10,7 +10,7 @@ public class ConnectionDefinition : IConnectionDefinition
     {
         new()
         {
-            Name = "Credentials",
+            Name = ConnectionTypes.Credentials,
             AuthenticationType = ConnectionAuthenticationType.Undefined,
             ConnectionUsage = ConnectionUsage.Actions,
             ConnectionProperties = new List<ConnectionProperty>()
@@ -20,35 +20,39 @@ public class ConnectionDefinition : IConnectionDefinition
                 new(CredsNames.Password) { DisplayName = "Password", Sensitive = true },
                 new(CredsNames.Url) { DisplayName = "URL" }
             }
+        },
+        new()
+        {
+            Name = ConnectionTypes.GeneratedToken,
+            AuthenticationType = ConnectionAuthenticationType.Undefined,
+            ConnectionProperties = new List<ConnectionProperty>()
+            {
+                new(CredsNames.Token) { DisplayName = "Token", Sensitive = true },
+                new(CredsNames.Url) { DisplayName = "URL" }
+            }
         }
     };
 
     public IEnumerable<AuthenticationCredentialsProvider> CreateAuthorizationCredentialsProviders(
         Dictionary<string, string> values)
     {
-        var client = values.First(v => v.Key == CredsNames.Client);
-        yield return new AuthenticationCredentialsProvider(
-            AuthenticationCredentialsRequestLocation.None,
-            client.Key,
-            client.Value
-        );
-        var username = values.First(v => v.Key == CredsNames.UserId);
-        yield return new AuthenticationCredentialsProvider(
-            AuthenticationCredentialsRequestLocation.None,
-            username.Key,
-            username.Value
-        );
-        var password = values.First(v => v.Key == CredsNames.Password);
-        yield return new AuthenticationCredentialsProvider(
-            AuthenticationCredentialsRequestLocation.None,
-            password.Key,
-            password.Value
-        );
-        var url = values.First(v => v.Key == CredsNames.Url).Value.TrimEnd('/') + "/project-manager-api-rest";
-        yield return new AuthenticationCredentialsProvider(
-            AuthenticationCredentialsRequestLocation.None,
-            CredsNames.Url,
-            url
-        );
+        var providers = new List<AuthenticationCredentialsProvider>();
+
+        if (values.TryGetValue(CredsNames.Url, out var url))
+        {
+            var safeUrl = url.TrimEnd('/') + "/project-manager-api-rest";
+            providers.Add(new AuthenticationCredentialsProvider(CredsNames.Url, safeUrl));
+        }
+
+        foreach (var kv in values.Where(x => x.Key != CredsNames.Url))
+            providers.Add(new AuthenticationCredentialsProvider(kv.Key, kv.Value));
+
+        var rawConnectionType = values[nameof(ConnectionPropertyGroup)];
+        var connectionType = ConnectionTypes.SupportedConnectionTypes.Contains(rawConnectionType)
+            ? rawConnectionType
+            : throw new Exception($"Unknown connection type: {rawConnectionType}");
+
+        providers.Add(new AuthenticationCredentialsProvider(CredsNames.ConnectionType, connectionType));
+        return providers;
     }
 }

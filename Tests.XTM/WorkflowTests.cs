@@ -1,28 +1,28 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Tests.XTM.Base;
 using Apps.XTM.Actions;
 using Apps.XTM.Models.Request;
 using Apps.XTM.Models.Request.Files;
 using Apps.XTM.Models.Request.Projects;
-using XTMTests.Base;
+using Blackbird.Applications.Sdk.Common.Invocation;
 
-namespace Tests.XTM
+namespace Tests.XTM;
+
+[TestClass]
+public class WorkflowTests : TestBaseMultipleConnections
 {
-    [TestClass]
-    public class WorkflowTests:TestBase
+    [ContextDataSource, TestMethod]
+    public async Task MoveWorkflowsToNextStep_ReturnsResponse(InvocationContext context)
     {
-        [TestMethod]
-        public async Task MoveWorkflowsToNextStep_ReturnsValue()
-        {
-            var action = new WorkflowActions(InvocationContext);
-            var project = new ProjectRequest { ProjectId= "" };
-            var jobs = new JobsRequest { JobIds = new List<string> { "" } };
-            var mailing = new MailingRequest { Mailing = "DISABLED" };
+        // Arrange
+        var action = new WorkflowActions(context);
+        var project = new ProjectRequest { ProjectId = "" };
+        var jobs = new JobsRequest { JobIds = new List<string> { "" } };
+        var mailing = new MailingRequest { Mailing = "DISABLED" };
 
-            var response = await action.MoveJobsToNextWorkflowStep(jobs, project, mailing);
-        }
+        // Act
+        var response = await action.MoveJobsToNextWorkflowStep(jobs, project, mailing);
+
+        // Assert
+        PrintResult(response);
     }
 }

@@ -1,34 +1,30 @@
-﻿using Apps.XTM.Actions;
+﻿using Tests.XTM.Base;
+using Apps.XTM.Actions;
 using Apps.XTM.Models.Request.Glossaries;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using XTMTests.Base;
+using Blackbird.Applications.Sdk.Common.Invocation;
 
-namespace Tests.XTM
+namespace Tests.XTM;
+
+[TestClass]
+public class GlossaryTests : TestBaseMultipleConnections
 {
-    [TestClass]
-    public class GlossaryTests :TestBase
+    [ContextDataSource, TestMethod]
+    public async Task ExportGlossary_IsSuccess(InvocationContext context)
     {
-        [TestMethod]
-        public async Task ExportGlossaryTest()
+        // Arrange
+        var action = new GlossaryActions(context, FileManager);
+        var request = new GlossaryRequest
         {
-            var action = new GlossaryActions(InvocationContext, FileManager);
-            var request = new GlossaryRequest
-            {
-                MainLanguage = "en_US",
-                CustomerId = "644264",
-                Languages = new List<string> { "it_IT" }
-            };
+            MainLanguage = "en_US",
+            CustomerId = "644264",
+            Languages = new List<string> { "it_IT" }
+        };
 
-            var response = await action.ExportGlossary(request);
+        // Act
+        var response = await action.ExportGlossary(request);
 
-            var json = JsonConvert.SerializeObject(response, Formatting.Indented);
-            Console.WriteLine(json);
-            Assert.IsNotNull(response.File);          
-        }
+        // Assert
+        PrintResult(response);
+        Assert.IsNotNull(response.File);
     }
 }

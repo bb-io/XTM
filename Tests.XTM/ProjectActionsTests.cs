@@ -1,87 +1,113 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Tests.XTM.Base;
 using Apps.XTM.Actions;
 using Apps.XTM.Models.Request.Files;
 using Apps.XTM.Models.Request.Projects;
-using Apps.XTM.Models.Request.TranslationMemory;
-using Blackbird.Applications.Sdk.Common.Files;
-using XTMTests.Base;
+using Blackbird.Applications.Sdk.Common.Invocation;
 
-namespace Tests.XTM
+namespace Tests.XTM;
+
+[TestClass]
+public class ProjectActionsTests : TestBaseMultipleConnections
 {
-    [TestClass]
-    public class ProjectActionsTests : TestBase
+    [ContextDataSource, TestMethod]
+    public async Task GetProject_ReturnsProjects(InvocationContext context)
     {
-        [TestMethod]
-        public async Task ListProject_successful()
-        {
-            var action = new ProjectActions(InvocationContext,FileManager);
+        // Arrange
+        var action = new ProjectActions(context, FileManager);
+        var input = new ProjectRequest { ProjectId = "66245898" };
 
-            var response = await action.ListProjects(new ListProjectsRequest() { CustomerIds = ["35961951"] });
+        // Act
+        var response = await action.GetProject(input);
 
-            var json = Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-            Console.WriteLine(json);
+        // Assert
+        PrintResult(response);
+        Assert.IsNotNull(response);
+    }
 
-            Assert.IsNotNull(response.Projects);
-        }
+    [ContextDataSource, TestMethod]
+    public async Task GetProjectDetails_ReturnsProjectDetails(InvocationContext context)
+    {
+        // Arrange
+        var action = new ProjectActions(context, FileManager);
+        var input = new ProjectRequest { ProjectId = "66245898" };
 
-        [TestMethod]
-        public async Task DownloadProjectFile_successful()
-        {
-            var action = new FileActions(InvocationContext, FileManager);
-            var projectrequest = new ProjectRequest { ProjectId = "187237893" };
-            var fileRequest = new DownloadProjectFileRequest { FileId = "187430508", FileScope = "PROJECT" };
+        // Act
+        var response = await action.GetProjectDetails(input);
 
-            //var projectrequest = new ProjectRequest { ProjectId = "187028359" };
-            //var fileRequest = new DownloadProjectFileRequest { FileId = "187451330", FileScope = "PROJECT" };
-            var response = await action.DownloadProjectFile(projectrequest, fileRequest);
+        // Assert
+        TestContext.WriteLine($"{response.ProjectStatus.CompletionStatus}");
+        Assert.IsNotNull(response.ProjectStatus.CompletionStatus);
+    }
 
-            Assert.IsNotNull(response);
-        }
+    [ContextDataSource, TestMethod]
+    public async Task ListProject_ReturnsProjects(InvocationContext context)
+    {
+        // Arrange
+        var action = new ProjectActions(context, FileManager);
 
-        //
-        [TestMethod]
-        public async Task DownloadProjectFiles_successful()
-        {
-            var action = new FileActions(InvocationContext, FileManager);
-            //var projectrequest = new ProjectRequest { ProjectId = "187189509" };
-            //var fileRequest = new DownloadAllProjectFilesRequest { FileScope = "PROJECT", FileType= "HTML_EXTENDED_TABLE" };
+        // Act
+        var response = await action.ListProjects(new ListProjectsRequest() { CustomerIds = ["35961951"] });
 
-            var projectrequest = new ProjectRequest { ProjectId = "187363559" };
-            var fileRequest = new DownloadAllProjectFilesRequest { FileScope = "PROJECT", FileType = "HTML_EXTENDED_TABLE" };
+        // Assert
+        PrintResult(response);
+        Assert.IsNotNull(response.Projects);
+    }
 
-            var response = await action.DownloadProjectFiles(projectrequest, fileRequest);
+    [ContextDataSource, TestMethod]
+    public async Task DownloadProjectFile_IsSuccess(InvocationContext context)
+    {
+        // Arrange
+        var action = new FileActions(context, FileManager);
+        var projectrequest = new ProjectRequest { ProjectId = "187237893" };
+        var fileRequest = new DownloadProjectFileRequest { FileId = "187430508", FileScope = "PROJECT" };
 
-            Assert.IsNotNull(response);
-        }
+        // Act
+        var response = await action.DownloadProjectFile(projectrequest, fileRequest);
 
-        [TestMethod]
-        public async Task GetProjectStatus_successful()
-        {
-            var action = new ProjectActions(InvocationContext, FileManager);
+        // Assert
+        Assert.IsNotNull(response);
+    }
 
-            var response = await action.GetProjectStatus(new ProjectRequest { ProjectId= "2723018" });
+    [ContextDataSource, TestMethod]
+    public async Task DownloadProjectFiles_IsSuccess(InvocationContext context)
+    {
+        // Arrange
+        var action = new FileActions(context, FileManager);
+        var projectrequest = new ProjectRequest { ProjectId = "187363559" };
+        var fileRequest = new DownloadAllProjectFilesRequest { FileScope = "PROJECT", FileType = "HTML_EXTENDED_TABLE" };
 
-            var json = Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-            Console.WriteLine(json);
+        // Act
+        var response = await action.DownloadProjectFiles(projectrequest, fileRequest);
 
-            Assert.IsNotNull(response);
-        }
+        // Assert
+        Assert.IsNotNull(response);
+    }
 
-        [TestMethod]
-        public async Task GetProjectEstimates_successful()
-        {
-            var action = new ProjectActions(InvocationContext, FileManager);
+    [ContextDataSource, TestMethod]
+    public async Task GetProjectStatus_ReturnsProjectStatus(InvocationContext context)
+    {
+        // Arrange
+        var action = new ProjectActions(context, FileManager);
 
-            var response = await action.GetProjectEstimates(new ProjectRequest { ProjectId = "2723018" });
+        // Act
+        var response = await action.GetProjectStatus(new ProjectRequest { ProjectId = "2723018" });
 
-            var json = Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-            Console.WriteLine(json);
+        // Assert
+        PrintResult(response);
+        Assert.IsNotNull(response);
+    }
 
-            Assert.IsNotNull(response);
-        }
+    [ContextDataSource, TestMethod]
+    public async Task GetProjectEstimates_ReturnsProjectEstimates(InvocationContext context)
+    {
+        // Arrange
+        var action = new ProjectActions(context, FileManager);
+
+        // Act
+        var response = await action.GetProjectEstimates(new ProjectRequest { ProjectId = "2723018" });
+
+        // Assert
+        PrintResult(response);
+        Assert.IsNotNull(response);
     }
 }

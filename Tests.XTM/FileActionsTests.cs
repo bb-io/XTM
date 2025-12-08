@@ -1,95 +1,90 @@
-﻿using Apps.XTM.Actions;
+﻿using Tests.XTM.Base;
+using Apps.XTM.Actions;
 using Apps.XTM.Models.Request.Files;
 using Apps.XTM.Models.Request.Projects;
 using Blackbird.Applications.Sdk.Common.Files;
-using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using XTMTests.Base;
+using Blackbird.Applications.Sdk.Common.Invocation;
 
-namespace Tests.XTM
+namespace Tests.XTM;
+
+[TestClass]
+public class FileActionsTests : TestBaseMultipleConnections
 {
-    [TestClass]
-    public class FileActionsTests: TestBase
+    [ContextDataSource, TestMethod]
+    public async Task GenerateFiles_IsSuccess(InvocationContext context)
     {
-        private readonly FileActions _fileActions;
+        // Arrange
+        var actions = new FileActions(context, FileManager);
+        var project = new ProjectRequest { ProjectId = "108698822" };
+        var fileGenerate = new GenerateFileRequest { FileType = "XLIFF" };
 
-        public FileActionsTests()
+        // Act
+        var response = await actions.GenerateFiles(project, fileGenerate);
+
+        // Assert
+        TestContext.WriteLine($"Total files generated: {response.Files.Length}");
+        foreach (var job in response.Files)
+            TestContext.WriteLine($"{job.FileId} - {job.FileType}");
+    }
+
+    [ContextDataSource, TestMethod]
+    public async Task UploadSourceFile_IsSuccess(InvocationContext context)
+    {
+        // Arrange
+        var actions = new FileActions(context, FileManager);
+        var projectRequest = new ProjectRequest { ProjectId = "6883" };
+        var fileRequest = new UploadSourceFileRequest
         {
-            _fileActions = new FileActions(InvocationContext, FileManager);
-        }
+            File = new FileReference { Name = "sample.txt", ContentType = "text/plain" },
+            WorkflowId = "6290",
+        };
 
-        [TestMethod]
-        public async Task GenerateFiles_IsSuccess()
+        // Act
+        var response = await actions.UploadSourceFile(projectRequest, fileRequest);
+
+        // Assert
+        PrintResult(response);
+        Assert.IsNotNull(response);
+    }
+
+    [ContextDataSource, TestMethod]
+    public async Task UploadSourceFile_MoreThan50_IsSuccess(InvocationContext context)
+    {
+        var actions = new FileActions(context, FileManager);
+        var projectRequest = new ProjectRequest { ProjectId = "28090" };
+
+        for (int i = 1; i <= 100; i++)
         {
-            var project = new ProjectRequest { ProjectId = "108698822" };
-            var fileGenerate = new GenerateFileRequest { FileType = "XLIFF" };
-
-            var response = await _fileActions.GenerateFiles(project, fileGenerate);
-
-            Console.WriteLine($"Total files generated: {response.Files.Length}");
-            foreach (var job in response.Files)
-            {
-                Console.WriteLine($"{job.FileId} - {job.FileType}");
-            }   
-        }
-
-
-        [TestMethod]
-        public async Task UploadSourceFile_successful()
-        {
-            var projectRequest = new ProjectRequest { ProjectId = "6883" };
             var fileRequest = new UploadSourceFileRequest
             {
-                File = new FileReference { Name = "sample.txt", ContentType = "text/plain" },
-                WorkflowId = "6290",
+                File = await FileManager.UploadTestFileAsync("sample.txt"),
+                WorkflowId = "6430",
+                Name = $"sample_{i:D3}.txt",
             };
-
-            var response = await _fileActions.UploadSourceFile(
+            await actions.UploadSourceFile(
                 projectRequest,
                 fileRequest);
 
-            var json = Newtonsoft.Json.JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented);
-            Console.WriteLine(json);
-            Assert.IsNotNull(response);
+            await Task.Delay(4000);
         }
+    }
 
-        [TestMethod]
-        public async Task UploadSourceFile_MoreThan50_successful()
+    [ContextDataSource, TestMethod]
+    public async Task DownloadSourceFiles_IsSuccess(InvocationContext context)
+    {
+        // Arrange
+        var actions = new FileActions(context, FileManager);
+        var project = new ProjectRequest { ProjectId = "28090" };
+        var jobs = new JobsRequest
         {
-            var projectRequest = new ProjectRequest { ProjectId = "28090" };
+            JobIds = [] // "30795"
+        };
 
-            for (int i = 1; i <= 100; i++)
-            {
-                var fileRequest = new UploadSourceFileRequest
-                {
-                    File = await FileManager.UploadTestFileAsync("sample.txt"),
-                    WorkflowId = "6430",
-                    Name = $"sample_{i:D3}.txt",
-                };
-                await _fileActions.UploadSourceFile(
-                    projectRequest,
-                    fileRequest);
+        // Act
+        var response = await actions.DownloadSourceFiles(project, jobs);
 
-                await Task.Delay(4000);
-            }
-        }
-
-        [TestMethod]
-        public async Task DownloadSourceFiles_IsSucces()
-        {
-            var project = new ProjectRequest { ProjectId = "28090" };
-            var jobs = new JobsRequest
-            {
-                JobIds = [] // "30795"
-            };
-
-            var response = await _fileActions.DownloadSourceFiles(project, jobs);
-
-            Console.WriteLine(JsonConvert.SerializeObject(response, Newtonsoft.Json.Formatting.Indented));
-        }
+        // Assert
+        PrintResult(response);
+        Assert.IsNotNull(response);
     }
 }
