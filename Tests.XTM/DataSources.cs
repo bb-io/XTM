@@ -1,93 +1,81 @@
-﻿using Apps.XTM.Actions;
+﻿using Tests.XTM.Base;
+using Apps.XTM.Constants;
 using Apps.XTM.DataSourceHandlers;
-using Apps.XTM.Models.Request.Projects;
 using Blackbird.Applications.Sdk.Common.Dynamic;
-using XTMTests.Base;
+using Blackbird.Applications.Sdk.Common.Invocation;
 
-namespace Tests.XTM
+namespace Tests.XTM;
+
+[TestClass]
+public class DataSources : TestBaseMultipleConnections
 {
-    [TestClass]
-    public class DataSources : TestBase
+    [ContextDataSource, TestMethod]
+    public async Task CustomerHandler_IsSSuccess(InvocationContext context)
     {
-        [TestMethod]
-        public async Task DictionaryDataHandlerReturnsValues()
-        {
-            var action = new ProjectDataHandler(InvocationContext);
+        // Arrange
+        var handler = new CustomerDataHandler(context);
 
-            var response = await action.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);
+        // Act
+        var result = await handler.GetDataAsync(new DataSourceContext { SearchString = "" }, CancellationToken.None);
 
-            foreach (var project in response)
-            {
-                Console.WriteLine($"{project.Value} - {project.Key}");
-                Assert.IsNotNull(project.Key);
-            }
-        }
+        // Assert
+        PrintDataHandlerResult(result);
+        Assert.IsNotNull(result);
+    }
 
+    [ContextDataSource(ConnectionTypes.GeneratedToken), TestMethod]
+    public async Task DictionaryDataHandlerReturnsValues(InvocationContext context)
+    {
+        // Arrange
+        var handler = new ProjectDataHandler(context);
 
-        [TestMethod]
-        public async Task GetProjectReturnsValues()
-        {
-            var action = new ProjectActions(InvocationContext,FileManager);
-            var input = new ProjectRequest { ProjectId = "66245898" };
-            var response = await action.GetProject(input);
-           
-            Console.WriteLine($"{response.Id} - {response.Name}");
-           
-        }
+        // Act
+        var response = await handler.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);
 
-        [TestMethod]
-        public async Task ProjectDataHandlerReturnsValues()
-        {
-            var action = new ProjectDataHandler(InvocationContext);
+        // Assert
+        PrintDataHandlerResult(response);
+        Assert.IsNotNull(response);
+    }
 
-            var response = await action.GetDataAsync(new DataSourceContext { }, CancellationToken.None);
+    [ContextDataSource, TestMethod]
+    public async Task ProjectDataHandlerReturnsValues(InvocationContext context)
+    {
+        // Arrange
+        var handler = new ProjectDataHandler(context);
 
-            foreach (var project in response)
-            {
-                Console.WriteLine($"{project.Value} - {project.Key}");
-            }
+        // Act
+        var response = await handler.GetDataAsync(new DataSourceContext { }, CancellationToken.None);
 
-        }
+        // Assert
+        PrintDataHandlerResult(response);
+        Assert.IsNotNull(response);
+    }
 
+    [ContextDataSource, TestMethod]
+    public async Task WorkflowStepDataHandlerReturnsValues(InvocationContext context)
+    {
+        // Arrange
+        var handler = new WorkflowStepDataHandler(context);
 
-        [TestMethod]
-        public async Task GetProjectDetailsReturnsValues()
-        {
-            var action = new ProjectActions(InvocationContext, FileManager);
-            var input = new ProjectRequest { ProjectId = "66245898" };
-            var response = await action.GetProjectDetails(input);
+        // Act
+        var response = await handler.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);
 
-            Console.WriteLine($"{response.ProjectStatus.CompletionStatus}");
-            Assert.IsNotNull(response.ProjectStatus.CompletionStatus);
-        }
+        // Assert
+        PrintDataHandlerResult(response);
+        Assert.IsNotNull(response);
+    }
 
+    [ContextDataSource, TestMethod]
+    public async Task WorkflowDataHandlerReturnsValues(InvocationContext context)
+    {
+        // Arrange
+        var handler = new WorkflowDataHandler(context);
 
-        [TestMethod]
-        public async Task WorkflowStepDataHandlerReturnsValues()
-        {
-            var action = new WorkflowStepDataHandler(InvocationContext);
+        // Act
+        var response = await handler.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);
 
-            var response = await action.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);
-
-            foreach (var project in response)
-            {
-                Console.WriteLine($"{project.Value} - {project.Key}");
-                Assert.IsNotNull(project.Key);
-            }
-        }
-
-        [TestMethod]
-        public async Task WorkflowDataHandlerReturnsValues()
-        {
-            var action = new WorkflowDataHandler(InvocationContext);
-
-            var response = await action.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);
-
-            foreach (var project in response)
-            {
-                Console.WriteLine($"{project.Value} - {project.Key}");
-                Assert.IsNotNull(project.Key);
-            }
-        }
+        // Assert
+        PrintDataHandlerResult(response);
+        Assert.IsNotNull(response);
     }
 }

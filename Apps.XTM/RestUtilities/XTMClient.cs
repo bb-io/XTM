@@ -109,21 +109,26 @@ public class XTMClient : RestClient
 
     public async Task<string> GetToken(AuthenticationCredentialsProvider[] creds)
     {
-        var url = creds.Get(CredsNames.Url);
+        if (creds.Get(CredsNames.ConnectionType) == ConnectionTypes.Credentials)
+        {
+            var url = creds.Get(CredsNames.Url);
 
-        var client = creds.Get(CredsNames.Client);
-        var userId = creds.Get(CredsNames.UserId);
-        var password = creds.Get(CredsNames.Password);
+            var client = creds.Get(CredsNames.Client);
+            var userId = creds.Get(CredsNames.UserId);
+            var password = creds.Get(CredsNames.Password);
 
-        var request = new RestRequest(url + ApiEndpoints.Token, Method.Post);
-        request.AddJsonBody(new TokenRequest(client, password, long.Parse(userId)));
+            var request = new RestRequest(url + ApiEndpoints.Token, Method.Post);
+            request.AddJsonBody(new TokenRequest(client, password, long.Parse(userId)));
 
-        var response = await this.ExecuteAsync<TokenResponse>(request);
+            var response = await this.ExecuteAsync<TokenResponse>(request);
 
-        if (!response.IsSuccessStatusCode)
-            throw new PluginApplicationException(GetXtmError(response).Message);
+            if (!response.IsSuccessStatusCode)
+                throw new PluginApplicationException(GetXtmError(response).Message);
 
-        return response.Data.Token;
+            return response.Data.Token;
+        }
+        else
+            return creds.Get(CredsNames.Token);
     }
 
     private Exception GetXtmError(RestResponse response)

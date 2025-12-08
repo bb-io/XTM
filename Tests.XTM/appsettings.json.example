@@ -1,9 +1,17 @@
 {
-  "ConnectionDefinition": {
-    "url": "https://api.api-test.xtm-intl.com/rest-api",
-    "client": "Blackbirdio",
-    "userId": "[YOUR_USERID]",
-    "password": "[YOUR_PASSWORD]"
-  },
+  "ConnectionDefinition": [
+    {
+      "connectionType": "Credentials",
+      "url": "https://api.api-test.xtm-intl.com/rest-api",
+      "client": "Blackbirdio",
+      "userId": "[YOUR_USERID]",
+      "password": "[YOUR_PASSWORD]"
+    },
+    {
+      "connectionType": "Generated token",
+      "url": "https://api.api-test.xtm-intl.com/rest-api",
+      "token": ""
+    }
+  ],
   "TestFolder": "[YOUR_TEST_FOLDER]"
 }

@@ -1,38 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Tests.XTM.Base;
 using Apps.XTM.Actions;
 using Apps.XTM.Models.Request.TranslationMemory;
 using Blackbird.Applications.Sdk.Common.Files;
-using XTMTests.Base;
+using Blackbird.Applications.Sdk.Common.Invocation;
 
-namespace Tests.XTM
+namespace Tests.XTM;
+
+[TestClass]
+public class TranslationMemoryTests : TestBaseMultipleConnections
 {
-    [TestClass]
-    public class TranslationMemoryTests : TestBase
+    [ContextDataSource, TestMethod]
+    public async Task ImportTM_IsSuccess(InvocationContext context)
     {
-        [TestMethod]
-        public async Task ImportTM_ReturndValue()
+        // Arrange
+        var action = new TranslationMemoryActions(context, FileManager);
+
+        // Act
+        await action.ImportTMFile(new ImportTMRequest
         {
-            var action = new TranslationMemoryActions(InvocationContext,FileManager);
-
-            var response = await action.ImportTMFile(new ImportTMRequest
+            CustomerId = "2028",
+            File = new FileReference
             {
-                CustomerId = "2028",
-                File = new FileReference
-                {
-                    Name = "test.tmx"
-                },
-                ImportProjectName = "TestProject",
-                SourceLanguage = "en_US",
-                TargetLanguage = "fr_FR",
-                TmStatus = "APPROVED",
-                TmStatusImportType = "NONE",
-                WhitespacesFormattingType = "KEEP_ALL_WHITESPACES",
-
-            });
-        }
+                Name = "test.tmx"
+            },
+            ImportProjectName = "TestProject",
+            SourceLanguage = "en_US",
+            TargetLanguage = "fr_FR",
+            TmStatus = "APPROVED",
+            TmStatusImportType = "NONE",
+            WhitespacesFormattingType = "KEEP_ALL_WHITESPACES",
+        });
     }
 }
