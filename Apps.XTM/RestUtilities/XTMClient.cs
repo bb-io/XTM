@@ -77,7 +77,7 @@ public class XTMClient : RestClient
         AuthenticationCredentialsProvider[] creds)
     {
         var response = await ExecuteXtmWithJson(endpoint, method, bodyObj, creds);
-        return JsonConvert.DeserializeObject<T>(response.Content);
+        return JsonConvert.DeserializeObject<T>(response.Content ?? string.Empty);
     }
 
     public async Task<T> ExecuteXtmWithFormData<T>(string endpoint, Method method, Dictionary<string, string> body,
@@ -100,7 +100,7 @@ public class XTMClient : RestClient
     public async Task<T> ExecuteXtm<T>(XTMRequest request)
     {
         var response = await ExecuteXtm(request);
-        return JsonConvert.DeserializeObject<T>(response.Content);
+        return JsonConvert.DeserializeObject<T>(response.Content ?? string.Empty);
     }
 
     #endregion

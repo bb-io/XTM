@@ -1,5 +1,6 @@
 ﻿using Tests.XTM.Base;
 using Apps.XTM.Polling;
+using Apps.XTM.Constants;
 using Apps.XTM.Polling.Models.Memory;
 using Apps.XTM.Models.Request.Projects;
 using Blackbird.Applications.Sdk.Common.Polling;
@@ -61,6 +62,25 @@ public class PollingTests : TestBaseMultipleConnections
 
         // Act
         var result = await polling.OnProjectsCreated(request);
+
+        // Assert
+        PrintResult(result);
+        Assert.IsNotNull(result);
+    }
+
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
+    public async Task OnProjectAnalysisFinished_IsSuccess(InvocationContext context)
+    {
+        // Arrange
+        var polling = new PollingList(context);
+        var request = new PollingEventRequest<AnalysisStatusMemory>
+        {
+            Memory = new AnalysisStatusMemory { ProjectID = "201382646", Status = "started" }
+        };
+        var input = new ProjectRequest { ProjectId = "201382646" };
+
+        // Act
+        var result = await polling.OnProjectAnalysisFinished(request, input);
 
         // Assert
         PrintResult(result);
