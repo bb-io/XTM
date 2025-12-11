@@ -46,22 +46,9 @@ public class XTMClient : RestClient
     public async Task<RestResponse> ExecuteXtm(XTMRequest request)
     {
         var response = await ExecuteAsync(request);
-        var content = response.RawBytes != null
-               ? Encoding.UTF8.GetString(response.RawBytes)
-               : response.Content ?? string.Empty;
-
-        if (response.ContentType?.Contains("html") == true
-        || content.TrimStart().StartsWith("<"))
-        {
-            var htmlErrorMessage = ExtractHtmlErrorMessage(content);
-            throw new PluginApplicationException(
-                $"Expected JSON but received HTML response. {htmlErrorMessage}");
-        }
 
         if (response.RawBytes != null && Encoding.UTF8.GetString(response.RawBytes).Contains("CANNOT_FIND_THE_FILE"))
-        {
             throw new PluginApplicationException("The file was not found, please check your input and try again");
-        }
 
         if (!response.IsSuccessStatusCode)
             throw new PluginApplicationException(GetXtmError(response).Message);
@@ -117,26 +104,30 @@ public class XTMClient : RestClient
             var userId = creds.Get(CredsNames.UserId);
             var password = creds.Get(CredsNames.Password);
 
+            if (!long.TryParse(userId, out var parsedUserId))
+                throw new PluginApplicationException($"Invalid user ID provided: '{userId}'. It must be a valid number");
+
             var request = new RestRequest(url + ApiEndpoints.Token, Method.Post);
-            request.AddJsonBody(new TokenRequest(client, password, long.Parse(userId)));
+            request.AddJsonBody(new TokenRequest(client, password, parsedUserId));
 
-            var response = await this.ExecuteAsync<TokenResponse>(request);
-
+            var response = await ExecuteAsync(request);
             if (!response.IsSuccessStatusCode)
                 throw new PluginApplicationException(GetXtmError(response).Message);
 
-            return response.Data.Token;
+            var tokenResponse = JsonConvert.DeserializeObject<TokenResponse>(response.Content ?? string.Empty);
+            return tokenResponse!.Token;
         }
         else
             return creds.Get(CredsNames.Token);
     }
 
-    private Exception GetXtmError(RestResponse response)
+    private static Exception GetXtmError(RestResponse response)
     {
-        if (response.StatusCode == HttpStatusCode.NotFound && response.ContentType == "text/html")
-        {
-            throw new PluginMisconfigurationException(ExtractHtmlErrorMessage(response.Content));
-        }
+        if (response.Content == null)
+            throw new PluginApplicationException("Error - Server returned no content");
+
+        if (response.ContentType?.Contains("html") == true)
+            throw new PluginApplicationException(ExtractHtmlErrorMessage(response.Content));
 
         var error = JsonConvert.DeserializeObject<ErrorResponse>(response.Content);
         var message = (error?.Reason.TrimEnd('.') ?? response.StatusCode.ToString())
@@ -146,7 +137,7 @@ public class XTMClient : RestClient
         throw new PluginApplicationException($"Error: {message}");
     }
 
-    private string ExtractHtmlErrorMessage(string htmlContent)
+    private static string ExtractHtmlErrorMessage(string htmlContent)
     {
         if (string.IsNullOrWhiteSpace(htmlContent))
             return "Empty HTML response received.";
@@ -207,14 +198,14 @@ public class XTMClient : RestClient
         }
     }
 
-    private string StripHtmlTags(string html)
+    private static string StripHtmlTags(string html)
     {
         if (string.IsNullOrWhiteSpace(html))
             return string.Empty;
 
         var withoutTags = Regex.Replace(html, @"<[^>]*>", " ");
 
-        withoutTags = System.Net.WebUtility.HtmlDecode(withoutTags);
+        withoutTags = WebUtility.HtmlDecode(withoutTags);
         withoutTags = Regex.Replace(withoutTags, @"\s+", " ");
 
         return withoutTags.Trim();
