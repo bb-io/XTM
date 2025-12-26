@@ -100,6 +100,8 @@ Before you can connect you need to make sure that:
 - **On projects finished (polling)**
 - **On project status changed (polling)**
 
+Note: "On workflow transition" and "On workflow transition (manual)" events have to add numbers without spaces when filtering by workflow step. For example, when step in XTM project workflow is named "Translate 1" then filter value should be "Translate1". This filter is not case-sensitive.
+
 ## Missing features
 
 The current implementation covers the basic actions. However, in the future we can also support:
