@@ -6,7 +6,7 @@ namespace Apps.XTM.Models.Request
 {
     public class WorkflowStepOptionalRequest
     {
-        [Display("Worflow step")]
+        [Display("Worflow step", Description = "Event will be triggered when workflow gets into a selected step.")]
         [DataSource(typeof(WorkflowStepDataHandler))]
         public string? WorkflowStep { get; set; }
     }

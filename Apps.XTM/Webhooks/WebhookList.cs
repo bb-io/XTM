@@ -52,6 +52,7 @@ public class WebhookList : XtmInvocable
         [WebhookParameter] CustomerOptionalRequest customerOptionalRequest,
         [WebhookParameter] WorkflowStepOptionalRequest workflowOptionalRequest)
     {
+        var flightOnEventTypes = new List<string> { "OPENED", "ACTIVE" };
         var data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
         var result = new WorkflowTransitionResponse(data.Payload);
 
@@ -74,9 +75,10 @@ public class WebhookList : XtmInvocable
         if (!string.IsNullOrEmpty(workflowOptionalRequest.WorkflowStep))
         {
             var anyMatch = data.Payload.Events
+                .Where(e => flightOnEventTypes.Contains(e.Type))
                 .SelectMany(e => e.Tasks)
                 .Any(t => string.Equals(t.Step.WorkflowStepName, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase)
-                 || string.Equals(t.Step.WorkflowStep, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase));
+                    || string.Equals(t.Step.WorkflowStep, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase));
 
             if (!anyMatch)
                 return GetPreflightResponse<WorkflowTransitionResponse>();
@@ -246,6 +248,7 @@ public class WebhookList : XtmInvocable
         [WebhookParameter] CustomerOptionalRequest customerOptionalRequest,
         [WebhookParameter] WorkflowStepOptionalRequest workflowOptionalRequest)
     {
+        var flightOnEventTypes = new List<string> { "OPENED", "ACTIVE" };
         var data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
         var result = new WorkflowTransitionResponse(data.Payload);
 
@@ -268,9 +271,10 @@ public class WebhookList : XtmInvocable
         if (!string.IsNullOrEmpty(workflowOptionalRequest.WorkflowStep))
         {
             var anyMatch = data.Payload.Events
+                .Where(e => flightOnEventTypes.Contains(e.Type))
                 .SelectMany(e => e.Tasks)
                 .Any(t => string.Equals(t.Step.WorkflowStepName, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase)
-                 || string.Equals(t.Step.WorkflowStep, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase));
+                          || string.Equals(t.Step.WorkflowStep, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase));
 
             if (!anyMatch)
                 return GetPreflightResponse<WorkflowTransitionResponse>();
