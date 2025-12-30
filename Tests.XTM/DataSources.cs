@@ -3,6 +3,7 @@ using Apps.XTM.Constants;
 using Apps.XTM.DataSourceHandlers;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Apps.XTM.Models.Request.Projects;
 
 namespace Tests.XTM;
 
@@ -51,11 +52,12 @@ public class DataSources : TestBaseMultipleConnections
         Assert.IsNotNull(response);
     }
 
-    [ContextDataSource, TestMethod]
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
     public async Task WorkflowStepDataHandlerReturnsValues(InvocationContext context)
     {
         // Arrange
-        var handler = new WorkflowStepDataHandler(context);
+        var project = new ProjectOptionalRequest { ProjectId = "2739373" };
+        var handler = new WorkflowStepDataHandler(context, project);
 
         // Act
         var response = await handler.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);

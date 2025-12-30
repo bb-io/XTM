@@ -19,11 +19,8 @@ using Apps.XTM.Models.Request;
 namespace Apps.XTM.Webhooks;
 
 [WebhookList]
-public class WebhookList : XtmInvocable
+public class WebhookList(InvocationContext invocationContext) : XtmInvocable(invocationContext)
 {
-    public WebhookList(InvocationContext invocationContext) : base(invocationContext)
-    {
-    }
     #region Manual webhooks
 
     //[Webhook("On analysis finished (manual)", Description = "On project analysis finished (manual)")]
@@ -77,8 +74,13 @@ public class WebhookList : XtmInvocable
             var anyMatch = data.Payload.Events
                 .Where(e => flightOnEventTypes.Contains(e.Type))
                 .SelectMany(e => e.Tasks)
-                .Any(t => string.Equals(t.Step.WorkflowStepName, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase)
-                    || string.Equals(t.Step.WorkflowStep, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase));
+                .Any(t =>
+                {
+                    var payloadName = t.Step.WorkflowStepName ?? t.Step.WorkflowStep;
+
+                    return string.Equals(payloadName, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase)
+                           || (payloadName != null && payloadName.StartsWith(workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase));
+                });
 
             if (!anyMatch)
                 return GetPreflightResponse<WorkflowTransitionResponse>();
@@ -273,8 +275,13 @@ public class WebhookList : XtmInvocable
             var anyMatch = data.Payload.Events
                 .Where(e => flightOnEventTypes.Contains(e.Type))
                 .SelectMany(e => e.Tasks)
-                .Any(t => string.Equals(t.Step.WorkflowStepName, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase)
-                          || string.Equals(t.Step.WorkflowStep, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase));
+                .Any(t =>
+                {
+                    var payloadName = t.Step.WorkflowStepName ?? t.Step.WorkflowStep;
+
+                    return string.Equals(payloadName, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase)
+                           || (payloadName != null && payloadName.StartsWith(workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase));
+                });
 
             if (!anyMatch)
                 return GetPreflightResponse<WorkflowTransitionResponse>();
@@ -443,14 +450,6 @@ public class WebhookList : XtmInvocable
     #endregion
     
     #region Utils
-
-    private T HandleFormDataRequest<T>(WebhookRequest request)
-    {
-        var formData = HttpUtility.ParseQueryString(request.Body.ToString());
-        var jsonData = formData["additionalData"];
-
-        return JsonConvert.DeserializeObject<T>(jsonData);
-    }
 
     private BridgeWebhookPayload<T> HandleBridgeWebhookRequest<T>(WebhookRequest request) 
         => JsonConvert.DeserializeObject<BridgeWebhookPayload<T>>(request.Body.ToString());
