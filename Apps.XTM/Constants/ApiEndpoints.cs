@@ -15,4 +15,5 @@ public static class ApiEndpoints
     public const string Metrics = "/metrics";
     public const string Bundles = "/bundles";
     public const string Status = "/status";
+    public const string Analysis = "/analysis";
 }

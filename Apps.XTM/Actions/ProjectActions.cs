@@ -418,26 +418,15 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
     [Action("Get project completion", Description = "Get project completion for a specific project")]
     public async Task<ProjectCompletionResponse> GetProjectCompletion([ActionParameter] ProjectRequest project)
     {
-        var userId = Creds.Get(CredsNames.UserId);
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Analysis}";
+        var response = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
+            await Client.ExecuteXtmWithJson<ProjectCompletionResponse>(endpoint, Method.Get, null, Creds)
+        );
 
-        var loginApi = new loginAPI
-        {
-            client = Creds.Get(CredsNames.Client),
-            userIdSpecified = true,
-            userId = ParseId(userId),
-            password = Creds.Get(CredsNames.Password),
-        };
+        if (response.Jobs.Count != 0)
+            response.JobIds = response.Jobs.Select(x => x.JobId).ToList();
 
-        var xtmProjectDescriptorApi = new xtmProjectDescriptorAPI
-        {
-            id = ParseId(project.ProjectId),
-            idSpecified = true,
-            projectExternalIdSpecified = false,
-            externalIdSpecified = false
-        };
-
-        checkProjectCompletionResponse result = await this.ProjectManagerMTOClient.checkProjectCompletionAsync(loginApi, xtmProjectDescriptorApi, new xtmCheckProjectCompletionOptionsAPI());
-         return new(result);
+        return response;
     }
 
     [Action("Get project status", Description = "Get project status for a specific project")]
