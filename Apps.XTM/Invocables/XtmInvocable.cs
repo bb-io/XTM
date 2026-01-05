@@ -18,12 +18,8 @@ public class XtmInvocable : BaseInvocable
 
     protected XTMClient Client { get; }
     protected string Url => Creds.GetInstanceUrl();
-    protected string ProjectManagerSoapUrl => Url.Replace("-rest", string.Empty).TrimEnd('/') + "/services/v2/projectmanager/XTMWebService";
-
+    
     protected string TermSoapUrl => Url.Replace("-rest", string.Empty).TrimEnd('/') + "/services/v2/term/XTMTermWebService";
-
-    protected ProjectManagerMTOMWebServiceClient ProjectManagerMTOClient => new(ProjectManagerMTOMWebServiceClient.EndpointConfiguration.XTMProjectManagerMTOMWebServicePort, ProjectManagerSoapUrl);
-
     protected TermWebServiceClient TermWebServiceClient => new(TermWebServiceClient.EndpointConfiguration.XTMTermWebServicePort, TermSoapUrl);
 
     protected XtmInvocable(InvocationContext invocationContext) : base(invocationContext)

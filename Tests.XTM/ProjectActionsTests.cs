@@ -29,14 +29,27 @@ public class ProjectActionsTests : TestBaseMultipleConnections
     {
         // Arrange
         var action = new ProjectActions(context, FileManager);
-        var input = new ProjectRequest { ProjectId = "66245898" };
+        var input = new ProjectRequest { ProjectId = "2739500" };
 
         // Act
         var response = await action.GetProjectDetails(input);
 
         // Assert
-        TestContext.WriteLine($"{response.ProjectStatus.CompletionStatus}");
-        Assert.IsNotNull(response.ProjectStatus.CompletionStatus);
+        PrintResult(response);
+    }
+
+    [ContextDataSource, TestMethod]
+    public async Task GetProjectCompletion_ReturnsProjectCompletionResponse(InvocationContext context)
+    {
+        // Arrange
+        var actions = new ProjectActions(context, FileManager);
+        var input = new ProjectRequest { ProjectId = "2739558" };
+
+        // Act
+        var result = await actions.GetProjectCompletion(input);
+
+        // Assert
+        PrintResult(result);
     }
 
     [ContextDataSource, TestMethod]
