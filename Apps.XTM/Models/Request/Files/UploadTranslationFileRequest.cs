@@ -8,25 +8,26 @@ namespace Apps.XTM.Models.Request.Files;
 
 public class UploadTranslationFileRequest
 {
+    [Display("Job ID")]
+    public string JobId { get; set; } = string.Empty;
+
+    public FileReference File { get; set; } = new();
+
     [Display("File type")]
     [DataSource(typeof(FileTypeDataHandler))]
-    public string FileType { get; set; }
+    public string FileType { get; set; } = string.Empty;
 
-    [Display("Job ID")]
-    public string JobId { get; set; }
-
-    [Display("Workflow step name")]
-    [DataSource(typeof(WorkflowStepDataHandler))]
-    public string WorkflowStepName { get; set; }
-
-    public FileReference File { get; set; }
-
+    [Display("File name overwrite", Description = "Optional. If not provided, the original file name will be used.")]
     public string? Name { get; set; }
 
-    [Display("Enable autopopulation?")] 
-    public bool Autopopulation { get; set; }
-
-    [Display("Segment status approving")]
+    [Display("Segment status approving", Description = "By default segment status will be updated accordingly to state.")]
     [DataSource(typeof(SegmentStatusApprovingDataHandler))]
-    public string SegmentStatusApproving { get; set; }
+    public string? SegmentStatusApproving { get; set; }
+
+    [Display("Enable autopopulation?", Description = "By default autopopulation is enabled.")] 
+    public bool? Autopopulation { get; set; }
+
+    [Display("Workflow step name", Description = "Deprecated, only needed when autopopulation is disabled.")]
+    [DataSource(typeof(WorkflowStepDataHandler))]
+    public string? WorkflowStepName { get; set; }
 }

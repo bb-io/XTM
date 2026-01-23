@@ -618,11 +618,11 @@ public class FileActions : XtmInvocable
             { "fileType", input.FileType },
             { "jobId", input.JobId },
             { "translationFile.name", input.Name?.Trim() ?? input.File.Name },
-            { "xliffOptions.autopopulation", input.Autopopulation ? "ENABLED" : "DISABLED" },
-            { "xliffOptions.segmentStatusApproving", input.SegmentStatusApproving },
+            { "xliffOptions.autopopulation", input.Autopopulation != false ? "ENABLED" : "DISABLED" },
+            { "xliffOptions.segmentStatusApproving", input.SegmentStatusApproving ?? "ACCORDINGLY_TO_STATE" },
         };
 
-        if (!input.Autopopulation)
+        if (input.Autopopulation == false && !string.IsNullOrEmpty(input.WorkflowStepName))
             parameters.Add("workflowStepName", input.WorkflowStepName);
 
         parameters.ToList().ForEach(x => request.AddParameter(x.Key, x.Value, encode: false));
