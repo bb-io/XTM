@@ -6,7 +6,7 @@ using Blackbird.Applications.Sdk.Common.Files;
 
 namespace Apps.XTM.Models.Request.Files;
 
-public class UploadTranslationFileInput
+public class UploadTranslationFileRequest
 {
     [Display("File type")]
     [DataSource(typeof(FileTypeDataHandler))]

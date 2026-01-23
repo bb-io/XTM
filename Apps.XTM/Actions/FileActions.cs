@@ -3,21 +3,25 @@ using Apps.XTM.Extensions;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request.Files;
 using Apps.XTM.Models.Request.Projects;
+using Apps.XTM.Models.Response;
 using Apps.XTM.Models.Response.Files;
 using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.RestUtilities;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
+using Blackbird.Applications.Sdk.Utils.Models;
+using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
+using Blackbird.Filters.Transformations;
+using Blackbird.Filters.Xliff.Xliff1;
+using MoreLinq;
 using Newtonsoft.Json;
 using RestSharp;
-using Blackbird.Applications.Sdk.Common.Exceptions;
-using Blackbird.Applications.Sdk.Utils.Models;
-using Apps.XTM.Models.Response;
-using MoreLinq;
+using System.Text;
+using System.Xml.Linq;
 
 namespace Apps.XTM.Actions;
 
@@ -600,10 +604,14 @@ public class FileActions : XtmInvocable
     [Action("Upload translation file", Description = "Upload translation file to project")]
     public async Task<UploadTranslationFileResponse> UploadTranslationFile(
         [ActionParameter] ProjectRequest project,
-        [ActionParameter] UploadTranslationFileInput input)
+        [ActionParameter] UploadTranslationFileRequest input,
+        [ActionParameter] UploadTranslationFileEstimatesRequest estimatesRequest)
     {
-        var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/translations/upload";
-        var token = await Client.GetToken(Creds);
+        var request = new XTMRequest(new()
+        {
+            Url = Creds.Get(CredsNames.Url) + $"{ApiEndpoints.Projects}/{project.ProjectId}/files/translations/upload",
+            Method = Method.Post,
+        }, await Client.GetToken(Creds));
 
         var parameters = new Dictionary<string, string>
         {
@@ -617,37 +625,68 @@ public class FileActions : XtmInvocable
         if (!input.Autopopulation)
             parameters.Add("workflowStepName", input.WorkflowStepName);
 
-        var request = new XTMRequest(new()
-        {
-            Url = Creds.Get(CredsNames.Url) + url,
-            Method = Method.Post
-        }, token);
-
         parameters.ToList().ForEach(x => request.AddParameter(x.Key, x.Value, encode: false));
 
-        var fileStream = await _fileManagementClient.DownloadAsync(input.File);
-        var fileBytes = await fileStream.GetByteData();
+        var inputFileStream = await _fileManagementClient.DownloadAsync(input.File);
+        byte[] fileBytes = [];
+
+        if (estimatesRequest.LockSegmentsAboveThreshold == true
+            || estimatesRequest.MarkSegmentsUnderThresholdAsNotCompleted == true)
+        {
+            var transformation = await Transformation.Parse(inputFileStream, input.File.Name);
+            var units = transformation.GetUnits()
+                .Where(u => u.Quality.Score != null && u.Quality.ScoreThreshold != null);
+
+            if (!units.Any())
+                throw new PluginMisconfigurationException("The provided file does not contain any quality score and threshold pairs.");
+
+            var xtmNamespace = XNamespace.Get("urn:xliff-xtm-extensions");
+            var lockedAttribute = new XAttribute(xtmNamespace + "locked", "yes");
+
+            foreach (var unit in units)
+            {
+                if (estimatesRequest.MarkSegmentsUnderThresholdAsNotCompleted == true)
+                {
+                    foreach (var segment in unit.Segments)
+                    {
+                        if (unit.Quality.Score < unit.Quality.ScoreThreshold)
+                            segment.State = null;
+                    }
+                }
+
+                if (estimatesRequest.LockSegmentsAboveThreshold == true
+                    && unit.Quality.Score >= unit.Quality.ScoreThreshold)
+                {
+                    unit.Other.Add(lockedAttribute);
+                }
+            }
+
+            var xliffV12 = Xliff1Serializer.Serialize(transformation);
+            fileBytes = Encoding.UTF8.GetBytes(xliffV12);
+        }
+        else
+        {
+            fileBytes = await inputFileStream.GetByteData();
+        }
+
         request.AddFile("translationFile.file", fileBytes, input.Name ?? input.File.Name);
         request.AlwaysMultipartFormData = true;
 
         try
         {
-            var response = await Client.ExecuteXtm<FileUploadResponse>(request);
-
-            var uploadStatusResponse = await PollFileStatusAsync(project.ProjectId, response.File.FileId, input.FileType);
+            var fileUploadResponse = await Client.ExecuteXtm<FileUploadResponse>(request);
+            var uploadStatusResponse = await PollFileStatusAsync(project.ProjectId, fileUploadResponse.File.FileId, input.FileType);
             return new()
             {
-                FileId = response.File.FileId,
-                JobId = response.File.JobId,
+                FileId = fileUploadResponse.File.FileId,
+                JobId = fileUploadResponse.File.JobId,
                 Status = uploadStatusResponse.Status
             };
         }
         catch (Exception ex)
         {
-           throw new PluginApplicationException(ex.Message);
-            
+            throw new PluginApplicationException(ex.Message);
         }
-       
     }
 
     private async Task<UploadStatusResponse> PollFileStatusAsync(string projectId, string fileId, string fileType)
