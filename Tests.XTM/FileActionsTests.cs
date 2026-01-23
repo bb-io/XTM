@@ -129,4 +129,77 @@ public class FileActionsTests : TestBaseMultipleConnections
         // Assert
         Assert.IsNotNull(response);
     }
+
+    [ContextDataSource, TestMethod]
+    public async Task UploadTranslationFile_FromInteroperableXliff_IsSuccess(InvocationContext context)
+    {
+        // Arrange
+        var action = new FileActions(context, FileManager);
+        var project = new ProjectRequest { ProjectId = "107731759" };
+        var fileGenerate = new UploadTranslationFileRequest
+        {
+            File =  new FileReference() { Name = "exported-xliff-reviewed.xlf", ContentType = "application/xliff+xml" },
+            FileType = "XLIFF",
+            JobId = "107965948"
+        };
+        var estimatesRequest = new UploadTranslationFileEstimatesRequest
+        {
+            MarkSegmentsUnderThresholdAsNotCompleted = true,
+            LockSegmentsAboveThreshold = true,
+        };
+
+        // Act
+        var response = await action.UploadTranslationFile(project, fileGenerate, estimatesRequest);
+
+        // Assert
+        Assert.IsNotNull(response);
+    }
+
+    [ContextDataSource, TestMethod]
+    public async Task UploadTranslationFile_FromInteroperableXliff_OnlyLocking_IsSuccess(InvocationContext context)
+    {
+        // Arrange
+        var action = new FileActions(context, FileManager);
+        var project = new ProjectRequest { ProjectId = "107731759" };
+        var fileGenerate = new UploadTranslationFileRequest
+        {
+            File = new FileReference() { Name = "exported-xliff-reviewed.xlf", ContentType = "application/xliff+xml" },
+            FileType = "XLIFF",
+            JobId = "107965948"
+        };
+        var estimatesRequest = new UploadTranslationFileEstimatesRequest
+        {
+            LockSegmentsAboveThreshold = true,
+        };
+
+        // Act
+        var response = await action.UploadTranslationFile(project, fileGenerate, estimatesRequest);
+
+        // Assert
+        Assert.IsNotNull(response);
+    }
+
+    [ContextDataSource, TestMethod]
+    public async Task UploadTranslationFile_FromInteroperableXliff_OnlyCompleted_IsSuccess(InvocationContext context)
+    {
+        // Arrange
+        var action = new FileActions(context, FileManager);
+        var project = new ProjectRequest { ProjectId = "107731759" };
+        var fileGenerate = new UploadTranslationFileRequest
+        {
+            File = new FileReference() { Name = "exported-xliff-reviewed.xlf", ContentType = "application/xliff+xml" },
+            FileType = "XLIFF",
+            JobId = "107965948"
+        };
+        var estimatesRequest = new UploadTranslationFileEstimatesRequest
+        {
+            MarkSegmentsUnderThresholdAsNotCompleted = true,
+        };
+
+        // Act
+        var response = await action.UploadTranslationFile(project, fileGenerate, estimatesRequest);
+
+        // Assert
+        Assert.IsNotNull(response);
+    }
 }
