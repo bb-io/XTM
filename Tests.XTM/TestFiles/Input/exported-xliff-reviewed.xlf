@@ -1,0 +1,192 @@
+<xliff srcLang="en-US" trgLang="uk-UA" version="2.2" xmlns:metrics="urn:lisa-metrics-tags" xmlns:term="urn:xliff-term-extensions" xmlns:xref="urn:xmlintl-xref" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xtm="urn:xliff-xtm-extensions" xsi:schemaLocation="urn:oasis:names:tc:xliff:document:1.2 http://www.xtm-intl.com/docs/xliff-core-1.2-transitional.xsd" xmlns:mda="urn:oasis:names:tc:xliff:metadata:2.0" xmlns:its="http://www.w3.org/2005/11/its" xmlns="urn:oasis:names:tc:xliff:document:2.2">
+  <file id="f1" original="cd79a77f31ce431eaa59a7f6d7b9162d" datatype="xml" xtm:xliff-identifier="814efa4a665b4fa3938b33bfaab5ff4d" product-name="XTM International Limited xml:tm" product-version="2.0" tool="xtm-intl_XLIFF_Extract" xml:space="default" xtm:populate-target-with-source="no">
+    <skeleton>
+L+NZPPSyapF/FO+pChPnvElEOOYLnwbu+969/gSBsOc1uCcPZvuZKf9XTU7Stp0S2C5C2vQsog/d
+RC0NRKjpE0wY8ybIahFY4h8OQIiRkO5xSoHYo0Og+0waDV4CUpgRcKwdfjruWT9WlHUtJA6hxDwC
+Z6f6HiSWpMr3dk+NSrPrzLPbAxHGvj/9JKzyDmWP0By1Rhzm8t2boSYEiLbk/vJPBOef0nLVmApe
+kdpEU4S7g23au8RWDAhenmG99UDFaOESuXjx7Gm4FIEWo4PzfCfP/BmgmYFs47o5nbwGqiIWGfSi
+3s3gbNn6PB5hwV4HvOWj+5UTXrlFAfSd9rt5Poy/7OhbcTGtKXHQWW5BdZciEy7qXPhAYh5+IsmG
+gQccPPizLSxwExL/CLAUrBKkRnpWjV8mNo6LYO1P1CA3QvdS8BomYt7XlGqhUfZ61+o+WzgTCDgV
+Ncxobj7FS9wcWZmUypIkzi/solT7VzZJ5rHxHSkSO7/lBvmE2T/AuPNZLQq88zIMe4cjLVfmeYsJ
+N5WJTGgNSE5QwG520LRXMKMXbKwUy9lDT/md4WcCRiWbXbCfd0/C7n+btkmQEFIRmYrSTSEaTyNx
+MGlElzyyCPwsA6GUunNu1EacWJVX6z+cTR5kL/zc2uJfs6CvvDrQJrnv/4PKHet0ZxHtevBlU9mY
+ZNmi5viUpEjcYqCZacfv
+</skeleton>
+    <xref:prop-group name="ref-maps">
+      <xref:prop prop-type="gmap">{}</xref:prop>
+      <xref:prop prop-type="xmap">{x1=t4, x2=t4}</xref:prop>
+    </xref:prop-group>
+    <metrics:metrics source-language="en-US" target-language="uk-UA" tool-name="xtm-intl_XLIFF_Extract" tool-version="1.0" version="1.0">
+      <metrics:stage date="20260115T114500Z" phase="initial" source-language="en-US">
+        <metrics:count-group name="verifiable">
+          <metrics:count type="TextUnitCount" value="5" />
+          <metrics:count type="x-AlphanumericOnlyTextUnitCount" value="0" />
+          <metrics:count type="x-MeasurementOnlyTextUnitCount" value="0" />
+          <metrics:count type="x-NumericOnlyTextUnitCount" value="0" />
+          <metrics:count type="x-PunctuationOnlyTextUnitCount" value="0" />
+          <metrics:count type="x-ExactMatchedTextUnitCount" value="0" />
+          <metrics:count type="x-RealTextUnitCount" value="5" />
+          <metrics:count type="x-LeveragedMatchedTextUnitCount" value="0" />
+          <metrics:count type="RepetitionMatchedTextUnitCount" value="0" />
+          <metrics:count type="RepetitionMatchedTextUnitCount" category="95-99" value="0" />
+          <metrics:count type="RepetitionMatchedTextUnitCount" category="85-94" value="0" />
+          <metrics:count type="RepetitionMatchedTextUnitCount" category="75-84" value="0" />
+          <metrics:count type="x-FuzzyMatchedTextUnitCount" category="95-99" value="0" />
+          <metrics:count type="x-FuzzyMatchedTextUnitCount" category="85-94" value="0" />
+          <metrics:count type="x-FuzzyMatchedTextUnitCount" category="75-84" value="0" />
+          <metrics:count type="TranslatableInlineCount" value="2" />
+          <metrics:count type="TotalWordCount" value="62" />
+          <metrics:count type="AlphanumericOnlyTextUnitWordCount" value="0" />
+          <metrics:count type="MeasurementOnlyTextUnitWordCount" value="0" />
+          <metrics:count type="NumericOnlyTextUnitWordCount" value="0" />
+          <metrics:count type="ExactMatchedWordCount" value="0" />
+          <metrics:count type="x-RealWordCount" value="62" />
+          <metrics:count type="LeveragedMatchedWordCount" value="0" />
+          <metrics:count type="RepetitionMatchedWordCount" value="0" />
+          <metrics:count type="RepetitionMatchedWordCount" category="95-99" value="0" />
+          <metrics:count type="RepetitionMatchedWordCount" category="85-94" value="0" />
+          <metrics:count type="RepetitionMatchedWordCount" category="75-84" value="0" />
+          <metrics:count type="FuzzyMatchedWordCount" category="95-99" value="0" />
+          <metrics:count type="FuzzyMatchedWordCount" category="85-94" value="0" />
+          <metrics:count type="FuzzyMatchedWordCount" category="75-84" value="0" />
+          <metrics:count type="TotalCharacterCount" value="405" />
+          <metrics:count type="PunctuationCharacterCount" value="13" />
+          <metrics:count type="WhiteSpaceCharacterCount" value="58" />
+          <metrics:count type="AlphanumericOnlyTextUnitCharacterCount" value="0" />
+          <metrics:count type="MeasurementOnlyTextUnitCharacterCount" value="0" />
+          <metrics:count type="NumericOnlyTextUnitCharacterCount" value="0" />
+          <metrics:count type="x-PunctuationOnlyTextUnitCharacterCount" value="0" />
+          <metrics:count type="ExactMatchedCharacterCount" value="0" />
+          <metrics:count type="x-RealCharacterCount" value="392" />
+          <metrics:count type="LeveragedMatchedCharacterCount" value="0" />
+          <metrics:count type="RepetitionMatchedCharacterCount" value="0" />
+          <metrics:count type="RepetitionMatchedCharacterCount" category="95-99" value="0" />
+          <metrics:count type="RepetitionMatchedCharacterCount" category="85-94" value="0" />
+          <metrics:count type="RepetitionMatchedCharacterCount" category="75-84" value="0" />
+          <metrics:count type="FuzzyMatchedCharacterCount" category="95-99" value="0" />
+          <metrics:count type="FuzzyMatchedCharacterCount" category="85-94" value="0" />
+          <metrics:count type="FuzzyMatchedCharacterCount" category="75-84" value="0" />
+        </metrics:count-group>
+      </metrics:stage>
+      <metrics:stage date="20260115T114500Z" phase="translation" source-language="en-US">
+        <metrics:count-group name="verifiable">
+          <metrics:count type="x-UnitsDone" value="0" />
+          <metrics:count type="x-WordsDone" value="0" />
+          <metrics:count type="x-CharactersDone" value="13" />
+        </metrics:count-group>
+      </metrics:stage>
+    </metrics:metrics>
+    <group id="g1">
+      <unit id="t1" translate="yes" xtm:x-previous-crc="0" xtm:x-next-crc="1909e709" its:locQualityRatingScore="0.8755999803543091" its:locQualityRatingScoreThreshold="0.85" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate">
+        <mda:metadata>
+          <mda:metaGroup category="blackbird">
+            <mda:metaGroup category="usage">
+              <mda:metaGroup category="TAUS QE">
+                <mda:meta type="value">92</mda:meta>
+                <mda:meta type="unit">characters</mda:meta>
+              </mda:metaGroup>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metadata>
+        <alt-trans extype="MACHINE-TRANSLATION" match-quality="nmt" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+          <source>Governance for Multilingual Content Operations</source>
+          <target>Управління операціями з багатомовним контентом</target>
+        </alt-trans>
+        <segment id="t1" state="translated">
+          <source>Governance for Multilingual Content Operations</source>
+          <target state-qualifier="mt-suggestion">Управління операціями з багатомовним контентом</target>
+        </segment>
+      </unit>
+    </group>
+    <group id="g2">
+      <unit id="t2" translate="yes" xtm:x-previous-crc="81ccd03f" xtm:x-next-crc="294b73bd" its:locQualityRatingScore="0.8902400135993958" its:locQualityRatingScoreThreshold="0.85" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate">
+        <mda:metadata>
+          <mda:metaGroup category="blackbird">
+            <mda:metaGroup category="usage">
+              <mda:metaGroup category="TAUS QE">
+                <mda:meta type="value">160</mda:meta>
+                <mda:meta type="unit">characters</mda:meta>
+              </mda:metaGroup>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metadata>
+        <alt-trans extype="MACHINE-TRANSLATION" match-quality="nmt" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+          <source>Blackbird unifies content, context, and automation into one orchestration layer.</source>
+          <target>Blackbird об'єднує контент, контекст та автоматизацію в один рівень оркестрації.</target>
+        </alt-trans>
+        <segment id="t2" state="translated">
+          <source>Blackbird unifies content, context, and automation into one orchestration layer.</source>
+          <target state-qualifier="mt-suggestion">Blackbird об'єднує контент, контекст та автоматизацію в один рівень оркестрації.</target>
+        </segment>
+      </unit>
+      <unit id="t3" translate="yes" xtm:x-previous-crc="1909e709" xtm:x-next-crc="51f4d942" its:locQualityRatingScore="0.8740599751472473" its:locQualityRatingScoreThreshold="0.95" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate">
+        <mda:metadata>
+          <mda:metaGroup category="blackbird">
+            <mda:metaGroup category="usage">
+              <mda:metaGroup category="TAUS QE">
+                <mda:meta type="value">302</mda:meta>
+                <mda:meta type="unit">characters</mda:meta>
+              </mda:metaGroup>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metadata>
+        <alt-trans extype="MACHINE-TRANSLATION" match-quality="nmt" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+          <source>Built on iPaaS infrastructure with a data fabric and a persistent memory layer, it adapts, transforms, and governs enterprise content at scale.</source>
+          <target>Побудована на інфраструктурі iPaaS з тканиною даних та шаром постійної пам'яті, вона адаптує, трансформує та керує корпоративним контентом у великих масштабах.</target>
+        </alt-trans>
+        <segment id="t3" state="translated">
+          <source>Built on iPaaS infrastructure with a data fabric and a persistent memory layer, it adapts, transforms, and governs enterprise content at scale.</source>
+          <target state-qualifier="mt-suggestion">Побудована на інфраструктурі iPaaS з тканиною даних та шаром постійної пам'яті, вона адаптує, трансформує та керує корпоративним контентом у великих масштабах.</target>
+        </segment>
+      </unit>
+    </group>
+    <group id="g3">
+      <unit id="t4" translate="yes" xtm:x-previous-crc="294b73bd" xtm:x-next-crc="71e54fb2" its:locQualityRatingScore="0.9320600032806396" its:locQualityRatingScoreThreshold="0.95" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate">
+        <mda:metadata>
+          <mda:metaGroup category="blackbird">
+            <mda:metaGroup category="usage">
+              <mda:metaGroup category="TAUS QE">
+                <mda:meta type="value">83</mda:meta>
+                <mda:meta type="unit">characters</mda:meta>
+              </mda:metaGroup>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metadata>
+        <alt-trans extype="MACHINE-TRANSLATION" match-quality="nmt" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+          <source>
+            <x id="x1" />Book a Demo<x id="x2" /></source>
+          <target>
+            <x id="x1" />Замовити демо-версію<x id="x2" /></target>
+        </alt-trans>
+        <segment id="t4" state="translated">
+          <source>
+            <ph id="x1" />Book a Demo<ph id="x2" /></source>
+          <target state-qualifier="mt-suggestion">
+            <ph id="x1" />Замовити демо-версію<ph id="x2" /></target>
+        </segment>
+      </unit>
+    </group>
+    <group id="g4">
+      <unit id="t5" translate="yes" xtm:x-previous-crc="51f4d942" xtm:x-next-crc="0" its:locQualityRatingScore="0.8524399995803833" its:locQualityRatingScoreThreshold="0.95" its:locQualityRatingProfileRef="https://api.taus.net/2.0/estimate">
+        <mda:metadata>
+          <mda:metaGroup category="blackbird">
+            <mda:metaGroup category="usage">
+              <mda:metaGroup category="TAUS QE">
+                <mda:meta type="value">405</mda:meta>
+                <mda:meta type="unit">characters</mda:meta>
+              </mda:metaGroup>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metadata>
+        <alt-trans extype="MACHINE-TRANSLATION" match-quality="nmt" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+          <source>From raw content to multilingual experiences — Blackbird transforms how global teams orchestrate, adapt, and automate content with AI, interoperability, and human-in-the-loop control.</source>
+          <target>Від необробленого контенту до багатомовного досвіду — Blackbird трансформує те, як глобальні команди організовують, адаптують та автоматизують контент за допомогою штучного інтелекту, сумісності та контролю «люди в циклі».</target>
+        </alt-trans>
+        <segment id="t5" state="translated">
+          <source>From raw content to multilingual experiences — Blackbird transforms how global teams orchestrate, adapt, and automate content with AI, interoperability, and human-in-the-loop control.</source>
+          <target state-qualifier="mt-suggestion">Від необробленого контенту до багатомовного досвіду — Blackbird трансформує те, як глобальні команди організовують, адаптують та автоматизують контент за допомогою штучного інтелекту, сумісності та контролю «люди в циклі».</target>
+        </segment>
+      </unit>
+    </group>
+  </file>
+</xliff>
