@@ -85,8 +85,13 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
             if (!anyMatch)
                 return GetPreflightResponse<WorkflowTransitionResponse>();
         }
-
-
+        
+        if(data.Parameters.ContainsKey("xtmCustomerId"))
+        {
+            var customerId = data.Parameters["xtmCustomerId"];
+            result.CustomerId = customerId;
+        }
+        
         return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
         {
             HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
@@ -451,8 +456,29 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
     
     #region Utils
 
-    private BridgeWebhookPayload<T> HandleBridgeWebhookRequest<T>(WebhookRequest request) 
-        => JsonConvert.DeserializeObject<BridgeWebhookPayload<T>>(request.Body.ToString());
+    private BridgeWebhookPayload<T> HandleBridgeWebhookRequest<T>(WebhookRequest request)
+    {
+        var body = request.Body.ToString();
+        if(string.IsNullOrEmpty(body))
+        {
+            throw new Exception("Webhook body is empty");
+        }
+
+        var payload = JsonConvert.DeserializeObject<T>(body)
+            ?? throw new Exception($"Failed to deserialize webhook payload. Body: {body}");
+
+        var parameters = new Dictionary<string, string>();
+        foreach (var (key, value) in request.QueryParameters)
+        {
+            parameters.Add(key, value);
+        }
+
+        return new BridgeWebhookPayload<T>
+        {
+            Parameters = parameters,
+            Payload = payload
+        };
+    }
     
     private Task<WebhookResponse<T>> GetPreflightResponse<T>()
         where T : class

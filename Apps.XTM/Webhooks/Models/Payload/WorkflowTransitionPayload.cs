@@ -3,5 +3,5 @@
 public class WorkflowTransitionPayload
 {
     public Descriptor ProjectDescriptor { get; set; }
-    public IEnumerable<EventPayload> Events { get; set; }
+    public List<EventPayload> Events { get; set; }
 }
