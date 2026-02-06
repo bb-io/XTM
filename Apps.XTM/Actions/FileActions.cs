@@ -562,7 +562,7 @@ public class FileActions : XtmInvocable
         if (!string.IsNullOrWhiteSpace(input.ReanalyseProject)
             && (input.ReanalyseProject =="YES" || input.ReanalyseProject=="NO"))
         {
-            parameters.Add("reanalyseProject", input.ReanalyseProject);
+            request.AddQueryParameter("reanalyseProject", input.ReanalyseProject);
         }
 
         if (input.TargetLanguages is not null)
