@@ -5,6 +5,7 @@ namespace Apps.XTM.Models.Response.Files;
 
 public class FileWithData<T> where T : XtmFileDescription
 {
+    [Display("Content")]
     public FileReference Content { get; set; }
 
     [Display("File description")]
