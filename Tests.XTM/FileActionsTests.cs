@@ -16,8 +16,50 @@ public class FileActionsTests : TestBaseMultipleConnections
     {
         // Arrange
         var actions = new FileActions(context, FileManager);
-        var project = new ProjectRequest { ProjectId = "108698822" };
+        var project = new ProjectRequest { ProjectId = "2741165" };
         var fileGenerate = new GenerateFileRequest { FileType = "XLIFF" };
+
+        // Act
+        var response = await actions.GenerateFiles(project, fileGenerate);
+
+        // Assert
+        TestContext.WriteLine($"Total files generated: {response.Files.Length}");
+        foreach (var job in response.Files)
+            TestContext.WriteLine($"{job.FileId} - {job.FileType}");
+    }
+
+    [ContextDataSource, TestMethod]
+    public async Task GenerateFiles_FilterByActiveStatus_WontFailOnNoMatch(InvocationContext context)
+    {
+        // Arrange
+        var actions = new FileActions(context, FileManager);
+        var project = new ProjectRequest { ProjectId = "2741165" };
+        var fileGenerate = new GenerateFileRequest
+        {
+            FileType = "XLIFF",
+            ActiveWorkflowSteps = ["translation1", "correct1"],
+        };
+
+        // Act
+        var response = await actions.GenerateFiles(project, fileGenerate);
+
+        // Assert
+        TestContext.WriteLine($"Total files generated: {response.Files.Length}");
+        foreach (var job in response.Files)
+            TestContext.WriteLine($"{job.FileId} - {job.FileType}");
+    }
+
+    [ContextDataSource, TestMethod]
+    public async Task GenerateFiles_FilterByActiveStatus_IsSuccess(InvocationContext context)
+    {
+        // Arrange
+        var actions = new FileActions(context, FileManager);
+        var project = new ProjectRequest { ProjectId = "2741165" };
+        var fileGenerate = new GenerateFileRequest
+        {
+            FileType = "XLIFF",
+            ActiveWorkflowSteps = ["automated post-editing1"],
+        };
 
         // Act
         var response = await actions.GenerateFiles(project, fileGenerate);

@@ -1,9 +1,9 @@
 ﻿using Apps.XTM.Constants;
 using Apps.XTM.Extensions;
 using Apps.XTM.Invocables;
+using Apps.XTM.Models.Request;
 using Apps.XTM.Models.Request.Files;
 using Apps.XTM.Models.Request.Projects;
-using Apps.XTM.Models.Response;
 using Apps.XTM.Models.Response.Files;
 using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.RestUtilities;
@@ -17,6 +17,7 @@ using Blackbird.Applications.Sdk.Utils.Models;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Filters.Transformations;
 using Blackbird.Filters.Xliff.Xliff1;
+using Microsoft.AspNetCore.WebUtilities;
 using MoreLinq;
 using Newtonsoft.Json;
 using RestSharp;
@@ -26,138 +27,109 @@ using System.Xml.Linq;
 namespace Apps.XTM.Actions;
 
 [ActionList]
-public class FileActions : XtmInvocable
+public class FileActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) : XtmInvocable(invocationContext)
 {
-    private readonly IFileManagementClient _fileManagementClient;
-
-    public FileActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
-        : base(invocationContext)
-    {
-        _fileManagementClient = fileManagementClient;
-    }
+    private readonly IFileManagementClient _fileManagementClient = fileManagementClient;
 
     [Action("Generate files", Description = "Generate project files")]
     public async Task<ListGeneratedFilesResponse> GenerateFiles(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] GenerateFileRequest input)
     {
-        var checkProject = Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.ProjectId}", Method.Get,null,Creds);
-        
-        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/generate";
+        if (input.JobIds?.Any() == true && input.ActiveWorkflowSteps?.Any() == true)
+            throw new PluginMisconfigurationException("Please specify either Job IDs or active workflow steps, not both, as action can filter either by Job IDs or active workflow step.");
 
-        var jobIds = new List<string>();
-
-        if (input.jobIds == null)
+        if (input.JobIds?.Any() != true)
         {
-            var assignmentEndpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/workflow/assignment";
+            var projectStatusEndpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/status";
+            var queryParams = new Dictionary<string, string?>();
 
-            int page = 1;
-            const int pageSize = 100;
-            while (true)
+            if (input.ActiveWorkflowSteps?.Any() != true)
+                queryParams.Add("fetchLevel", "JOBS");
+            else
             {
-                var queryParams = new Dictionary<string, string>
-            {
-                { "page", page.ToString() },
-                { "pageSize", pageSize.ToString() }
-            };
-
-                var assignmentResponse = await Client.ExecuteXtmWithJson<WorkflowAssignmentJobResponse>(
-                    assignmentEndpoint.WithQuery(queryParams),
-                    Method.Get,
-                    null,
-                    Creds
-                );
-
-                if (assignmentResponse.Jobs == null || assignmentResponse.Jobs.Count == 0)
-                    break;
-
-                jobIds.AddRange(assignmentResponse.Jobs.Select(j => j.JobId));
-
-                page++;
+                queryParams.Add("fetchLevel", "STEPS");
+                queryParams.Add("stepReferenceNames", string.Join(",", input.ActiveWorkflowSteps));
             }
 
-            input.jobIds = jobIds.ToArray();
+            var projectStatusRequest = new XTMRequest(new()
+            {
+                Url = Creds.Get(CredsNames.Url) + QueryHelpers.AddQueryString(projectStatusEndpoint, queryParams),
+                Method = Method.Get,
+            }, await Client.GetToken(Creds));
+
+            var projectDetailedStatusResponse = await Client.ExecuteXtm<ProjectDetailedStatusResponse>(projectStatusRequest);
+            var jobs = projectDetailedStatusResponse.Jobs.AsEnumerable();
+
+            if (input.ActiveWorkflowSteps?.Any() == true)
+            {
+                jobs = jobs.Where(j => j.Steps.Count > 0 && j.Steps.All(s => s.Status == "IN_PROGRESS"));
+
+                if (!jobs.Any())
+                    return new ListGeneratedFilesResponse([], []);
+            }
+
+            input.JobIds = jobs.Select(j => j.JobId).ToList();
         }
 
+        var generateEndpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/generate";
         var queryParameters = new Dictionary<string, string>
         {
-            { "jobIds", string.Join(",", input.jobIds) },
+            { "jobIds", string.Join(",", input.JobIds) },
             { "fileType", input.FileType }
         };
 
         if (input.TargetLanguage != null)
             queryParameters.Add("targetLanguage", input.TargetLanguage);
 
-        var request = new XTMRequest(new()
+        var requestParameters = new XtmRequestParameters()
         {
-            Url = Creds.Get(CredsNames.Url) + endpoint.WithQuery(queryParameters),
-            Method = Method.Post
-        }, await Client.GetToken(Creds));
+            Url = Creds.Get(CredsNames.Url) + generateEndpoint.WithQuery(queryParameters),
+            Method = Method.Post,
+        };
+
+        var request = new XTMRequest(requestParameters, await Client.GetToken(Creds));
 
         if (input.FileType is "HTML_EXTENDED_TABLE" or "PDF_EXTENDED_TABLE" or "EXCEL_EXTENDED_TABLE")
         {
             if (input.PropertiesToInclude is null || !input.PropertiesToInclude.Any(x => x.StartsWith("include")))
-            {
                 throw new PluginMisconfigurationException("Please specify the properties to include in the extended table file");
-            }
 
-            var tableType = "";
-            switch (input.FileType)
+            var tableType = input.FileType switch
             {
-                case "HTML_EXTENDED_TABLE":
-                    tableType = "htmlOptions";
-                    break;
-                case "PDF_EXTENDED_TABLE":
-                    tableType = "pdfOptions";
-                    break;
-                case "EXCEL_EXTENDED_TABLE":
-                    tableType = "excelOptions";
-                    break;
-            }
+                "HTML_EXTENDED_TABLE" => "htmlOptions",
+                "PDF_EXTENDED_TABLE" => "pdfOptions",
+                "EXCEL_EXTENDED_TABLE" => "excelOptions",
+                _ => string.Empty
+            };
 
             var tableOptions = new Dictionary<string, string>();
 
             foreach (var key in input.PropertiesToInclude.Where(x => x.StartsWith("include")))
-            {
                 tableOptions[key] = "INCLUDE";
-            }
 
             tableOptions["populateTargetWithSource"] = input.PropertiesToInclude.Contains("populateTargetWithSource") ? "POPULATE" : "DO_NOT_POPULATE";
             tableOptions["languagesType"] = input.TargetLanguage != null ? "SELECTED_LANGUAGES" : "ALL_LANGUAGES";
-            tableOptions["extendedReportType"] = input.PropertiesToInclude.Contains("extendedReportType") ? "ALL_PROJECT_FILES_SINGLE_REPORT" :
-                "ALL_PROJECT_FILES_MULTIPLE_REPORTS";
+            tableOptions["extendedReportType"] = input.PropertiesToInclude.Contains("extendedReportType") ? "ALL_PROJECT_FILES_SINGLE_REPORT" : "ALL_PROJECT_FILES_MULTIPLE_REPORTS";
 
-
-            var extendedTableOptions = new Dictionary<string, object>
+            request.AddJsonBody(new
             {
-                [tableType] = tableOptions
-            };
-
-            var requestBody = new
-            {
-                extendedTableOptions = extendedTableOptions
-            };
-
-            request.AddJsonBody(requestBody);
+                extendedTableOptions = new Dictionary<string, object> { [tableType] = tableOptions },
+            });
         }
 
         try 
         {
             var response = await Client.ExecuteXtm<GeneratedFileResponse[]>(request);
-            return new(response);
-        } 
-        catch (Exception e) 
-        {
-            if (e.Message.Contains("Request parameter seems to be invalid."))
-            {
-                throw new PluginMisconfigurationException("Please check that the inputs are correct. " + e.Message);
-            }
-            else 
-            {
-                throw new PluginApplicationException(e.Message);
-            }
+            return new(response, response.Select(f => f.JobId));
         }
-        
+        catch (Exception ex) 
+        {
+            if (ex.Message.Contains("Request parameter seems to be invalid."))
+                throw new PluginMisconfigurationException("Please check that the inputs are correct. " + ex.Message);
+            else 
+                throw new PluginApplicationException(ex.Message);
+        }
     }
 
 

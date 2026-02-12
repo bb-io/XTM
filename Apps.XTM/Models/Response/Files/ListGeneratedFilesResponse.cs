@@ -1,3 +1,5 @@
-﻿namespace Apps.XTM.Models.Response.Files;
+﻿using Blackbird.Applications.Sdk.Common;
 
-public record ListGeneratedFilesResponse(GeneratedFileResponse[] Files);
+namespace Apps.XTM.Models.Response.Files;
+
+public record ListGeneratedFilesResponse(GeneratedFileResponse[] Files, [Display("Job IDs")] IEnumerable<string> JobIds);
