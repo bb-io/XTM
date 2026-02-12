@@ -18,7 +18,7 @@ public class GenerateFileRequest
     [Display("Job IDs")]
     public IEnumerable<string>? JobIds { get; set; }
 
-    [Display("Active workflow steps")]
+    [Display("Active workflow steps", Description = "Select workflow step to generate files only for source files that are currently in one of the selected workflow steps.")]
     [DataSource(typeof(WorkflowStepDataHandler))]
     public IEnumerable<string>? ActiveWorkflowSteps { get; set; }
 

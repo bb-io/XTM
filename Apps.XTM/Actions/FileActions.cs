@@ -66,7 +66,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
                 jobs = jobs.Where(j => j.Steps.Count > 0 && j.Steps.All(s => s.Status == "IN_PROGRESS"));
 
                 if (!jobs.Any())
-                    return new ListGeneratedFilesResponse([], []);
+                    return new ListGeneratedFilesResponse([]);
             }
 
             input.JobIds = jobs.Select(j => j.JobId).ToList();
@@ -121,7 +121,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         try 
         {
             var response = await Client.ExecuteXtm<GeneratedFileResponse[]>(request);
-            return new(response, response.Select(f => f.JobId));
+            return new(response);
         }
         catch (Exception ex) 
         {

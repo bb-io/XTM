@@ -2,4 +2,20 @@
 
 namespace Apps.XTM.Models.Response.Files;
 
-public record ListGeneratedFilesResponse(GeneratedFileResponse[] Files, [Display("Job IDs")] IEnumerable<string> JobIds);
+public class ListGeneratedFilesResponse
+{
+    public GeneratedFileResponse[] Files { get; set; }
+
+    [Display("Job IDs")]
+    public IEnumerable<string> JobIds => Files?.Select(f => f.JobId) ?? [];
+
+    public ListGeneratedFilesResponse(GeneratedFileResponse[] files)
+    {
+        Files = files;
+    }
+
+    public ListGeneratedFilesResponse()
+    {
+        Files = [];
+    }
+}
