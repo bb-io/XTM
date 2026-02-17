@@ -12,8 +12,11 @@ public static class ApiEndpoints
     public const string Users = "/users";
     public const string SubjectMatters = "/subject-matters";
     public const string TMFiles = "/translation-memory/files";
+    public const string TMPenaltyProfiles = "/translation-memory/penalty-profiles";
+    public const string TerminologyPenaltyProfiles = "/terminology/penalty-profiles";
     public const string Metrics = "/metrics";
     public const string Bundles = "/bundles";
     public const string Status = "/status";
     public const string Analysis = "/analysis";
+    public const string TagGroups = "/tag-groups";
 }

@@ -80,4 +80,60 @@ public class DataSources : TestBaseMultipleConnections
         PrintDataHandlerResult(response);
         Assert.IsNotNull(response);
     }
+
+    [ContextDataSource, TestMethod]
+    public async Task TranslationMemoryPenaltyProfileDataHandlerReturnsValues(InvocationContext context)
+    {
+        // Arrange
+        var handler = new TranslationMemoryPenaltyProfileDataHandler(context);
+
+        // Act
+        var response = await handler.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);
+
+        // Assert
+        PrintDataHandlerResult(response);
+        Assert.IsNotNull(response);
+    }
+
+    [ContextDataSource, TestMethod]
+    public async Task TerminologyPenaltyProfileDataHandlerReturnsValues(InvocationContext context)
+    {
+        // Arrange
+        var handler = new TerminologyPenaltyProfileDataHandler(context);
+
+        // Act
+        var response = await handler.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);
+
+        // Assert
+        PrintDataHandlerResult(response);
+        Assert.IsNotNull(response);
+    }
+
+    [ContextDataSource, TestMethod]
+    public async Task TagDataHandlerReturnsValues(InvocationContext context)
+    {
+        // Arrange
+        var handler = new TagDataHandler(context);
+
+        // Act
+        var response = await handler.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);
+
+        // Assert
+        PrintDataHandlerResult(response);
+        Assert.IsNotNull(response);
+    }
+
+    [ContextDataSource, TestMethod]
+    public async Task SubjectMatterDataHandlerReturnsValues(InvocationContext context)
+    {
+        // Arrange
+        var handler = new SubjectMatterDataHandler(context);
+
+        // Act
+        var response = await handler.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);
+
+        // Assert
+        PrintDataHandlerResult(response);
+        Assert.IsNotNull(response);
+    }
 }
