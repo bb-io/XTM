@@ -13,13 +13,9 @@ using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using RestSharp;
 using Apps.XTM.Models.Response.Metrics;
-using System;
 using Apps.XTM.Models.Response.User;
 using Apps.XTM.Utils;
-using Newtonsoft.Json;
 using Blackbird.Applications.Sdk.Common.Exceptions;
-using DocumentFormat.OpenXml.Wordprocessing;
-using System.Linq;
 
 namespace Apps.XTM.Actions;
 
@@ -287,10 +283,25 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
         [ActionParameter] ProjectRequest project,
         [ActionParameter] UpdateProjectRequest input)
     {
+        var bodyObj = new Dictionary<string, object?>
+        {
+            { "name", input.Name },
+            { "description", input.Description },
+            { "referenceId", input.ReferenceId },
+            { "paymentStatus", input.PaymentStatus },
+            { "proposalApprovalStatus", input.ProposalApprovalStatus },
+            { "projectManagerId", input.ProjectManagerId },
+            { "subjectMatterId", input.SubjectMatterId },
+            { "segmentLockingType", input.SegmentLockingType },
+            { "translationMemory", new { penaltyProfileId = input.TranslationMemoryPenaltyProfileId, tagIds = input.TranslationMemoryTagIds } },
+            { "terminology", new { penaltyProfileId = input.TerminologyPenaltyProfileId, tagIds = input.TerminologyTagIds } }
+        };
+
         return Client.ExecuteXtmWithJson<ManageEntityResponse>($"{ApiEndpoints.Projects}/{project.ProjectId}",
             Method.Put,
-            input,
-            Creds);
+            bodyObj,
+            Creds
+        );
     }
 
     [Action("Add project target languages", Description = "Add more target languages to a specific project")]

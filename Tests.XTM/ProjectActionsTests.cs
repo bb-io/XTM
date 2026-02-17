@@ -123,4 +123,26 @@ public class ProjectActionsTests : TestBaseMultipleConnections
         PrintResult(response);
         Assert.IsNotNull(response);
     }
+
+    [ContextDataSource, TestMethod]
+    public async Task UpdateProject_IsSuccess(InvocationContext context)
+    {
+        // Arrange
+        var action = new ProjectActions(context, FileManager);
+        var project = new ProjectRequest { ProjectId = "2839755" };
+        var input = new UpdateProjectRequest
+        {
+            TranslationMemoryPenaltyProfileId = "45314",
+            TranslationMemoryTagIds = ["11491"],
+            TerminologyTagIds = ["11493"],
+            SubjectMatterId = "2775"
+        };
+
+        // Act
+        var response = await action.UpdateProject(project, input);
+
+        // Assert
+        PrintResult(response);
+        Assert.IsNotNull(response);
+    }
 }
