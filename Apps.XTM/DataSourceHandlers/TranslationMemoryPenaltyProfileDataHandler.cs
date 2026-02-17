@@ -18,6 +18,11 @@ public class TranslationMemoryPenaltyProfileDataHandler(InvocationContext invoca
             Creds
         );
 
-        return response.Select(x => new DataSourceItem(x.Id, x.Name)).ToList();
+        return response
+            .Select(x => new DataSourceItem(x.Id, x.Name))
+            .Where(x => 
+                context.SearchString == null || 
+                x.DisplayName.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase))
+            .ToList();
     }
 }

@@ -16,20 +16,29 @@ public class TagDataHandler(InvocationContext context) : XtmInvocable(context), 
             null,
             Creds
         );
-        var tagGroupIds = tagGroups.Select(x => x.Id).ToArray();
 
-        List<TagResponse> tags = [];
-        foreach (var tagGroupId in tagGroupIds)
+        var getTagsTasks = tagGroups.Select(async group =>
         {
-            var groupIdTags = await Client.ExecuteXtmWithJson<List<TagResponse>>(
-                $"{ApiEndpoints.TagGroups}/{tagGroupId}/tags",
+            var groupTags = await Client.ExecuteXtmWithJson<List<TagResponse>>(
+                $"{ApiEndpoints.TagGroups}/{group.Id}/tags",
                 RestSharp.Method.Get,
                 null,
                 Creds
             );
-            tags.AddRange(groupIdTags);
-        }
 
-        return tags.Select(x => new DataSourceItem(x.Id, x.Name)).ToList();
+            return groupTags.Select(tag => new DataSourceItem(
+                tag.Id,
+                $"{tag.Name} ({group.Name})"
+            ));
+        }); 
+        
+        var results = await Task.WhenAll(getTagsTasks);
+
+        return results
+            .SelectMany(x => x)
+            .Where(x =>
+                context.SearchString == null ||
+                x.DisplayName.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase))
+            .ToList();
     }
 }
