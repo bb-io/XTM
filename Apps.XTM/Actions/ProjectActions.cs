@@ -549,7 +549,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
 
         await Client.ExecuteXtmWithJson(
             endpoint,
-            Method.Put,
+            Method.Post,
             payload,
             Creds
         );
