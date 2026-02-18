@@ -18,7 +18,7 @@ public class ProjectCustomFieldDataHandler : XtmInvocable, IAsyncDataSourceHandl
         DataSourceContext context,
         CancellationToken cancellationToken)
     {
-        var endpoint = $"custom-fields/project";
+        var endpoint = $"/custom-fields/project";
 
         var response = await Client.ExecuteXtmWithJson<List<ProjectCustomFieldDefinitionResponse>>(
             endpoint,
