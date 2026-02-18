@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using MoreLinq;
 using Newtonsoft.Json;
 using RestSharp;
+using System.Net.Mime;
 using System.Text;
 using System.Xml.Linq;
 
@@ -571,6 +572,44 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
             }
         }
        
+    }
+
+    [Action("Upload reference file",
+    Description = "Upload a reference file to an XTM project")]
+    public async Task UploadReferenceFile(
+    [ActionParameter] ProjectRequest project,
+    [ActionParameter] UploadReferenceFileRequest input)
+    {
+        if (input.File == null)
+            throw new PluginMisconfigurationException("Reference file is required.");
+
+        var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/reference-materials/upload";
+        var token = await Client.GetToken(Creds);
+
+        var request = new XTMRequest(new()
+        {
+            Url = Creds.Get(CredsNames.Url) + url,
+            Method = Method.Post
+        }, token);
+
+        string fileName = input.Name?.Trim() ?? input.File.Name;
+        request.AddParameter("referenceMaterialsFiles[0].name", fileName);
+        
+        var fileStream = await _fileManagementClient.DownloadAsync(input.File);
+        var fileBytes = await fileStream.GetByteData();
+
+        request.AddFile("referenceMaterialsFiles[0].file", fileBytes, fileName);
+
+        request.AlwaysMultipartFormData = true;
+
+        try
+        {
+            await Client.ExecuteXtm<object>(request);
+        }
+        catch (Exception e)
+        {
+            throw new PluginApplicationException(e.Message);
+        }
     }
 
     [Action("Upload translation file", Description = "Upload translation file to project")]
