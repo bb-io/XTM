@@ -45,6 +45,8 @@ Before you can connect you need to make sure that:
 - **Delete project**
 - **Get project estimates**
 - **Get project metrics**
+- **Get project custom field**
+- **Set project custom field**
 
 ### LQA
 
@@ -64,6 +66,7 @@ Before you can connect you need to make sure that:
 - **Upload source file**
 - **Upload translation file**. This action utilizes `/files/translations/{fileId}/status` endpoint to check the status of the newly uploaded translation file. The action will wait for the translation to be processed and return the status of the translation file along with the `File ID` and the `Project ID`.
 - **Generate files**
+- **Upload reference file**
 
 ### Translation memories
 
