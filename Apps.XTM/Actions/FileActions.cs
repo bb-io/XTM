@@ -583,7 +583,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         if (input.File == null)
             throw new PluginMisconfigurationException("Reference file is required.");
 
-        var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/reference-materials/upload";
+        var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/reference-materials/upload";
         var token = await Client.GetToken(Creds);
 
         var request = new XTMRequest(new()
@@ -594,7 +594,6 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
         string fileName = input.Name?.Trim() ?? input.File.Name;
         request.AddParameter("referenceMaterialsFiles[0].name", fileName);
-        
         var fileStream = await _fileManagementClient.DownloadAsync(input.File);
         var fileBytes = await fileStream.GetByteData();
 
