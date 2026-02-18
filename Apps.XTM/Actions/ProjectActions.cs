@@ -498,4 +498,104 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             ProjectEstimates = getProjectEstimates
         };
     }
+
+    [Action("Set project custom field",
+     Description = "Set value for an existing project custom field")]
+    public async Task SetProjectCustomField(
+     [ActionParameter] ProjectRequest project,
+     [ActionParameter] SetProjectCustomFieldRequest input)
+    {
+        var providedValues = 0;
+
+        if (!string.IsNullOrWhiteSpace(input.Value))
+            providedValues++;
+
+        if (!string.IsNullOrWhiteSpace(input.Date))
+            providedValues++;
+
+        if (input.BooleanValue.HasValue)
+            providedValues++;
+
+        if (input.Ids != null && input.Ids.Any())
+            providedValues++;
+
+        if (providedValues > 1)
+            throw new PluginMisconfigurationException( $"Please provide only one value as input (either text, date, multiselect or boolean).");
+
+        var valueObject = new Dictionary<string, object>();
+
+        if (!string.IsNullOrWhiteSpace(input.Value))
+            valueObject["value"] = input.Value;
+
+        if (!string.IsNullOrWhiteSpace(input.Date))
+            valueObject["date"] = input.Date;
+
+        if (input.BooleanValue.HasValue)
+            valueObject["booleanValue"] = input.BooleanValue.Value;
+
+        if (input.Ids != null && input.Ids.Any())
+            valueObject["ids"] = input.Ids;
+
+        var payload = new[]
+        {
+        new
+        {
+            id = input.Id,
+            value = valueObject
+        }
+    };
+
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/custom-fields";
+
+        await Client.ExecuteXtmWithJson(
+            endpoint,
+            Method.Post,
+            payload,
+            Creds
+        );
+    }
+
+    [Action("Get project custom field",
+    Description = "Retrieve a specific project custom field")]
+    public async Task<ProjectCustomFieldDto> GetProjectCustomField(
+    [ActionParameter] ProjectRequest project,
+    [ActionParameter] GetProjectCustomFieldRequest input)
+    {
+        var endpoint =
+            $"{ApiEndpoints.Projects}/{project.ProjectId}/custom-fields";
+
+        var response = await Client.ExecuteXtmWithJson<List<ProjectCustomFieldResponse>>(
+            endpoint,
+            Method.Get,
+            null,
+            Creds
+        );
+
+        if (response == null || !response.Any())
+            throw new PluginApplicationException("No custom fields were returned for this project.");
+
+        var matchingFields = response
+            .Where(f => f.DefinitionId == input.DefinitionId)
+            .ToList();
+
+        if (!matchingFields.Any())
+            throw new PluginMisconfigurationException(
+                $"No custom field found with ID {input.DefinitionId}.");
+
+        var field = matchingFields.First();
+
+        return new ProjectCustomFieldDto
+        {
+            Id = field.Id,
+            ProjectId = field.ProjectId,
+            DefinitionId = field.DefinitionId,
+            Name = field.Name,
+            Value = field.Value?.Value,
+            Date = field.Value?.Date,
+            BooleanValue = field.Value?.BooleanValue,
+            Ids = field.Value?.Ids
+        };
+    }
+
+
 }
