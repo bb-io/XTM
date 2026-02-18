@@ -1,11 +1,14 @@
-﻿using Blackbird.Applications.Sdk.Common;
+﻿using Apps.XTM.DataSourceHandlers;
+using Blackbird.Applications.Sdk.Common;
+using Blackbird.Applications.Sdk.Common.Dynamic;
 
 namespace Apps.XTM.Models.Request.Projects;
 
 public class SetProjectCustomFieldRequest
 {
    
-    [Display("Custom field ID")]
+    [Display("Custom field definition ID")]
+    [DataSource(typeof(ProjectCustomFieldDataHandler))]
     public string Id { get; set; }
 
     [Display("Text value")]
