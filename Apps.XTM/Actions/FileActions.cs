@@ -15,13 +15,14 @@ using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using Blackbird.Applications.Sdk.Utils.Models;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
+using Blackbird.Filters.Extensions;
 using Blackbird.Filters.Transformations;
 using Blackbird.Filters.Xliff.Xliff1;
+using Blackbird.Filters.Xliff.Xliff2;
 using Microsoft.AspNetCore.WebUtilities;
 using MoreLinq;
 using Newtonsoft.Json;
 using RestSharp;
-using System.Net.Mime;
 using System.Text;
 using System.Xml.Linq;
 
@@ -676,7 +677,16 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         }
         else
         {
-            fileBytes = await inputFileStream.GetByteData();
+            var content = await inputFileStream.ReadString();
+
+            if (!Xliff2Serializer.IsXliff2(content))
+                fileBytes = Encoding.UTF8.GetBytes(content);
+            else
+            {
+                var transformation = Xliff2Serializer.Deserialize(content);
+                var xliffV12 = Xliff1Serializer.Serialize(transformation);
+                fileBytes = Encoding.UTF8.GetBytes(xliffV12);
+            }
         }
 
         request.AddFile("translationFile.file", fileBytes, input.Name ?? input.File.Name);
