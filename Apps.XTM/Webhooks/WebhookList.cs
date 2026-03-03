@@ -59,30 +59,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
         var data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
         if (data.Payload == null)
         {
-            if (!string.IsNullOrEmpty(workflowOptionalRequest.WorkflowStep))
-            {
-                return GetPreflightResponse<WorkflowTransitionResponse>();
-            }
-            
-            var minimalResult = new WorkflowTransitionResponse(new WorkflowTransitionPayload
-            {
-                ProjectDescriptor = new Descriptor 
-                { 
-                    Id = data.Parameters.ContainsKey("xtmProjectId") ? data.Parameters["xtmProjectId"] : null 
-                },
-                Events = new List<EventPayload>()
-            });
-            
-            if (data.Parameters.ContainsKey("xtmCustomerId"))
-            {
-                minimalResult.CustomerId = data.Parameters["xtmCustomerId"];
-            }
-            
-            return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
-            {
-                HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-                Result = minimalResult
-            });
+            return GetPreflightResponse<WorkflowTransitionResponse>();
         }
         
         var result = new WorkflowTransitionResponse(data.Payload);
