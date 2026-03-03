@@ -49,8 +49,42 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
         [WebhookParameter] CustomerOptionalRequest customerOptionalRequest,
         [WebhookParameter] WorkflowStepOptionalRequest workflowOptionalRequest)
     {
+        var hasQueryParams = request.QueryParameters != null! && request.QueryParameters.Any();
+        if (string.IsNullOrEmpty(request.Body?.ToString()) && !hasQueryParams)
+        {
+            return GetPreflightResponse<WorkflowTransitionResponse>();
+        }
+        
         var flightOnEventTypes = new List<string> { "OPENED", "ACTIVE" };
         var data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
+        if (data.Payload == null)
+        {
+            if (!string.IsNullOrEmpty(workflowOptionalRequest.WorkflowStep))
+            {
+                return GetPreflightResponse<WorkflowTransitionResponse>();
+            }
+            
+            var minimalResult = new WorkflowTransitionResponse(new WorkflowTransitionPayload
+            {
+                ProjectDescriptor = new Descriptor 
+                { 
+                    Id = data.Parameters.ContainsKey("xtmProjectId") ? data.Parameters["xtmProjectId"] : null 
+                },
+                Events = new List<EventPayload>()
+            });
+            
+            if (data.Parameters.ContainsKey("xtmCustomerId"))
+            {
+                minimalResult.CustomerId = data.Parameters["xtmCustomerId"];
+            }
+            
+            return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
+            {
+                HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
+                Result = minimalResult
+            });
+        }
+        
         var result = new WorkflowTransitionResponse(data.Payload);
 
         if (projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
@@ -232,7 +266,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
         [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
     {
         var data = HandleBridgeWebhookRequest<AnalysisFinishedPayload>(request);
-        var result = new AnalysisFinishedResponse(data.Payload);
+        var result = new AnalysisFinishedResponse(data.Payload!);
 
         if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
            (!string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains) && !result.Customer.Name.Contains(projectOptionalRequest.CustomerNameContains))
@@ -257,7 +291,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
     {
         var flightOnEventTypes = new List<string> { "OPENED", "ACTIVE" };
         var data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
-        var result = new WorkflowTransitionResponse(data.Payload);
+        var result = new WorkflowTransitionResponse(data.Payload!);
 
         if (projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)           
         {
@@ -458,19 +492,22 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
 
     private BridgeWebhookPayload<T> HandleBridgeWebhookRequest<T>(WebhookRequest request)
     {
-        var body = request.Body.ToString();
-        if(string.IsNullOrEmpty(body))
+        T? payload = default;
+        var body = request.Body?.ToString();
+        
+        if (!string.IsNullOrEmpty(body))
         {
-            throw new Exception("Webhook body is empty");
+            payload = JsonConvert.DeserializeObject<T>(body)
+                ?? throw new Exception($"Failed to deserialize webhook payload. Body: {body}");
         }
 
-        var payload = JsonConvert.DeserializeObject<T>(body)
-            ?? throw new Exception($"Failed to deserialize webhook payload. Body: {body}");
-
         var parameters = new Dictionary<string, string>();
-        foreach (var (key, value) in request.QueryParameters)
+        if (request.QueryParameters != null)
         {
-            parameters.Add(key, value);
+            foreach (var (key, value) in request.QueryParameters)
+            {
+                parameters.Add(key, value);
+            }
         }
 
         return new BridgeWebhookPayload<T>
