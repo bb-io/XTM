@@ -77,10 +77,14 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
             }
             else if (request.Body?.ToString()?.Contains("additionalData") == true)
             {
+                var outerJson = Newtonsoft.Json.Linq.JObject.Parse(request.Body?.ToString() ?? string.Empty);
+                var additionalDataString = outerJson["additionalData"]?.ToString();
                 data = new BridgeWebhookPayload<WorkflowTransitionPayload>
                 {
-                    Payload = JsonConvert.DeserializeObject<AdditionalData>(request.Body?.ToString() ?? string.Empty)?.additionalData,
                     Parameters = request.QueryParameters ?? [],
+                    Payload = !string.IsNullOrEmpty(additionalDataString)
+                        ? JsonConvert.DeserializeObject<WorkflowTransitionPayload>(additionalDataString)
+                        : null,
                 };
             }
             else
