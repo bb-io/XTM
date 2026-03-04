@@ -75,6 +75,14 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
                     };
                 }
             }
+            else if (request.Body?.ToString()?.Contains("additionalData") == true)
+            {
+                data = new BridgeWebhookPayload<WorkflowTransitionPayload>
+                {
+                    Payload = JsonConvert.DeserializeObject<AdditionalData>(request.Body?.ToString() ?? string.Empty)?.additionalData,
+                    Parameters = request.QueryParameters ?? [],
+                };
+            }
             else
             {
                 data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);

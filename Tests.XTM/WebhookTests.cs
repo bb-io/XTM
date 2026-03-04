@@ -601,4 +601,74 @@ public class WebhookTests : TestBaseMultipleConnections
         PrintResult(result);
         Assert.AreEqual(WebhookRequestType.Default, result.ReceivedWebhookRequestType);
     }
+
+    [ContextDataSource, TestMethod]
+    public async Task OnWorkflowTransitionManual_WhenReceivingJsonWrapped_ShouldFlight(InvocationContext context)
+    {
+        // Arrange
+        var webhookList = new WebhookList(context);
+        var jsonPayload = JsonConvert.SerializeObject(new AdditionalData
+        {
+            additionalData = new WorkflowTransitionPayload
+            {
+                ProjectDescriptor = new Descriptor { Id = "2739098" },
+                Events =
+                [
+                    new EventPayload
+                    {
+                        Type = "FINISHED",
+                        Tasks =
+                        [
+                            new TaskPayload
+                            {
+                                CurrentUser = new UserPayload { Name = "Linguist", Id = "6271" },
+                                Filename = "Sample text.html",
+                                TargetLanguage = "de_001",
+                                Step = new WorkflowStepPayload { WorkflowStepName = "translate1", WorkflowStep = "TRANSLATE1" },
+                                Job = new Descriptor { Id = "2739109" }
+                            }
+                        ]
+                    },
+                    new EventPayload
+                    {
+                        Type = "ACTIVE",
+                        Tasks =
+                        [
+                            new TaskPayload
+                            {
+                                CurrentUser = new UserPayload { Name = "Blackbird", Id = "92530" },
+                                Filename = "Sample text.html",
+                                TargetLanguage = "de_001",
+                                Step = new WorkflowStepPayload { WorkflowStepName = "Automated post-editing1" },
+                                Job = new Descriptor { Id = "2739109" }
+                            }
+                        ]
+                    }
+                ]
+            }
+        });
+        var request = new WebhookRequest
+        {
+            QueryParameters = new Dictionary<string, string>
+            {
+                { "xtmProjectId", "2739098" },
+                { "xtmCustomerId", "2725347" }
+            },
+            Body = jsonPayload
+        };
+        var projectOptionalRequest = new ProjectOptionalRequest() { ProjectNameContains = "TAUS automated post-editing" };
+        var customerOptionalRequest = new CustomerOptionalRequest();
+        var workflowOptionalRequest = new WorkflowStepOptionalRequest() { WorkflowStep = "Automated post-editing1" };
+
+        // Act
+        var result = await webhookList.OnWorkflowTransitionManual(
+            request,
+            projectOptionalRequest,
+            customerOptionalRequest,
+            workflowOptionalRequest);
+
+        // Assert
+        PrintResult(result);
+        Assert.AreEqual(WebhookRequestType.Default, result.ReceivedWebhookRequestType);
+    }
 }
