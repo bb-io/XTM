@@ -130,7 +130,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
 
             var response = new HttpResponseMessage(statusCode: HttpStatusCode.BadRequest)
             {
-                Content = new StringContent($"Error processing webhook: {ex.Message}. Stack trace: {ex.StackTrace?.ToString()}")
+                Content = new StringContent($"Error processing webhook: {ex.Message}. Stack trace: {ex.StackTrace?.ToString()}. Bode received: {request.Body}")
             };
 
             return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
