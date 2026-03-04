@@ -9,7 +9,7 @@ public class WorkflowTransitionResponse
     public string ProjectId { get; set; }
     
     [Display("Customer ID")]
-    public string CustomerId { get; set; }
+    public string? CustomerId { get; set; }
     
     public IEnumerable<EventResponse> Events { get; set; }
 
