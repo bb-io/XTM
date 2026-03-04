@@ -1,5 +1,6 @@
-﻿using System.Net;
-using Apps.XTM.Constants;
+﻿using Apps.XTM.Constants;
+using Apps.XTM.Invocables;
+using Apps.XTM.Models.Request;
 using Apps.XTM.Models.Request.Customers;
 using Apps.XTM.Models.Request.Invoices;
 using Apps.XTM.Models.Request.Jobs;
@@ -8,12 +9,12 @@ using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.Webhooks.Handlers;
 using Apps.XTM.Webhooks.Models.Payload;
 using Apps.XTM.Webhooks.Models.Response;
+using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Common.Webhooks;
 using Newtonsoft.Json;
 using RestSharp;
-using Apps.XTM.Invocables;
-using Blackbird.Applications.Sdk.Common.Invocation;
-using Apps.XTM.Models.Request;
+using System.Net;
+using System.Web;
 
 namespace Apps.XTM.Webhooks;
 
@@ -57,29 +58,56 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
             }
 
             var flightOnEventTypes = new List<string> { "OPENED", "ACTIVE" };
-            var data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
-            if (data.Payload == null)
+
+            BridgeWebhookPayload<WorkflowTransitionPayload> data = new();
+
+            if (request.Body?.ToString()?.StartsWith("additionalData=") == true)
             {
-                return GetPreflightResponse<WorkflowTransitionResponse>();
+                var parsedBody = HttpUtility.ParseQueryString(request.Body?.ToString() ?? string.Empty);
+                var additionalDataJson = parsedBody["additionalData"];
+
+                if (!string.IsNullOrEmpty(additionalDataJson))
+                {
+                    data = new BridgeWebhookPayload<WorkflowTransitionPayload>
+                    {
+                        Payload = JsonConvert.DeserializeObject<WorkflowTransitionPayload>(additionalDataJson),
+                        Parameters = request.QueryParameters ?? [],
+                    };
+                }
             }
+            else if (request.Body?.ToString()?.Contains("additionalData") == true)
+            {
+                var outerJson = Newtonsoft.Json.Linq.JObject.Parse(request.Body?.ToString() ?? string.Empty);
+                var additionalDataString = outerJson["additionalData"]?.ToString();
+                data = new BridgeWebhookPayload<WorkflowTransitionPayload>
+                {
+                    Parameters = request.QueryParameters ?? [],
+                    Payload = !string.IsNullOrEmpty(additionalDataString)
+                        ? JsonConvert.DeserializeObject<WorkflowTransitionPayload>(additionalDataString)
+                        : null,
+                };
+            }
+            else
+            {
+                data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
+            }
+
+            if (data.Payload == null)
+                return GetPreflightResponse<WorkflowTransitionResponse>();
 
             var result = new WorkflowTransitionResponse(data.Payload);
 
             if (projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
-            {
                 return GetPreflightResponse<WorkflowTransitionResponse>();
-            }
 
             if ((!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) || !string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains))
-               && !ProjectFilter(result.ProjectId, projectOptionalRequest?.ProjectNameContains ?? "", projectOptionalRequest.CustomerNameContains ?? ""))
+               && !ProjectFilter(result.ProjectId, projectOptionalRequest?.ProjectNameContains ?? "", projectOptionalRequest?.CustomerNameContains ?? ""))
             {
                 return GetPreflightResponse<WorkflowTransitionResponse>();
             }
 
             if (customerOptionalRequest.CustomerId != null && customerOptionalRequest.CustomerId != result.CustomerId)
-            {
                 return GetPreflightResponse<WorkflowTransitionResponse>();
-            }
 
             if (!string.IsNullOrEmpty(workflowOptionalRequest.WorkflowStep))
             {
@@ -98,11 +126,8 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
                     return GetPreflightResponse<WorkflowTransitionResponse>();
             }
 
-            if (data.Parameters.ContainsKey("xtmCustomerId"))
-            {
-                var customerId = data.Parameters["xtmCustomerId"];
+            if (data.Parameters.TryGetValue("xtmCustomerId", out string? customerId))
                 result.CustomerId = customerId;
-            }
 
             return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
             {
@@ -117,7 +142,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
 
             var response = new HttpResponseMessage(statusCode: HttpStatusCode.BadRequest)
             {
-                Content = new StringContent($"Error processing webhook: {ex.Message}. Stack trace: {ex.StackTrace?.ToString()}")
+                Content = new StringContent($"Error processing webhook: {ex.Message}. Stack trace: {ex.StackTrace?.ToString()}. Bode received: {request.Body}")
             };
 
             return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
