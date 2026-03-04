@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Web;
 using Apps.XTM.Constants;
 using Apps.XTM.Models.Request.Customers;
 using Apps.XTM.Models.Request.Invoices;
@@ -49,65 +48,85 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
         [WebhookParameter] CustomerOptionalRequest customerOptionalRequest,
         [WebhookParameter] WorkflowStepOptionalRequest workflowOptionalRequest)
     {
-        var hasQueryParams = request.QueryParameters != null! && request.QueryParameters.Any();
-        if (string.IsNullOrEmpty(request.Body?.ToString()) && !hasQueryParams)
+        try
         {
-            return GetPreflightResponse<WorkflowTransitionResponse>();
-        }
-        
-        var flightOnEventTypes = new List<string> { "OPENED", "ACTIVE" };
-        var data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
-        if (data.Payload == null)
-        {
-            return GetPreflightResponse<WorkflowTransitionResponse>();
-        }
-        
-        var result = new WorkflowTransitionResponse(data.Payload);
-
-        if (projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
-        {
-            return GetPreflightResponse<WorkflowTransitionResponse>();
-        }
-
-        if ((!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) || !string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains))
-           && !ProjectFilter(result.ProjectId, projectOptionalRequest?.ProjectNameContains ?? "", projectOptionalRequest.CustomerNameContains ?? ""))
-        {
-            return GetPreflightResponse<WorkflowTransitionResponse>();
-        }
-
-        if (customerOptionalRequest.CustomerId != null && customerOptionalRequest.CustomerId != result.CustomerId)
-        {
-            return GetPreflightResponse<WorkflowTransitionResponse>();
-        }
-
-        if (!string.IsNullOrEmpty(workflowOptionalRequest.WorkflowStep))
-        {
-            var anyMatch = data.Payload.Events
-                .Where(e => flightOnEventTypes.Contains(e.Type))
-                .SelectMany(e => e.Tasks)
-                .Any(t =>
-                {
-                    var payloadName = t.Step.WorkflowStepName ?? t.Step.WorkflowStep;
-
-                    return string.Equals(payloadName, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase)
-                           || (payloadName != null && payloadName.StartsWith(workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase));
-                });
-
-            if (!anyMatch)
+            var hasQueryParams = request.QueryParameters != null! && request.QueryParameters.Any();
+            if (string.IsNullOrEmpty(request.Body?.ToString()) && !hasQueryParams)
+            {
                 return GetPreflightResponse<WorkflowTransitionResponse>();
+            }
+
+            var flightOnEventTypes = new List<string> { "OPENED", "ACTIVE" };
+            var data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
+            if (data.Payload == null)
+            {
+                return GetPreflightResponse<WorkflowTransitionResponse>();
+            }
+
+            var result = new WorkflowTransitionResponse(data.Payload);
+
+            if (projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId)
+            {
+                return GetPreflightResponse<WorkflowTransitionResponse>();
+            }
+
+            if ((!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains) || !string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains))
+               && !ProjectFilter(result.ProjectId, projectOptionalRequest?.ProjectNameContains ?? "", projectOptionalRequest.CustomerNameContains ?? ""))
+            {
+                return GetPreflightResponse<WorkflowTransitionResponse>();
+            }
+
+            if (customerOptionalRequest.CustomerId != null && customerOptionalRequest.CustomerId != result.CustomerId)
+            {
+                return GetPreflightResponse<WorkflowTransitionResponse>();
+            }
+
+            if (!string.IsNullOrEmpty(workflowOptionalRequest.WorkflowStep))
+            {
+                var anyMatch = data.Payload.Events
+                    .Where(e => flightOnEventTypes.Contains(e.Type))
+                    .SelectMany(e => e.Tasks)
+                    .Any(t =>
+                    {
+                        var payloadName = t.Step.WorkflowStepName ?? t.Step.WorkflowStep;
+
+                        return string.Equals(payloadName, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase)
+                               || (payloadName != null && payloadName.StartsWith(workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase));
+                    });
+
+                if (!anyMatch)
+                    return GetPreflightResponse<WorkflowTransitionResponse>();
+            }
+
+            if (data.Parameters.ContainsKey("xtmCustomerId"))
+            {
+                var customerId = data.Parameters["xtmCustomerId"];
+                result.CustomerId = customerId;
+            }
+
+            return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
+            {
+                HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
+                Result = result
+            });
         }
-        
-        if(data.Parameters.ContainsKey("xtmCustomerId"))
+        catch (Exception ex)
         {
-            var customerId = data.Parameters["xtmCustomerId"];
-            result.CustomerId = customerId;
+            var queryParams = String.Join(", ", request.QueryParameters.Select(kv => $"{kv.Key}: {kv.Value}"));
+            InvocationContext.Logger?.LogError($"[XTM_OnWorkflowTransitionManual_Callback]  URL params: {queryParams}; Body: {request.Body?.ToString()}; Stack trace: {ex.StackTrace?.ToString()}", []);
+
+            var response = new HttpResponseMessage(statusCode: HttpStatusCode.BadRequest)
+            {
+                Content = new StringContent($"Error processing webhook: {ex.Message}. Stack trace: {ex.StackTrace?.ToString()}")
+            };
+
+            return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
+            {
+                HttpResponseMessage = response,
+                Result = null,
+                ReceivedWebhookRequestType = WebhookRequestType.Preflight,
+            });
         }
-        
-        return Task.FromResult(new WebhookResponse<WorkflowTransitionResponse>
-        {
-            HttpResponseMessage = new HttpResponseMessage(statusCode: HttpStatusCode.OK),
-            Result = result
-        });
     }
 
     //[Webhook("On job finished (manual)", Description = "On a specific job finished (manual)")]
