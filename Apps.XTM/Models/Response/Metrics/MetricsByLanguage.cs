@@ -17,54 +17,54 @@ namespace Apps.XTM.Models.Response.Metrics
     {
         [Display("Ice match words")]
         [JsonProperty("iceMatchWords")]
-        public int iceMatchWords { get; set; }
+        public double? iceMatchWords { get; set; }
 
         [Display("Low fuzzy match words")]
         [JsonProperty("lowFuzzyMatchWords")]
-        public int lowFuzzyMatchWords { get; set; }
+        public double? lowFuzzyMatchWords { get; set; }
 
         [Display("Medium fuzzy match words")]
         [JsonProperty("mediumFuzzyMatchWords")]
-        public int mediumFuzzyMatchWords { get; set; }
+        public double? mediumFuzzyMatchWords { get; set; }
 
         [Display("High fuzzy match words")]
         [JsonProperty("highFuzzyMatchWords")]
-        public int highFuzzyMatchWords { get; set; }
+        public double? highFuzzyMatchWords { get; set; }
 
         [Display("Repeat words")]
         [JsonProperty("repeatsWords")]
-        public int repeatsWords { get; set; }
+        public double? repeatsWords { get; set; }
 
         [Display("Leveraged words")]
         [JsonProperty("leveragedWords")]
-        public int leveragedWords { get; set; }
+        public double? leveragedWords { get; set; }
 
         [Display("Low fuzzy repeat words")]
         [JsonProperty("lowFuzzyRepeatsWords")]
-        public int lowFuzzyRepeatsWords { get; set; }
+        public double? lowFuzzyRepeatsWords { get; set; }
 
         [Display("Medium fuzzy repeat words")]
         [JsonProperty("mediumFuzzyRepeatsWords")]
-        public int mediumFuzzyRepeatsWords { get; set; }
+        public double? mediumFuzzyRepeatsWords { get; set; }
 
         [Display("High fuzzy repeat words")]
         [JsonProperty("highFuzzyRepeatsWords")]
-        public int highFuzzyRepeatsWords { get; set; }
+        public double? highFuzzyRepeatsWords { get; set; }
 
         [Display("Non translatable words")]
         [JsonProperty("nonTranslatableWords")]
-        public int nonTranslatableWords { get; set; }
+        public double? nonTranslatableWords { get; set; }
 
         [Display("Total words")]
         [JsonProperty("totalWords")]
-        public int totalWords { get; set; }
+        public double? totalWords { get; set; }
 
         [Display("Machine translation words")]
         [JsonProperty("machineTranslationWords")]
-        public int machineTranslationWords { get; set; }
+        public double? machineTranslationWords { get; set; }
 
         [Display("No match words")]
         [JsonProperty("noMatchWords")]
-        public int noMatchWords { get; set; }
+        public double? noMatchWords { get; set; }
     }
 }
