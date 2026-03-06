@@ -9,6 +9,6 @@ namespace Apps.XTM.Models.Response.Metrics
 
         [Display("Total words")]
 
-        public int? TotalWords { get; set; }
+        public double? TotalWords { get; set; }
     }
 }
