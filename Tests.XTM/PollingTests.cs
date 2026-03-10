@@ -5,6 +5,7 @@ using Apps.XTM.Polling.Models.Memory;
 using Apps.XTM.Models.Request.Projects;
 using Blackbird.Applications.Sdk.Common.Polling;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Apps.XTM.Models.Request;
 
 namespace Tests.XTM;
 
@@ -85,5 +86,27 @@ public class PollingTests : TestBaseMultipleConnections
         // Assert
         PrintResult(result);
         Assert.IsNotNull(result);
+    }
+
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
+    public async Task OnWorkflowTransition_IsSuccess(InvocationContext context)
+    {
+        // Arrange
+        var polling = new PollingList(context);
+        var request = new PollingEventRequest<WorkflowTransitionMemory>
+        {
+            Memory = new WorkflowTransitionMemory()
+        };
+        var input = new WorkflowTransitionPollingRequest
+        {
+            CustomerIds = ["2725347"],
+            WorkflowSteps = ["Review by TAUS", "TAUS Review"] };
+
+        // Act
+        var result = await polling.OnWorkflowTransition(request, input);
+
+        // Assert
+        PrintResult(result);
+        Assert.IsTrue(result.FlyBird);
     }
 }
