@@ -286,7 +286,6 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             var queryParams = new Dictionary<string, string?>
             {
                 { "fetchLevel", "STEPS" },
-                { "stepReferenceNames", string.Join(",", input.WorkflowSteps) }
             };
 
             var statusRequest = new XTMRequest(new()
@@ -298,7 +297,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             var statusResponse = await Client.ExecuteXtm<ProjectDetailedStatusResponse>(statusRequest);
 
             var jobsInSteps = statusResponse.Jobs
-                .Where(j => j.Steps.Count > 0 && j.Steps.Any(s => s.Status == "IN_PROGRESS"));
+                .Where(j => j.Steps.Any(s => s.Status == "IN_PROGRESS" && input.WorkflowSteps.Any(ws => s.DisplayStepName.StartsWith(s.DisplayStepName))));
 
             foreach (var job in jobsInSteps)
             {
