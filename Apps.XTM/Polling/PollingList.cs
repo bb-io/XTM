@@ -1,15 +1,20 @@
 using System.Globalization;
 using Apps.XTM.Constants;
 using Apps.XTM.DataSourceHandlers.EnumHandlers;
+using Apps.XTM.Extensions;
 using Apps.XTM.Invocables;
+using Apps.XTM.Models.Request;
 using Apps.XTM.Models.Request.Projects;
 using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.Polling.Models.Memory;
+using Apps.XTM.Polling.Models.Response;
+using Apps.XTM.RestUtilities;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dictionaries;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Common.Polling;
+using Microsoft.AspNetCore.WebUtilities;
 using RestSharp;
 
 namespace Apps.XTM.Polling;
@@ -226,6 +231,112 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             {
                 Status = projectAnalysisEntity.Status,
                 ProjectID = projectAnalysisEntity.Id
+            }
+        };
+    }
+
+    [PollingEvent("On workflow transition (polling)", "Triggered when new jobs appear in the specified workflow steps")]
+    public async Task<PollingEventResponse<WorkflowTransitionMemory, WorkflowTransitionPollingResponse>> OnWorkflowTransition(
+        PollingEventRequest<WorkflowTransitionMemory> request,
+        [PollingEventParameter] WorkflowTransitionPollingRequest input)
+    {
+        if (input.CustomerIds?.Any() != true && input.ProjectIds?.Any() != true)
+            throw new PluginMisconfigurationException("Please provide either Customer IDs or Project IDs.");
+
+        //
+        // 1. Resolve active project IDs
+        //
+        var activeProjectIds = new List<string>();
+
+        if (input.ProjectIds?.Any() == true)
+        {
+            // Verify provided projects are active
+            var projects = await Client.ExecuteXtmWithJson<List<SimpleProject>>(
+                $"{ApiEndpoints.Projects}?ids={string.Join(",", input.ProjectIds)}",
+                Method.Get, null, Creds);
+
+            activeProjectIds.AddRange(projects
+                .Where(p => string.Equals(p.Activity, "ACTIVE", StringComparison.OrdinalIgnoreCase))
+                .Select(p => p.Id));
+        }
+        else if (input.CustomerIds?.Any() == true)
+        {
+            var page = 1;
+            List<SimpleProject> pageResult;
+            do
+            {
+                pageResult = await Client.ExecuteXtmWithJson<List<SimpleProject>>(
+                    $"{ApiEndpoints.Projects}?activity=ACTIVE&customerIds={string.Join(",", input.CustomerIds)}&page={page}",
+                    Method.Get, null, Creds);
+                activeProjectIds.AddRange(pageResult.Select(p => p.Id));
+                page++;
+            } while (pageResult.Count != 0);
+        }
+
+        //
+        // 2. For each project, get status at STEPS level and collect jobs in target steps
+        //
+        var currentObserved = new HashSet<string>();
+        var newJobsByProject = new Dictionary<string, List<string>>();
+        var token = await Client.GetToken(Creds);
+
+        foreach (var projectId in activeProjectIds)
+        {
+            var projectStatusEndpoint = $"{ApiEndpoints.Projects}/{projectId}/status";
+            var queryParams = new Dictionary<string, string?>
+            {
+                { "fetchLevel", "STEPS" },
+                { "stepReferenceNames", string.Join(",", input.WorkflowSteps) }
+            };
+
+            var statusRequest = new XTMRequest(new()
+            {
+                Url = Creds.Get(CredsNames.Url) + QueryHelpers.AddQueryString(projectStatusEndpoint, queryParams),
+                Method = Method.Get,
+            }, token);
+
+            var statusResponse = await Client.ExecuteXtm<ProjectDetailedStatusResponse>(statusRequest);
+
+            var jobsInSteps = statusResponse.Jobs
+                .Where(j => j.Steps.Count > 0 && j.Steps.Any(s => s.Status == "IN_PROGRESS"));
+
+            foreach (var job in jobsInSteps)
+            {
+                var key = $"{projectId}:{job.JobId}";
+                currentObserved.Add(key);
+
+                if (request.Memory?.ObservedJobs.Contains(key) == false)
+                {
+                    if (!newJobsByProject.ContainsKey(projectId))
+                        newJobsByProject[projectId] = [];
+
+                    newJobsByProject[projectId].Add(job.JobId);
+                }
+            }
+        }
+
+        // 3. First run — build baseline, return preflight
+        if (request.Memory is null)
+        {
+            return new()
+            {
+                FlyBird = false,
+                Memory = new() { ObservedJobs = currentObserved }
+            };
+        }
+
+        // 4. Subsequent runs — detect new jobs
+        return new()
+        {
+            FlyBird = newJobsByProject.Count > 0,
+            Memory = new() { ObservedJobs = currentObserved },
+            Result = new WorkflowTransitionPollingResponse
+            {
+                Projects = newJobsByProject.Select(i => new WorkflowTransitionJobItem
+                {
+                    ProjectId = i.Key,
+                    JobIds = i.Value
+                })
             }
         };
     }
