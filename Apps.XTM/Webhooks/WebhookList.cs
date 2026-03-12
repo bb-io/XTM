@@ -289,7 +289,11 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
         try
         {
             var data = HandleBridgeWebhookRequest<AnalysisFinishedPayload>(request);
-            var result = new AnalysisFinishedResponse(data.Payload!);
+
+            if (data.Payload is null)
+                throw new NullReferenceException("Payload received from bridge is null.");
+
+            var result = new AnalysisFinishedResponse(data.Payload);
 
             if ((projectOptionalRequest.ProjectId != null && projectOptionalRequest.ProjectId != result.ProjectId) ||
                (!string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains) && !result.Customer.Name.Contains(projectOptionalRequest.CustomerNameContains))
@@ -307,10 +311,10 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
         catch (Exception ex)
         {
             var queryParams = String.Join(", ", request.QueryParameters.Select(kv => $"{kv.Key}: {kv.Value}"));
-            InvocationContext.Logger?.LogError($"[XTM_OnAnalysisFinished_Callback]  URL params: {queryParams}; Body: {request.Body?.ToString()}; Stack trace: {ex.StackTrace?.ToString()}", []);
+            InvocationContext.Logger?.LogError($"[XTM_OnAnalysisFinished_Callback] {ex.Message}; URL params: {queryParams}; Body: {request.Body?.ToString()}; Stack trace: {ex.StackTrace?.ToString()}", []);
             throw;
         }
-    }   
+    }
     
     [Webhook("On workflow transition", typeof(WorkflowTransitionedWebhookHandler), 
         Description = "On any transition in active workflow steps")]
