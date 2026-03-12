@@ -549,8 +549,9 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
         
         if (!string.IsNullOrEmpty(body))
         {
-            payload = JsonConvert.DeserializeObject<T>(body)
+            var bridgeWebhookPayload = JsonConvert.DeserializeObject<BridgeWebhookPayload<T>>(body)
                 ?? throw new Exception($"Failed to deserialize webhook payload. Body: {body}");
+            payload = bridgeWebhookPayload.Payload;
         }
 
         var parameters = new Dictionary<string, string>();
