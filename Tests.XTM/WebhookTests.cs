@@ -601,4 +601,27 @@ public class WebhookTests : TestBaseMultipleConnections
         PrintResult(result);
         Assert.AreEqual(WebhookRequestType.Default, result.ReceivedWebhookRequestType);
     }
+
+    [ContextDataSource, TestMethod]
+    public async Task OnProjectFinished_ShouldFlight(InvocationContext context)
+    {
+        // Arrange
+        var webhookList = new WebhookList(context);
+        var jsonPayload = "{\"Parameters\":{\"id\":\"73b9fa64184e3e73b2b27964bfcab4b62d1c13e9278ca353fd9968eded875989\",\"eventType\":\"projectFinished\",\"xtmProjectId\":\"206025963\",\"xtmCustomerId\":\"19\",\"xtmUuid\":\"9befef0f-2ef1-4390-abcf-9c291b960b4d\"},\"Payload\":null}";
+        var request = new WebhookRequest
+        {
+            QueryParameters = new Dictionary<string, string>(),
+            Body = jsonPayload
+        };
+        var projectOptionalRequest = new ProjectOptionalRequest() { ProjectId = "206025963" };
+
+        // Act
+        var result = await webhookList.OnProjectFinished(
+            request,
+            projectOptionalRequest);
+
+        // Assert
+        PrintResult(result);
+        Assert.AreEqual(WebhookRequestType.Default, result.ReceivedWebhookRequestType);
+    }
 }

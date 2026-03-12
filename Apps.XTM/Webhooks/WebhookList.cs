@@ -544,22 +544,33 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
 
     private BridgeWebhookPayload<T> HandleBridgeWebhookRequest<T>(WebhookRequest request)
     {
+        var parameters = new Dictionary<string, string>();
         T? payload = default;
+
+        if (request.QueryParameters != null)
+        {
+            foreach (var (key, value) in request.QueryParameters)
+            {
+                parameters.Add(key, value);
+            }
+        }
+
+        
         var body = request.Body?.ToString();
         
         if (!string.IsNullOrEmpty(body))
         {
             var bridgeWebhookPayload = JsonConvert.DeserializeObject<BridgeWebhookPayload<T>>(body)
                 ?? throw new Exception($"Failed to deserialize webhook payload. Body: {body}");
-            payload = bridgeWebhookPayload.Payload;
-        }
 
-        var parameters = new Dictionary<string, string>();
-        if (request.QueryParameters != null)
-        {
-            foreach (var (key, value) in request.QueryParameters)
+            payload = bridgeWebhookPayload.Payload;
+
+            if (parameters.Count == 0)
             {
-                parameters.Add(key, value);
+                foreach (var (key, value) in bridgeWebhookPayload.Parameters)
+                {
+                    parameters.Add(key, value);
+                }
             }
         }
 
@@ -583,17 +594,16 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
 
     private bool ProjectFilter(string projectId, string projectNameContains, string CustomerNameContains)
     {
+        if (String.IsNullOrEmpty(projectNameContains) && String.IsNullOrEmpty(CustomerNameContains))
+            return true;
+
         var projectInfo = Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{projectId}", Method.Get, null, Creds).Result;
 
         if (!String.IsNullOrEmpty(projectNameContains) && !projectInfo.Name.Contains(projectNameContains))
-        {
             return false;
-        }
 
         if (!String.IsNullOrEmpty(CustomerNameContains) && !projectInfo.CustomerName.Contains(CustomerNameContains))
-        {
             return false;
-        }
 
         return true;
 
