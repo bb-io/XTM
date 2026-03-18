@@ -3,31 +3,22 @@ using Apps.XTM.Extensions;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request;
 using Apps.XTM.Models.Request.Files;
-using Apps.XTM.Models.Request.Jobs;
 using Apps.XTM.Models.Request.Projects;
 using Apps.XTM.Models.Request.Workflows;
+using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.Models.Response.Workflows;
 using Apps.XTM.RestUtilities;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using RestSharp;
-using static System.Net.WebRequestMethods;
 
 namespace Apps.XTM.Actions;
 
-[ActionList]
-public class WorkflowActions : XtmInvocable
+[ActionList("Workflows")]
+public class WorkflowActions(InvocationContext invocationContext) : XtmInvocable(invocationContext)
 {
-    public WorkflowActions(InvocationContext invocationContext) : base(invocationContext)
-    {
-    }
-
-    #region Actions
-
     [Action("List workflows", Description = "List all workflows")]
     public async Task<AllWorkflowsResponse> ListWorkflows()
     {
@@ -67,7 +58,6 @@ public class WorkflowActions : XtmInvocable
         return workflows.First();
     }
 
-
     [Action("Assign to workflow", Description ="Assining users to workflow ")]
     public async Task<WorkflowAssignmentResponse> AssignUserToWorkflow([ActionParameter] WorkflowAssignmentRequest assignmentRequest,
         [ActionParameter] ProjectRequest inputProject)
@@ -94,33 +84,56 @@ public class WorkflowActions : XtmInvocable
         return response;
     }
 
-
-
     [Action("Move jobs to next workflow step", Description = "Moves jobs to the next workflow step in the project")]
-    public async Task<MoveJobsToNextStepResponse> MoveJobsToNextWorkflowStep([ActionParameter] JobsRequest inputJobs,
+    public async Task<MoveJobsToNextStepResponse> MoveJobsToNextWorkflowStep(
         [ActionParameter] ProjectRequest inputProject,
-        [ActionParameter] MailingRequest inputMail)
+        [ActionParameter] MailingRequest inputMail,
+        [ActionParameter] MoveJobsToNextStepRequest inputMove)
     {
-        if (inputJobs?.JobIds == null || !inputJobs.JobIds.Any())
+        var token = await Client.GetToken(Creds);
+
+        var targetJobIds = inputMove.JobIds;
+        if (!string.IsNullOrEmpty(inputMove.CurrentWorkflowStep))
         {
-            throw new PluginMisconfigurationException("Input jobIds can not be empty or null. Please check your input and try again");
+            var projectStatusEndpoint = $"{ApiEndpoints.Projects}/{inputProject.ProjectId}/status?fetchLevel=STEPS";
+            
+            var projectStatusRequest = new XTMRequest(new()
+            {
+                Url = Creds.Get(CredsNames.Url) + projectStatusEndpoint,
+                Method = Method.Get,
+            }, await Client.GetToken(Creds));
+
+            var projectDetailedStatusResponse = await Client.ExecuteXtm<ProjectDetailedStatusResponse>(projectStatusRequest);
+            
+            targetJobIds = projectDetailedStatusResponse?.Jobs?
+                .Where(job => targetJobIds.Contains(job.JobId))
+                .Where(job =>
+                {
+                    var step = job.Steps?.FirstOrDefault(s =>
+                        s.WorkflowStepName.Equals(inputMove.CurrentWorkflowStep, StringComparison.OrdinalIgnoreCase));
+
+                    return step != null && (step.Status is "IN_PROGRESS" or "NOT_STARTED");
+                })
+                .Select(job => job.JobId)
+                .ToList() ?? [];
         }
 
-        var token = await Client.GetToken(Creds);
+        if (targetJobIds.Count == 0)
+            return new();
+
         var request = new XTMRequest(new()
         {
             Url = Creds.Get(CredsNames.Url) + $"{ApiEndpoints.Projects}/{inputProject.ProjectId}/workflow/finish",
             Method = Method.Post
         }, token);
 
-        request.AddQueryParameter("jobIds", string.Join(",", inputJobs.JobIds));
+        request.AddQueryParameter("jobIds", string.Join(",", targetJobIds));
         var mailing = inputMail.Mailing ?? "DISABLED";
         request.AddQueryParameter("mailing", mailing);
 
         var response = await Client.ExecuteXtm<MoveJobsToNextStepResponse>(request);
         return response;
     }
-
 
     [Action("Start workflow in project", Description = "Activate the first workflow step for all jobs in the project")]
     public async Task<StartWorkflowResponse> StartWorkflowInProject([ActionParameter] WorklowLanguagesRequest inputLanguage, 
@@ -139,6 +152,4 @@ public class WorkflowActions : XtmInvocable
 
         return response;
     }
-
-    #endregion
 }
