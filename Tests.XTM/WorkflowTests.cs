@@ -1,8 +1,8 @@
 ﻿using Tests.XTM.Base;
 using Apps.XTM.Actions;
 using Apps.XTM.Models.Request;
-using Apps.XTM.Models.Request.Files;
 using Apps.XTM.Models.Request.Projects;
+using Apps.XTM.Models.Request.Workflows;
 using Blackbird.Applications.Sdk.Common.Invocation;
 
 namespace Tests.XTM;
@@ -16,11 +16,15 @@ public class WorkflowTests : TestBaseMultipleConnections
         // Arrange
         var action = new WorkflowActions(context);
         var project = new ProjectRequest { ProjectId = "" };
-        var jobs = new JobsRequest { JobIds = new List<string> { "" } };
         var mailing = new MailingRequest { Mailing = "DISABLED" };
+        var input = new MoveJobsToNextStepRequest 
+        {
+            JobIds = [],
+            CurrentWorkflowStep = ""
+        };
 
         // Act
-        var response = await action.MoveJobsToNextWorkflowStep(jobs, project, mailing);
+        var response = await action.MoveJobsToNextWorkflowStep(project, mailing, input);
 
         // Assert
         PrintResult(response);
