@@ -4,6 +4,6 @@ namespace Apps.XTM.Models.Response.Workflows;
 
 public class MoveJobsToNextStepResponse
 {
-    [Display("Jobs")]
+    [Display("Moved jobs")]
     public IEnumerable<JobStatus> Jobs { get; set; } = [];
 }
