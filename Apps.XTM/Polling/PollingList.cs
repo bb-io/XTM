@@ -22,12 +22,12 @@ namespace Apps.XTM.Polling;
 [PollingEventList]
 public class PollingList(InvocationContext invocationContext) : XtmInvocable(invocationContext)
 {
-    [PollingEvent("On projects created (polling)", "On any new projects created")]
+    [PollingEvent("On projects created (polling)", "Triggers when new projects are created")]
     public Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsCreated(
         PollingEventRequest<DateMemory> request) => ProcessProjectsPolling(request,
         $"createdDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
 
-    [PollingEvent("On projects updated (polling)", "On any projects are updated")]
+    [PollingEvent("On projects updated (polling)", "Triggers when projects are updated")]
     public async Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsUpdated(
         PollingEventRequest<DateMemory> request,
         [PollingEventParameter] ProjectOptionalRequest projectOptionalRequest)
@@ -86,7 +86,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
         return result;
     }
 
-    [PollingEvent("On projects finished (polling)", "On any projects are finished")]
+    [PollingEvent("On projects finished (polling)", "Triggers when projects are finished")]
     public async Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsFinished(
         PollingEventRequest<DateMemory> request,
         [PollingEventParameter] ProjectOptionalRequest projectOptionalRequest)
@@ -159,7 +159,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
         }
     }
 
-    [PollingEvent("On project status changed (polling)", "On status of the specific project changed")]
+    [PollingEvent("On project status changed (polling)", "Triggers when a project's status changes")]
     public async Task<PollingEventResponse<ProjectStatusMemory, SimpleProject>> OnProjectStatusChanged(
         PollingEventRequest<ProjectStatusMemory> request,
         [PollingEventParameter] ProjectRequest project,
@@ -196,7 +196,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
         };
     }
 
-    [PollingEvent("On analysis finished (polling)", "On analysis of a specific project finished")]
+    [PollingEvent("On analysis finished (polling)", "Triggers when project analysis is finished")]
     public async Task<PollingEventResponse<AnalysisStatusMemory, ProjectAnalysis>> OnProjectAnalysisFinished(
        PollingEventRequest<AnalysisStatusMemory> request,
        [PollingEventParameter] ProjectRequest project)
@@ -235,7 +235,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
         };
     }
 
-    [PollingEvent("On workflow transition (polling)", "Triggered when new jobs appear in the specified workflow steps")]
+    [PollingEvent("On workflow transition (polling)", "Triggers when new jobs appear in the selected workflow steps")]
     public async Task<PollingEventResponse<WorkflowTransitionMemory, WorkflowTransitionPollingResponse>> OnWorkflowTransition(
         PollingEventRequest<WorkflowTransitionMemory> request,
         [PollingEventParameter] WorkflowTransitionPollingRequest input)

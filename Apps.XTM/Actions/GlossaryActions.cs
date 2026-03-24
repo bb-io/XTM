@@ -33,7 +33,7 @@ namespace Apps.XTM.Actions
             _fileManagementClient = fileManagementClient;
         }
 
-        [Action("Export glossary", Description = "Export glossary")]
+        [Action("Export glossary", Description = "Export a glossary")]
         public async Task<ExportGlossaryResponse> ExportGlossary([ActionParameter] GlossaryRequest request)
         {
             var exportOptions = new xtmExportTermAPI[] {
@@ -67,7 +67,7 @@ namespace Apps.XTM.Actions
             return new ExportGlossaryResponse() { File = await XTMToBlackbirdGlossary(resultFile.@return.First()) };
         }
 
-        [Action("Import glossary", Description = "Import glossary")]
+        [Action("Import glossary", Description = "Import a glossary")]
         public async Task ImportGlossary([ActionParameter] ImportGlossaryRequest request)
         {
             var xtmGlossary = await BlackbirdToXTMGlossary(request.File);

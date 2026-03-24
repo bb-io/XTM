@@ -33,7 +33,7 @@ public class TranslationMemoryActions : XtmInvocable
 
     #region Actions
 
-    [Action("Generate TM file", Description = "Generate translation memory file")]
+    [Action("Generate TM file", Description = "Generate a translation memory file")]
     public Task<TranslationMemoryResponse> GenerateTMFile([ActionParameter] GenerateTMRequest input)
     {
         input.fileType = string.IsNullOrEmpty(input.fileType) ? "TMX" : input.fileType;
@@ -43,7 +43,7 @@ public class TranslationMemoryActions : XtmInvocable
             Creds);
     }
 
-    [Action("Download TM file", Description = "Download generated translation memory file")]
+    [Action("Download TM file", Description = "Download a generated translation memory file")]
     public async Task<FileResponse> DownloadTMFile([ActionParameter] [Display("File ID")] string fileId)
     {
         var response = await Client.ExecuteXtmWithJson($"{ApiEndpoints.TMFiles}/{fileId}/download",
@@ -58,7 +58,7 @@ public class TranslationMemoryActions : XtmInvocable
     }
 
 
-    [Action("Import TM file", Description = "Import translation memory file")]
+    [Action("Import TM file", Description = "Import a translation memory file")]
     public async Task<ImportTMResponse> ImportTMFile([ActionParameter] ImportTMRequest request)
     {
         var baseUrl = Creds.Get(CredsNames.Url).Value;

@@ -18,7 +18,7 @@ public class CustomersActions : XtmInvocable
 
     #region Actions
 
-    [Action("List customers", Description = "List all customers")]
+    [Action("Search customers", Description = "Search customers")]
     public async Task<ListCustomersResponse> ListCustomers()
     {
         var endpoint = $"{ApiEndpoints.Customers}?activity=ALL";
@@ -30,7 +30,7 @@ public class CustomersActions : XtmInvocable
         return new(response);
     }
 
-    [Action("Create customer", Description = "Create new customer")]
+    [Action("Create customer", Description = "Create a customer")]
     public Task<ManageCustomersResponse> CreateCustomer([ActionParameter] CreateCustomerRequest input)
     {
         return Client.ExecuteXtmWithJson<ManageCustomersResponse>($"{ApiEndpoints.Customers}",
@@ -39,7 +39,7 @@ public class CustomersActions : XtmInvocable
             Creds);
     }
 
-    [Action("Get customer", Description = "Get specific customer by ID")]
+    [Action("Get customer", Description = "Get details for a customer")]
     public Task<CustomerResponse> GetCustomer([ActionParameter] CustomerRequest customer)
     {
         return Client.ExecuteXtmWithJson<CustomerResponse>($"{ApiEndpoints.Customers}/{customer.CustomerId}",
@@ -48,7 +48,7 @@ public class CustomersActions : XtmInvocable
             Creds);
     }
 
-    [Action("Update customer", Description = "Update specific customer")]
+    [Action("Update customer", Description = "Update a customer")]
     public Task<ManageCustomersResponse> UpdateCustomer(
         [ActionParameter] CustomerRequest customer,
         [ActionParameter] UpdateCustomerRequest input)
@@ -59,7 +59,7 @@ public class CustomersActions : XtmInvocable
             Creds);
     }
 
-    [Action("Delete customer", Description = "Delete specific customer")]
+    [Action("Delete customer", Description = "Delete a customer")]
     public Task DeleteCustomer([ActionParameter] CustomerRequest customer)
     {
         return Client.ExecuteXtmWithJson($"{ApiEndpoints.Customers}/{customer.CustomerId}",
