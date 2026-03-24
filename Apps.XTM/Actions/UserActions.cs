@@ -14,8 +14,8 @@ public class UserActions : XtmInvocable
     public UserActions(InvocationContext invocationContext) : base(invocationContext)
     {
     }
-    
-    [Action("List users", Description = "List all users")]
+
+    [Action("Search users", Description = "Search users")]
     public async Task<AllUsersResponse> ListUsers()
     {
         var response = await Client.ExecuteXtmWithJson<List<UserResponse>>($"{ApiEndpoints.Users}",
@@ -25,8 +25,8 @@ public class UserActions : XtmInvocable
 
         return new(response);
     }
-    
-    [Action("Get user", Description = "Get user by id")]
+
+    [Action("Get user", Description = "Get details for a user")]
     public async Task<UserResponse> GetUserById(GetUserByIdRequest request)
     {
         return await base.GetUserById(request.Id);

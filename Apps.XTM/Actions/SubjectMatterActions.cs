@@ -17,16 +17,16 @@ public class SubjectMatterActions : XtmInvocable
     {
     }
 
-    [Action("List subject matters", Description = "List all subject matters")]
+    [Action("Search subject matters", Description = "Search subject matters")]
     public async Task<ListSubjectMattersResponse> ListSubjectMatters(
         [ActionParameter] ListSubjectMattersRequest input,
-        [ActionParameter] [Display("Subject matter IDs")] IEnumerable<string>? subjectMatterIds)
+        [ActionParameter][Display("Subject matter IDs")] IEnumerable<string>? subjectMatterIds)
     {
         var endpoint = ApiEndpoints.SubjectMatters;
 
         if (subjectMatterIds != null)
             endpoint += $"?{string.Join("&", subjectMatterIds.Select(x => $"ids={x}"))}";
-        
+
         var response = await Client.ExecuteXtmWithJson<List<SubjectMatterResponse>>(endpoint.WithQuery(input),
             Method.Get,
             null,

@@ -15,20 +15,20 @@ public class ProjectTemplateActions : XtmInvocable
     public ProjectTemplateActions(InvocationContext invocationContext) : base(invocationContext)
     {
     }
-    
-    [Action("Create project template", Description = "Create a new project template")]
+
+    [Action("Create project template", Description = "Create a project template")]
     public Task<SimpleProjectTemplateResponse> CreateProjectTemplate([ActionParameter] CreateProjectTemplateRequest input)
     {
         if (input.TemplateType == "CUSTOMER" && input.CustomerId is null)
             throw new("You must specify customer ID for creating Customer templates");
-        
+
         return Client.ExecuteXtmWithJson<SimpleProjectTemplateResponse>(ApiEndpoints.Templates,
             Method.Post,
             input,
             Creds);
-    }    
-    
-    [Action("List project templates", Description = "List all project templates")]
+    }
+
+    [Action("Search project templates", Description = "Search project templates")]
     public async Task<ListTemplatesResponse> ListProjectTemplates()
     {
         var endpoint = $"{ApiEndpoints.Projects}/templates";

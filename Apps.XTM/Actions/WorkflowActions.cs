@@ -19,7 +19,7 @@ namespace Apps.XTM.Actions;
 [ActionList("Workflows")]
 public class WorkflowActions(InvocationContext invocationContext) : XtmInvocable(invocationContext)
 {
-    [Action("List workflows", Description = "List all workflows")]
+    [Action("Search workflows", Description = "Search workflows")]
     public async Task<AllWorkflowsResponse> ListWorkflows()
     {
         var response = await Client.ExecuteXtmWithJson<List<WorkflowResponse>>($"{ApiEndpoints.Workflows}",
@@ -30,7 +30,7 @@ public class WorkflowActions(InvocationContext invocationContext) : XtmInvocable
         return new(response);
     }
 
-    [Action("List workflow steps", Description = "List all workflow steps")]
+    [Action("Search workflow steps", Description = "Search workflow steps")]
     public async Task<AllWorkflowStepsResponse> ListWorkflowSteps()
     {
         var endpoint = $"{ApiEndpoints.Workflows}{ApiEndpoints.Steps}";
@@ -42,7 +42,7 @@ public class WorkflowActions(InvocationContext invocationContext) : XtmInvocable
         return new(response);
     }
 
-    [Action("Get workflow by ID", Description = "Get workflow by ID")]
+    [Action("Get workflow by ID", Description = "Get workflow details by ID")]
     public async Task<WorkflowResponse> GetWorkflow([ActionParameter, Display("Workflow ID")] string workflowId)
     {
         var workflows = await Client.ExecuteXtmWithJson<List<WorkflowResponse>>($"{ApiEndpoints.Workflows}?ids={workflowId}",
@@ -50,7 +50,7 @@ public class WorkflowActions(InvocationContext invocationContext) : XtmInvocable
                          null,
                          Creds);
 
-        if(workflows == null || !workflows.Any())
+        if (workflows == null || !workflows.Any())
         {
             throw new Exception($"Workflow with ID {workflowId} not found");
         }
@@ -58,7 +58,7 @@ public class WorkflowActions(InvocationContext invocationContext) : XtmInvocable
         return workflows.First();
     }
 
-    [Action("Assign to workflow", Description ="Assining users to workflow ")]
+    [Action("Assign to workflow", Description = "Assign users to workflow steps in a project")]
     public async Task<WorkflowAssignmentResponse> AssignUserToWorkflow([ActionParameter] WorkflowAssignmentRequest assignmentRequest,
         [ActionParameter] ProjectRequest inputProject)
     {
@@ -79,12 +79,12 @@ public class WorkflowActions(InvocationContext invocationContext) : XtmInvocable
             bundleIds = assignmentRequest.BundleIds ?? new List<string>()
         }
     };
-        var response = await Client.ExecuteXtmWithJson<WorkflowAssignmentResponse>(endpoint,Method.Post,requestBody,Creds);
+        var response = await Client.ExecuteXtmWithJson<WorkflowAssignmentResponse>(endpoint, Method.Post, requestBody, Creds);
 
         return response;
     }
 
-    [Action("Move jobs to next workflow step", Description = "Moves jobs to the next workflow step in the project")]
+    [Action("Move jobs to next workflow step", Description = "Move jobs to the next workflow step in a project")]
     public async Task<MoveJobsToNextStepResponse> MoveJobsToNextWorkflowStep(
         [ActionParameter] ProjectRequest inputProject,
         [ActionParameter] MailingRequest inputMail,
@@ -96,7 +96,7 @@ public class WorkflowActions(InvocationContext invocationContext) : XtmInvocable
         if (!string.IsNullOrEmpty(inputMove.CurrentWorkflowStep))
         {
             var projectStatusEndpoint = $"{ApiEndpoints.Projects}/{inputProject.ProjectId}/status?fetchLevel=STEPS";
-            
+
             var projectStatusRequest = new XTMRequest(new()
             {
                 Url = Creds.Get(CredsNames.Url) + projectStatusEndpoint,
@@ -104,7 +104,7 @@ public class WorkflowActions(InvocationContext invocationContext) : XtmInvocable
             }, await Client.GetToken(Creds));
 
             var projectDetailedStatusResponse = await Client.ExecuteXtm<ProjectDetailedStatusResponse>(projectStatusRequest);
-            
+
             targetJobIds = projectDetailedStatusResponse?.Jobs?
                 .Where(job => targetJobIds.Contains(job.JobId))
                 .Where(job =>
@@ -135,8 +135,8 @@ public class WorkflowActions(InvocationContext invocationContext) : XtmInvocable
         return response;
     }
 
-    [Action("Start workflow in project", Description = "Activate the first workflow step for all jobs in the project")]
-    public async Task<StartWorkflowResponse> StartWorkflowInProject([ActionParameter] WorklowLanguagesRequest inputLanguage, 
+    [Action("Start workflow in project", Description = "Start workflow steps for jobs in a project")]
+    public async Task<StartWorkflowResponse> StartWorkflowInProject([ActionParameter] WorklowLanguagesRequest inputLanguage,
         [ActionParameter] ProjectRequest inputProject,
         [ActionParameter] JobsRequest inputJob)
     {
@@ -148,7 +148,7 @@ public class WorkflowActions(InvocationContext invocationContext) : XtmInvocable
             targetLanguages = inputLanguage.TargetLanguages
         };
 
-        var response = await Client.ExecuteXtmWithJson<StartWorkflowResponse>(endpoint,Method.Post,queryParams,Creds);
+        var response = await Client.ExecuteXtmWithJson<StartWorkflowResponse>(endpoint, Method.Post, queryParams, Creds);
 
         return response;
     }

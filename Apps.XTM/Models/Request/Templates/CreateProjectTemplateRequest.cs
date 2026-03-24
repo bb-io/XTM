@@ -11,7 +11,7 @@ public class CreateProjectTemplateRequest
     [DataSource(typeof(ProjectDataHandler))]
     public string SourceProjectId { get; set; }
     
-    [Display("TemplateType")]
+    [Display("Template type")]
     [DataSource(typeof(TemplateTypeDataHandler))]
     public string TemplateType { get; set; }
     

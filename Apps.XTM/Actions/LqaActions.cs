@@ -19,7 +19,7 @@ namespace Apps.XTM.Actions
     [ActionList]
     public class LqaActions(InvocationContext invocationContext) : XtmInvocable(invocationContext)
     {
-        [Action("Search LQA reports", Description = "Define criteria to search LQA reports")]
+        [Action("Search LQA reports", Description = "Search LQA reports")]
         public async Task<List<LqaResponse>> SearchLqa([ActionParameter] LQARequest input)
         {
             var Params = new List<string>();

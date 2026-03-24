@@ -33,7 +33,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 {
     private readonly IFileManagementClient _fileManagementClient = fileManagementClient;
 
-    [Action("Generate files", Description = "Generate project files")]
+    [Action("Generate files", Description = "Generate files for a project")]
     public async Task<ListGeneratedFilesResponse> GenerateFiles(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] GenerateFileRequest input)
@@ -135,7 +135,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
     }
 
     [Action("Download source files as ZIP",
-        Description = "Download the source files for project or specific jobs as ZIP")]
+        Description = "Download source files for a project or selected jobs")]
     public async Task<FileResponse> DownloadSourceFilesAsZip(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] JobsRequest jobs)
@@ -149,7 +149,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         return new(file);
     }
 
-    [Action("Download source files", Description = "Download the source files for project or specific jobs")]
+    [Action("Download source files", Description = "Download source files for a project or selected jobs")]
     public async Task<DownloadFilesResponse<XtmSourceFileDescription>> DownloadSourceFiles(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] JobsRequest jobsRequest)
@@ -217,7 +217,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         return new(sourceFiles);
     }
 
-    [Action("Download project file", Description = "Download a single, generated project file based on its ID")]
+    [Action("Download project file", Description = "Download a generated project file")]
     public async Task<FileWithData<XtmProjectFileDescription>> DownloadProjectFile(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] DownloadProjectFileRequest input)
@@ -306,7 +306,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         };
     }
 
-    [Action("Download all project files", Description = "Download all of the project files")]
+    [Action("Download all project files", Description = "Download project files")]
     public async Task<DownloadFilesResponse<XtmProjectFileDescription>> DownloadProjectFiles(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] DownloadAllProjectFilesRequest input)
@@ -416,7 +416,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         return new DownloadFilesResponse<XtmProjectFileDescription>(result);
     }
 
-    [Action("Download translated files", Description = "Download project's translated files")]
+    [Action("Download translated files", Description = "Download translated files from a project")]
     public async Task<DownloadFilesResponse<XtmProjectFileDescription>> DownloadTranslations(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] DownloadTranslationsRequest input)
@@ -495,7 +495,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         return new DownloadFilesResponse<XtmProjectFileDescription>(result);
     }
 
-    [Action("Upload source file", Description = "Upload source files for a project")]
+    [Action("Upload source file", Description = "Upload a source file to a project")]
     public async Task<CreateProjectResponse> UploadSourceFile(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] UploadSourceFileRequest input)
@@ -576,7 +576,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
     }
 
     [Action("Upload reference file",
-    Description = "Upload a reference file to an XTM project")]
+    Description = "Upload a reference file to a project")]
     public async Task UploadReferenceFile(
     [ActionParameter] ProjectRequest project,
     [ActionParameter] UploadReferenceFileRequest input)
@@ -612,7 +612,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         }
     }
 
-    [Action("Upload translation file", Description = "Upload translation file to project")]
+    [Action("Upload translation file", Description = "Upload a translation file to a project")]
     public async Task<UploadTranslationFileResponse> UploadTranslationFile(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] UploadTranslationFileRequest input,

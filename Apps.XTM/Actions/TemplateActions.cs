@@ -16,7 +16,7 @@ namespace Apps.XTM.Actions
 
         #region Actions
 
-        [Action("Get template by ID", Description = "Get template by ID")]
+        [Action("Get template by ID", Description = "Get template details by ID")]
         public async Task<ProjectTemplate> GetTemplate([ActionParameter, Display("Template ID")] string templateId)
         {
             return await Client.ExecuteXtmWithJson<ProjectTemplate>($"{ApiEndpoints.Projects}{ApiEndpoints.Templates}/{templateId}",

@@ -43,7 +43,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
     //    });
     //}
 
-    [Webhook("On workflow transition (manual)", Description = "On any transition in active workflow steps (manual)")]
+    [Webhook("On workflow transition (manual)", Description = "Triggers when jobs move into active workflow steps")]
     public Task<WebhookResponse<WorkflowTransitionResponse>> OnWorkflowTransitionManual(WebhookRequest request,
         [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
         [WebhookParameter] CustomerOptionalRequest customerOptionalRequest,
@@ -282,7 +282,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
     #region Bridge webhooks
 
     [Webhook("On analysis finished", typeof(AnalysisFinishedWebhookHandler),
-        Description = "On project analysis finished")]
+        Description = "Triggers when project analysis is finished")]
     public Task<WebhookResponse<AnalysisFinishedResponse>> OnAnalysisFinished(WebhookRequest request,
         [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
     {
@@ -317,7 +317,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
     }
     
     [Webhook("On workflow transition", typeof(WorkflowTransitionedWebhookHandler), 
-        Description = "On any transition in active workflow steps")]
+        Description = "Triggers when jobs move into active workflow steps")]
     public Task<WebhookResponse<WorkflowTransitionResponse>> OnWorkflowTransition(WebhookRequest request,
         [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
         [WebhookParameter] CustomerOptionalRequest customerOptionalRequest,
@@ -368,7 +368,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
         });
     } 
     
-    [Webhook("On job finished", typeof(JobFinishedWebhookHandler), Description = "On a specific job finished")]
+    [Webhook("On job finished", typeof(JobFinishedWebhookHandler), Description = "Triggers when a job is finished")]
     public Task<WebhookResponse<JobFinishedPayload>> OnJobFinished(WebhookRequest request,
         [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
         [WebhookParameter] JobOptionalRequest jobOptionalRequest)
@@ -414,7 +414,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
         }
     }
     
-    [Webhook("On project created", typeof(ProjectCreatedWebhookHandler), Description = "On a new project created")]
+    [Webhook("On project created", typeof(ProjectCreatedWebhookHandler), Description = "Triggers when a project is created")]
     public Task<WebhookResponse<ProjectCreatedPayload>> OnProjectCreated(WebhookRequest request)
     {
         var data = HandleBridgeWebhookRequest<object>(request);
@@ -431,7 +431,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
     }    
     
     [Webhook("On project accepted", typeof(ProjectAcceptedWebhookHandler),
-        Description = "On a specific project accepted")]
+        Description = "Triggers when a project is accepted")]
     public Task<WebhookResponse<ProjectAcceptedPayload>> OnProjectAccepted(WebhookRequest request,
         [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
     {
@@ -462,7 +462,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
     } 
     
     [Webhook("On project finished", typeof(ProjectFinishedWebhookHandler),
-        Description = "On a specific project finished")]
+        Description = "Triggers when a project is finished")]
     public Task<WebhookResponse<ProjectFinishedPayload>> OnProjectFinished(WebhookRequest request,
         [WebhookParameter] ProjectOptionalRequest projectOptionalRequest)
     {
@@ -502,7 +502,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
     }
     
     [Webhook("On invoice status changed", typeof(InvoiceStatusChangedWebhookHandler), 
-        Description = "On invoice changed for any project")]
+        Description = "Triggers when an invoice status changes")]
     public Task<WebhookResponse<InvoiceStatusChangedPayload>> OnInvoiceStatusChanged(WebhookRequest request,
         [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
         [WebhookParameter] InvoiceOptionalRequest invoiceStatusChangedRequest)

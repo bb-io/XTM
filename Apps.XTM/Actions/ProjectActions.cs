@@ -24,8 +24,8 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
     : XtmInvocable(invocationContext)
 {
     private const int PageSize = 100;
-    
-    [Action("List projects", Description = "List all projects")]
+
+    [Action("Search projects", Description = "Search projects")]
     public async Task<ListProjectsResponse> ListProjects([ActionParameter] ListProjectsRequest request)
     {
         var page = 1;
@@ -39,7 +39,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
                 { "page", page.ToString() },
                 { "pageSize", PageSize.ToString() }
             };
-            
+
             if (request.Name != null)
             {
                 queryParams.Add("name", request.Name);
@@ -108,13 +108,13 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             {
                 return new ListProjectsResponse(allProjects.Where(x => x.Name == request.Name).ToList());
             }
-            return new ListProjectsResponse(new List<SimpleProject>());            
+            return new ListProjectsResponse(new List<SimpleProject>());
         }
 
         return new ListProjectsResponse(allProjects);
     }
 
-    [Action("Get project", Description = "Get project")]
+    [Action("Get project", Description = "Get details for a project")]
     public Task<FullProject> GetProject([ActionParameter] ProjectRequest project)
     {
         return Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.ProjectId}",
@@ -148,9 +148,9 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
                 "callbacks.projectFinishedCallback",
                 input.ProjectFinishedCallback ?? InvocationContext.GetBridgeUrl(EventNames.ProjectFinished)
             },
-            { 
-                "callbacks.jobFinishedCallback", 
-                input.JobFinishedCallback ?? InvocationContext.GetBridgeUrl(EventNames.JobFinished) 
+            {
+                "callbacks.jobFinishedCallback",
+                input.JobFinishedCallback ?? InvocationContext.GetBridgeUrl(EventNames.JobFinished)
             },
             {
                 "callbacks.analysisFinishedCallback",
@@ -175,7 +175,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
         if (!string.IsNullOrEmpty(input.ProjectFilterTemplateId))
             parameters.Add("filterTemplateId", input.ProjectFilterTemplateId);
 
-        try 
+        try
         {
             return await Client.ExecuteXtmWithFormData<CreateProjectResponse>(
                 ApiEndpoints.Projects,
@@ -194,11 +194,11 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
                 throw new PluginApplicationException(e.Message);
             }
         }
-        
+
     }
 
     [Action("Create new project from template",
-        Description = "Create a new project using an existing project template")]
+        Description = "Create a project from a template")]
     public Task<CreateProjectResponse> CreateProjectFromTemplate(
         [ActionParameter] CustomerRequest customerInput,
         [ActionParameter] CreateProjectFromTemplateRequest input)
@@ -221,8 +221,8 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
                 "callbacks.projectFinishedCallback",
                 input.ProjectFinishedCallback ?? InvocationContext.GetBridgeUrl(EventNames.ProjectFinished)
             },
-            { 
-                "callbacks.jobFinishedCallback", 
+            {
+                "callbacks.jobFinishedCallback",
                 input.JobFinishedCallback ?? InvocationContext.GetBridgeUrl(EventNames.JobFinished) },
             {
                 "callbacks.analysisFinishedCallback",
@@ -242,28 +242,28 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
         {
             parameters.Add("dueDate", input.DueDate.Value.ToString("yyyy-MM-ddThh:mm:ssZ"));
         }
-        try 
+        try
         {
             return Client.ExecuteXtmWithFormData<CreateProjectResponse>(ApiEndpoints.Projects,
                 Method.Post,
                 parameters,
                 Creds);
-        } 
-        catch (Exception e) 
+        }
+        catch (Exception e)
         {
             if (e.Message.Contains("Incorrect parameters"))
             {
                 throw new PluginMisconfigurationException("Please check the input values on this action." + e.Message);
             }
-            else 
+            else
             {
                 throw new PluginApplicationException(e.Message);
             }
         }
-        
+
     }
 
-    [Action("Clone project", Description = "Create a new project based on the provided project")]
+    [Action("Clone project", Description = "Create a new project from an existing project")]
     public Task<CreateProjectResponse> CloneProject([ActionParameter] CloneProjectRequest input)
     {
         var parameters = new Dictionary<string, string>
@@ -280,7 +280,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             Creds);
     }
 
-    [Action("Update project", Description = "Update specific project")]
+    [Action("Update project", Description = "Update a project")]
     public Task<ManageEntityResponse> UpdateProject(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] UpdateProjectRequest input)
@@ -306,7 +306,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
         );
     }
 
-    [Action("Add project target languages", Description = "Add more target languages to a specific project")]
+    [Action("Add project target languages", Description = "Add target languages to a project")]
     public Task<CreateProjectResponse> AddTargetLanguages(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] TargetLanguagesRequest input)
@@ -318,7 +318,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             Creds);
     }
 
-    [Action("Delete project target languages", Description = "Delete specific target languages from a project")]
+    [Action("Delete project target languages", Description = "Remove target languages from a project")]
     public Task<ManageEntityResponse> DeleteTargetLanguages(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] TargetLanguagesRequest input)
@@ -330,7 +330,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             Creds);
     }
 
-    [Action("Reanalyze project", Description = "Reanalyze specific project")]
+    [Action("Reanalyze project", Description = "Reanalyze a project")]
     public Task<ManageEntityResponse> ReanalyzeProject(
         [ActionParameter] ProjectRequest project)
     {
@@ -341,7 +341,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             Creds);
     }
 
-    [Action("Delete project", Description = "Delete specific project")]
+    [Action("Delete project", Description = "Delete a project")]
     public Task DeleteProject([ActionParameter] ProjectRequest project)
     {
         return Client.ExecuteXtmWithJson($"{ApiEndpoints.Projects}/{project.ProjectId}",
@@ -350,22 +350,22 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             Creds);
     }
 
-    [Action("Get project estimates", Description = "Get specific project estimates")]
+    [Action("Get project estimates", Description = "Get estimates for a project")]
     public async Task<ProjectEstimates> GetProjectEstimates([ActionParameter] ProjectRequest project)
     {
         if (string.IsNullOrWhiteSpace(project?.ProjectId))
             throw new PluginMisconfigurationException("Project ID is not provided. Please specify a valid Project ID.");
 
-        var estimates = await Client.ExecuteXtmWithJson<ProjectEstimates>($"{ApiEndpoints.Projects}/{project.ProjectId}/proposal",Method.Get, null,Creds);
+        var estimates = await Client.ExecuteXtmWithJson<ProjectEstimates>($"{ApiEndpoints.Projects}/{project.ProjectId}/proposal", Method.Get, null, Creds);
 
         estimates.DeliveryDateFormatted = estimates.DeliveryDate is > 0 ? DateTime.UnixEpoch
           .AddMilliseconds(estimates.DeliveryDate!.Value)
-          .ToUniversalTime(): (DateTime?)null;
+          .ToUniversalTime() : (DateTime?)null;
 
         return estimates;
     }
 
-    [Action("Download metrics", Description = "Download metrics file for a specific file in XLSX format")]
+    [Action("Download metrics", Description = "Download a metrics file for a project")]
     public async Task<FileResponse> DownloadMetrics(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] DownloadMetricsRequest input)
@@ -380,12 +380,12 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
         return new(file);
     }
 
-    [Action("Get bundle metrics", Description = "Get metrics for a specific bundle")]
+    [Action("Get bundle metrics", Description = "Get metrics for a bundle")]
     public async Task<List<MetricsResponse>> GetBundleMetrics([ActionParameter] ProjectRequest project, [ActionParameter] BundleMetricsRequest request)
     {
         var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Metrics}{ApiEndpoints.Bundles}";
 
-        if(request.JobId is not null)
+        if (request.JobId is not null)
         {
             endpoint += $"?jobIds={request.JobId}";
         }
@@ -393,8 +393,8 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
         return await Client.ExecuteXtmWithJson<List<MetricsResponse>>(endpoint, Method.Get, null, Creds);
     }
 
-    [Action("Get project metrics", Description = "Get metrics for a specific project")]
-    public async Task<MetricByLanguagesResponse> GetProjectMetrics([ActionParameter] ProjectRequest project, [ActionParameter] TargetLanguagesMetricsRequest languages )
+    [Action("Get project metrics", Description = "Get metrics for a project")]
+    public async Task<MetricByLanguagesResponse> GetProjectMetrics([ActionParameter] ProjectRequest project, [ActionParameter] TargetLanguagesMetricsRequest languages)
     {
         var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/{ApiEndpoints.Metrics}";
 
@@ -403,17 +403,18 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             endpoint += "?targetLanguages=" + string.Join(",", languages.TargetLanguages);
         }
 
-        try 
+        try
         {
             var response = await Client.ExecuteXtmWithJson<List<MetricsByLanguage>>(endpoint, Method.Get, null, Creds);
 
             return new MetricByLanguagesResponse
             {
                 Metrics = response,
-                TotalWords = response?.Count > 0 ? response.Sum(x => x.coreMetrics.totalWords): 0           
+                TotalWords = response?.Count > 0 ? response.Sum(x => x.coreMetrics.totalWords) : 0
             };
 
-        } catch (Exception ex) 
+        }
+        catch (Exception ex)
         {
             if (ex.Message.Contains("Please wait for analysis"))
             {
@@ -425,10 +426,10 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
                 throw new PluginApplicationException(ex.Message);
             }
         }
-        
+
     }
 
-    [Action("Get project completion", Description = "Get project completion for a specific project")]
+    [Action("Get project completion", Description = "Get completion details for a project")]
     public async Task<ProjectCompletionResponse> GetProjectCompletion([ActionParameter] ProjectRequest project)
     {
         var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Analysis}";
@@ -442,7 +443,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
         return response;
     }
 
-    [Action("Get project status", Description = "Get project status for a specific project")]
+    [Action("Get project status", Description = "Get the status of a project")]
     public async Task<ProjectStatusResponse> GetProjectStatus([ActionParameter] ProjectRequest project)
     {
         var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Status}";
@@ -466,12 +467,12 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
         };
     }
 
-    [Action("Get project users", Description = "Get users assigned to a specific project")]
+    [Action("Get project users", Description = "Get users assigned to a project")]
     public async Task<ProjectUsersResponse> GetProjectUsers([ActionParameter] ProjectRequest project)
     {
         var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Users}";
         var projectUsers = await Client.ExecuteXtmWithJson<ProjectUsers>(endpoint, Method.Get, null, Creds);
-        
+
         var projectUsersResponse = new ProjectUsersResponse
         {
             ProjectManager = await GetUserById(projectUsers.ProjectManager.UserId),
@@ -485,14 +486,14 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
 
         return projectUsersResponse;
     }
-    
-    [Action("Get project details", Description = "Get project details for a specific project")]
+
+    [Action("Get project details", Description = "Get completion, status, and estimate details for a project")]
     public async Task<ProjectDetailsResponse> GetProjectDetails([ActionParameter] ProjectRequest project)
     {
         var projectCompletion = await GetProjectCompletion(project);
         var projectStatus = await GetProjectStatus(project);
         var getProjectEstimates = await GetProjectEstimates(project);
-        
+
         return new ProjectDetailsResponse
         {
             ProjectCompletion = projectCompletion,
@@ -502,7 +503,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
     }
 
     [Action("Set project custom field",
-     Description = "Set value for an existing project custom field")]
+     Description = "Set a value for a project custom field")]
     public async Task SetProjectCustomField(
      [ActionParameter] ProjectRequest project,
      [ActionParameter] SetProjectCustomFieldRequest input)
@@ -522,7 +523,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             providedValues++;
 
         if (providedValues > 1)
-            throw new PluginMisconfigurationException( $"Please provide only one value as input (either text, date, multiselect or boolean).");
+            throw new PluginMisconfigurationException($"Please provide only one value as input (either text, date, multiselect or boolean).");
 
         var valueObject = new Dictionary<string, object>();
 
@@ -558,7 +559,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
     }
 
     [Action("Get project custom field",
-    Description = "Retrieve a specific project custom field")]
+    Description = "Get a project custom field")]
     public async Task<ProjectCustomFieldDto> GetProjectCustomField(
     [ActionParameter] ProjectRequest project,
     [ActionParameter] GetProjectCustomFieldRequest input)
