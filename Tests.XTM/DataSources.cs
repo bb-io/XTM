@@ -4,13 +4,14 @@ using Apps.XTM.DataSourceHandlers;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Apps.XTM.Models.Request.Projects;
+using Apps.XTM.Models.Request.Customers;
 
 namespace Tests.XTM;
 
 [TestClass]
 public class DataSources : TestBaseMultipleConnections
 {
-    [ContextDataSource, TestMethod]
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
     public async Task CustomerHandler_IsSSuccess(InvocationContext context)
     {
         // Arrange
@@ -67,7 +68,7 @@ public class DataSources : TestBaseMultipleConnections
         Assert.IsNotNull(response);
     }
 
-    [ContextDataSource, TestMethod]
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
     public async Task WorkflowDataHandlerReturnsValues(InvocationContext context)
     {
         // Arrange
@@ -128,6 +129,21 @@ public class DataSources : TestBaseMultipleConnections
     {
         // Arrange
         var handler = new SubjectMatterDataHandler(context);
+
+        // Act
+        var response = await handler.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);
+
+        // Assert
+        PrintDataHandlerResult(response);
+        Assert.IsNotNull(response);
+    }
+
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
+    public async Task ProjectTemplateDataHandlerReturnsValues(InvocationContext invocationContext)
+    {
+        // Arrange
+        var customerRequest = new CustomerRequest { CustomerId = "2725347" };
+        var handler = new ProjectTemplateDataHandler(invocationContext, customerRequest);
 
         // Act
         var response = await handler.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);

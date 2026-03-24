@@ -4,27 +4,31 @@ using Apps.XTM.Constants;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Response.Templates;
 using RestSharp;
+using Blackbird.Applications.Sdk.Common;
+using Apps.XTM.Models.Request.Customers;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 
 namespace Apps.XTM.DataSourceHandlers;
 
-internal class ProjectTemplateDataHandler : XtmInvocable, IAsyncDataSourceHandler
+public class ProjectTemplateDataHandler(
+    InvocationContext invocationContext,
+    [ActionParameter] CustomerRequest customerRequest) 
+    : XtmInvocable(invocationContext), IAsyncDataSourceItemHandler
 {
-    public ProjectTemplateDataHandler(InvocationContext invocationContext) : base(invocationContext)
+    public async Task<IEnumerable<DataSourceItem>> GetDataAsync(DataSourceContext context, CancellationToken ct)
     {
-    }
+        if (string.IsNullOrEmpty(customerRequest.CustomerId))
+            throw new PluginMisconfigurationException("Please specify customer ID first");
 
-    public async Task<Dictionary<string, string>> GetDataAsync(DataSourceContext context,
-        CancellationToken cancellationToken)
-    {
         var templates = await Client.ExecuteXtmWithJson<List<ProjectTemplate>>($"{ApiEndpoints.Projects}/templates",
             Method.Get,
             null,
             Creds);
 
         return templates
-            .Where(x => context.SearchString == null ||
-                        x.Name.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase))
-            .Take(20)
-            .ToDictionary(x => x.Id, x => x.Name);
+            .Where(x => x.CustomerId == customerRequest.CustomerId)
+            .Where(x => context.SearchString == null || x.Name.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase))
+            .Select(x => new DataSourceItem(x.Id, x.Name))
+            .ToList();
     }
 }

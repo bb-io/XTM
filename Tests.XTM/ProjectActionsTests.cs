@@ -1,7 +1,9 @@
 ﻿using Tests.XTM.Base;
 using Apps.XTM.Actions;
+using Apps.XTM.Constants;
 using Apps.XTM.Models.Request.Files;
 using Apps.XTM.Models.Request.Projects;
+using Apps.XTM.Models.Request.Customers;
 using Blackbird.Applications.Sdk.Common.Invocation;
 
 namespace Tests.XTM;
@@ -144,5 +146,35 @@ public class ProjectActionsTests : TestBaseMultipleConnections
         // Assert
         PrintResult(response);
         Assert.IsNotNull(response);
+    }
+
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
+    public async Task CreateProject_ReturnsCreatedProject(InvocationContext context)
+    {
+        // Arrange
+        var actions = new ProjectActions(context, FileManager);
+        var request = new CreateProjectRequest
+        {
+            Name = "test with template",
+            WorkflowId = "2741108",
+            SourceLanguage = "en_CA",
+            TargetLanguages = ["de_AT"],
+            ProjectTemplateId = "2741120",
+            AnalysisFinishedCallback = "123",
+            InvoiceStatusChangedCallback = "123",
+            JobFinishedCallback = "123",
+            ProjectAcceptedCallback = "123",
+            ProjectCreatedCallback = "123",
+            ProjectFinishedCallback = "123",
+            WorkflowTransitionCallback = "123",
+        };
+        var customerRequest = new CustomerRequest { CustomerId = "2725347" };
+
+        // Act
+        var result = await actions.CreateProject(customerRequest, request);
+
+        // Assert
+        PrintResult(result);
+        Assert.IsNotNull(result);
     }
 }
