@@ -51,4 +51,7 @@ public class CreateProjectRequest
 
     [Display("Template ID"), DataSource(typeof(ProjectTemplateDataHandler))]
     public string? ProjectTemplateId { get; set; }
+
+    [Display("Filter template ID"), DataSource(typeof(ProjectFilterTemplateDataHandler))]
+    public string? ProjectFilterTemplateId { get; set; }
 }

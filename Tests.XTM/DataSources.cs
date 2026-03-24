@@ -152,4 +152,19 @@ public class DataSources : TestBaseMultipleConnections
         PrintDataHandlerResult(response);
         Assert.IsNotNull(response);
     }
+
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
+    public async Task ProjectFilterTemplateDataHandlerReturnsValues(InvocationContext invocationContext)
+    {
+        // Arrange
+        var customerRequest = new CustomerRequest { CustomerId = "2725347" };
+        var handler = new ProjectFilterTemplateDataHandler(invocationContext, customerRequest);
+
+        // Act
+        var response = await handler.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);
+
+        // Assert
+        PrintDataHandlerResult(response);
+        Assert.IsNotNull(response);
+    }
 }

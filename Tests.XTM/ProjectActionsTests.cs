@@ -160,6 +160,7 @@ public class ProjectActionsTests : TestBaseMultipleConnections
             SourceLanguage = "en_CA",
             TargetLanguages = ["de_AT"],
             ProjectTemplateId = "2741120",
+            ProjectFilterTemplateId = "SUP-2344",
             AnalysisFinishedCallback = "123",
             InvoiceStatusChangedCallback = "123",
             JobFinishedCallback = "123",

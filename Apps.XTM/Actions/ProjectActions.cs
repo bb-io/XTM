@@ -138,31 +138,31 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             { "targetLanguages", string.Join(",", input.TargetLanguages) },
             {
                 "callbacks.projectCreatedCallback",
-                input.ProjectCreatedCallback ?? invocationContext.GetBridgeUrl(EventNames.ProjectCreated)
+                input.ProjectCreatedCallback ?? InvocationContext.GetBridgeUrl(EventNames.ProjectCreated)
             },
             {
                 "callbacks.projectAcceptedCallback",
-                input.ProjectAcceptedCallback ?? invocationContext.GetBridgeUrl(EventNames.ProjectAccepted)
+                input.ProjectAcceptedCallback ?? InvocationContext.GetBridgeUrl(EventNames.ProjectAccepted)
             },
             {
                 "callbacks.projectFinishedCallback",
-                input.ProjectFinishedCallback ?? invocationContext.GetBridgeUrl(EventNames.ProjectFinished)
+                input.ProjectFinishedCallback ?? InvocationContext.GetBridgeUrl(EventNames.ProjectFinished)
             },
             { 
                 "callbacks.jobFinishedCallback", 
-                input.JobFinishedCallback ?? invocationContext.GetBridgeUrl(EventNames.JobFinished) 
+                input.JobFinishedCallback ?? InvocationContext.GetBridgeUrl(EventNames.JobFinished) 
             },
             {
                 "callbacks.analysisFinishedCallback",
-                input.AnalysisFinishedCallback ?? invocationContext.GetBridgeUrl(EventNames.AnalysisFinished)
+                input.AnalysisFinishedCallback ?? InvocationContext.GetBridgeUrl(EventNames.AnalysisFinished)
             },
             {
                 "callbacks.workflowTransitionCallback",
-                input.WorkflowTransitionCallback ?? invocationContext.GetBridgeUrl(EventNames.WorkflowTransition)
+                input.WorkflowTransitionCallback ?? InvocationContext.GetBridgeUrl(EventNames.WorkflowTransition)
             },
             {
                 "callbacks.invoiceStatusChangedCallback",
-                input.InvoiceStatusChangedCallback ?? invocationContext.GetBridgeUrl(EventNames.InvoiceStatusChanged)
+                input.InvoiceStatusChangedCallback ?? InvocationContext.GetBridgeUrl(EventNames.InvoiceStatusChanged)
             }
         };
 
@@ -171,6 +171,9 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
 
         if (!string.IsNullOrEmpty(input.ProjectTemplateId))
             parameters.Add("templateId", input.ProjectTemplateId);
+
+        if (!string.IsNullOrEmpty(input.ProjectFilterTemplateId))
+            parameters.Add("filterTemplateId", input.ProjectFilterTemplateId);
 
         try 
         {
@@ -208,30 +211,30 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             { "templateId", input.TemplateId },
             {
                 "callbacks.projectCreatedCallback",
-                input.ProjectCreatedCallback ?? invocationContext.GetBridgeUrl(EventNames.ProjectCreated)
+                input.ProjectCreatedCallback ?? InvocationContext.GetBridgeUrl(EventNames.ProjectCreated)
             },
             {
                 "callbacks.projectAcceptedCallback",
-                input.ProjectAcceptedCallback ?? invocationContext.GetBridgeUrl(EventNames.ProjectAccepted)
+                input.ProjectAcceptedCallback ?? InvocationContext.GetBridgeUrl(EventNames.ProjectAccepted)
             },
             {
                 "callbacks.projectFinishedCallback",
-                input.ProjectFinishedCallback ?? invocationContext.GetBridgeUrl(EventNames.ProjectFinished)
+                input.ProjectFinishedCallback ?? InvocationContext.GetBridgeUrl(EventNames.ProjectFinished)
             },
             { 
                 "callbacks.jobFinishedCallback", 
-                input.JobFinishedCallback ?? invocationContext.GetBridgeUrl(EventNames.JobFinished) },
+                input.JobFinishedCallback ?? InvocationContext.GetBridgeUrl(EventNames.JobFinished) },
             {
                 "callbacks.analysisFinishedCallback",
-                input.AnalysisFinishedCallback ?? invocationContext.GetBridgeUrl(EventNames.AnalysisFinished)
+                input.AnalysisFinishedCallback ?? InvocationContext.GetBridgeUrl(EventNames.AnalysisFinished)
             },
             {
                 "callbacks.workflowTransitionCallback",
-                input.WorkflowTransitionCallback ?? invocationContext.GetBridgeUrl(EventNames.WorkflowTransition)
+                input.WorkflowTransitionCallback ?? InvocationContext.GetBridgeUrl(EventNames.WorkflowTransition)
             },
             {
                 "callbacks.invoiceStatusChangedCallback",
-                input.InvoiceStatusChangedCallback ?? invocationContext.GetBridgeUrl(EventNames.InvoiceStatusChanged)
+                input.InvoiceStatusChangedCallback ?? InvocationContext.GetBridgeUrl(EventNames.InvoiceStatusChanged)
             }
         };
 
