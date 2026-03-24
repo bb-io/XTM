@@ -1,11 +1,10 @@
 ﻿using Apps.XTM.DataSourceHandlers;
-using Apps.XTM.Models.Request.Customers;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common;
 
 namespace Apps.XTM.Models.Request.Projects;
 
-public class CreateProjectFromTemplateRequest : CustomerRequest
+public class CreateProjectFromTemplateRequest
 {
     public string Name { get; set; }
 

@@ -13,9 +13,9 @@ public class UploadSourceFileRequest
     [JsonProperty("file")]
     public FileReference File { get; set; }
     
-    [Display("Workflow")] 
+    [Display("Workflow ID")] 
     [DataSource(typeof(WorkflowDataHandler))]
-    public string WorkflowId { get; set; }
+    public string? WorkflowId { get; set; }
     
     [JsonProperty("name")]
     public string? Name { get; set; }

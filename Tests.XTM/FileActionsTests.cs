@@ -5,6 +5,7 @@ using Apps.XTM.Models.Response.Files;
 using Apps.XTM.Models.Request.Projects;
 using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Apps.XTM.Constants;
 
 namespace Tests.XTM;
 
@@ -70,16 +71,15 @@ public class FileActionsTests : TestBaseMultipleConnections
             TestContext.WriteLine($"{job.FileId} - {job.FileType}");
     }
 
-    [ContextDataSource, TestMethod]
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
     public async Task UploadSourceFile_IsSuccess(InvocationContext context)
     {
         // Arrange
         var actions = new FileActions(context, FileManager);
-        var projectRequest = new ProjectRequest { ProjectId = "6883" };
+        var projectRequest = new ProjectRequest { ProjectId = "2844599" };
         var fileRequest = new UploadSourceFileRequest
         {
             File = new FileReference { Name = "sample.txt", ContentType = "text/plain" },
-            WorkflowId = "6290",
         };
 
         // Act

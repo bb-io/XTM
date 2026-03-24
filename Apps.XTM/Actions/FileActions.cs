@@ -134,8 +134,6 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         }
     }
 
-
-
     [Action("Download source files as ZIP",
         Description = "Download the source files for project or specific jobs as ZIP")]
     public async Task<FileResponse> DownloadSourceFilesAsZip(
@@ -514,8 +512,10 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         var parameters = new Dictionary<string, string>
         {
             { "files[0].name", input.Name?.Trim() ?? input.File.Name },
-            { "files[0].workflowId", input.WorkflowId }
         };
+
+        if (!string.IsNullOrEmpty(input.WorkflowId))
+            parameters.Add("files[0].workflowId", input.WorkflowId);
 
         if (input.TranslationType != null)
             parameters.Add("files[0].translationType", input.TranslationType);

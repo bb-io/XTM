@@ -1,13 +1,13 @@
 ﻿using Apps.XTM.DataSourceHandlers;
 using Apps.XTM.DataSourceHandlers.EnumHandlers;
-using Apps.XTM.Models.Request.Customers;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 
 namespace Apps.XTM.Models.Request.Projects;
 
-public class CreateProjectRequest : CustomerRequest
+public class CreateProjectRequest
 {
+    [Display("Name")]
     public string Name { get; set; }
     
     [Display("Workflow")] 
@@ -25,6 +25,7 @@ public class CreateProjectRequest : CustomerRequest
     [Display("Due date")]
     public DateTime? DueDate { get; set; }
 
+    [Display("Description")]
     public string? Description { get; set; }
         
     [Display("Project created callback URL")]
@@ -47,4 +48,10 @@ public class CreateProjectRequest : CustomerRequest
     
     [Display("Invoice status changed callback URL")]
     public string? InvoiceStatusChangedCallback { get; set; }
+
+    [Display("Template ID"), DataSource(typeof(ProjectTemplateDataHandler))]
+    public string? ProjectTemplateId { get; set; }
+
+    [Display("Filter template ID"), DataSource(typeof(ProjectFilterTemplateDataHandler))]
+    public string? ProjectFilterTemplateId { get; set; }
 }
