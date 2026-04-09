@@ -660,6 +660,15 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
                 {
                     foreach (var segment in unit.Segments)
                     {
+                        if (unit.Quality.Score is null)
+                        {
+                            // Make internal repeatitions unapproved
+                            var stateQualifier = segment.TargetAttributes.FirstOrDefault(a => a.Name == "state-qualifier");
+                            if (stateQualifier?.Value == "leveraged-inherited")
+                                segment.State = null;
+                            continue;
+                        }
+
                         if (unit.Quality.Score < unit.Quality.ScoreThreshold)
                             segment.State = null;
                     }
