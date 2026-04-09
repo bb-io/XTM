@@ -9,4 +9,7 @@ public class UploadTranslationFileEstimatesRequest
 
     [Display("Mark segments under threshold as not completed", Description = "Mark segments as not completed if their quality rating is below threshold. Works with any XLIFF's standard quality attributes.")]
     public bool? MarkSegmentsUnderThresholdAsNotCompleted { get; set; }
+
+    [Display("Segment states to mark as not completed", Description = "Specifies which segment states qualifiers. Applies only if 'Lock segments above threshold' or 'Mark segments under threshold as not completed' inputs are enabled.")]
+    public IEnumerable<string>? MarkSegmentStateQualifiersAsNotCompleted { get; set; }
 }

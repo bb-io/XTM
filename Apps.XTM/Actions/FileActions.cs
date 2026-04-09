@@ -660,15 +660,6 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
                 {
                     foreach (var segment in unit.Segments)
                     {
-                        if (unit.Quality.Score is null)
-                        {
-                            // Make internal repeatitions unapproved
-                            var stateQualifier = segment.TargetAttributes.FirstOrDefault(a => a.Name == "state-qualifier");
-                            if (stateQualifier?.Value == "leveraged-inherited")
-                                segment.State = null;
-                            continue;
-                        }
-
                         if (unit.Quality.Score < unit.Quality.ScoreThreshold)
                             segment.State = null;
                     }
@@ -678,6 +669,20 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
                     && unit.Quality.Score >= unit.Quality.ScoreThreshold)
                 {
                     unit.Other.Add(lockedAttribute);
+                }
+
+                if (estimatesRequest.MarkSegmentStateQualifiersAsNotCompleted is not null)
+                {
+                    foreach (var segment in unit.Segments)
+                    {
+                        var stateQualifier = segment.TargetAttributes.FirstOrDefault(a => a.Name == "state-qualifier");
+                        var sholdMarkAsNonCompleted = estimatesRequest
+                            .MarkSegmentStateQualifiersAsNotCompleted
+                            .Contains(stateQualifier?.Value ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+                        if (sholdMarkAsNonCompleted)
+                            segment.State = null;
+                        continue;
+                    }
                 }
             }
 
