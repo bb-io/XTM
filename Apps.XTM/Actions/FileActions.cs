@@ -670,7 +670,10 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
                 {
                     unit.Other.Add(lockedAttribute);
                 }
+            }
 
+            foreach (var unit in transformation.GetUnits())
+            {
                 if (estimatesRequest.MarkSegmentStateQualifiersAsNotCompleted is not null)
                 {
                     foreach (var segment in unit.Segments)
