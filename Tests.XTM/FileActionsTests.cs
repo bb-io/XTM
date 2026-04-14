@@ -1,11 +1,11 @@
-﻿using Tests.XTM.Base;
-using Apps.XTM.Actions;
+﻿using Apps.XTM.Actions;
+using Apps.XTM.Constants;
 using Apps.XTM.Models.Request.Files;
-using Apps.XTM.Models.Response.Files;
 using Apps.XTM.Models.Request.Projects;
+using Apps.XTM.Models.Response.Files;
 using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using Apps.XTM.Constants;
+using Tests.XTM.Base;
 
 namespace Tests.XTM;
 
@@ -243,5 +243,21 @@ public class FileActionsTests : TestBaseMultipleConnections
 
         // Assert
         Assert.IsNotNull(response);
+    }
+
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
+    public async Task DownloadReferenceFiles_IsSuccess(InvocationContext context)
+    {
+        // Arrange
+        var action = new FileActions(context, FileManager);
+        var project = new ProjectRequest { ProjectId = "2844729" };
+
+        // Act
+        var result = await action.DownloadReferenceFiles(project);
+
+        // Assert
+        PrintResult(result);
+        Assert.IsNotNull(result);
+        Assert.IsNotEmpty(result.RawFiles);
     }
 }

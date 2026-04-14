@@ -4,12 +4,14 @@ using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request;
 using Apps.XTM.Models.Request.Files;
 using Apps.XTM.Models.Request.Projects;
+using Apps.XTM.Models.Response;
 using Apps.XTM.Models.Response.Files;
 using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.RestUtilities;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
+using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
@@ -493,6 +495,64 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         }
 
         return new DownloadFilesResponse<XtmProjectFileDescription>(result);
+    }
+
+    [Action("Download reference files", Description = "Download reference files from a project")]
+    public async Task<DownloadFilesResponse<XtmSourceFileDescription>> DownloadReferenceFiles(
+        [ActionParameter] ProjectRequest projectInput)
+    {
+        string endpoint = $"{ApiEndpoints.Projects}/{projectInput.ProjectId}/files/sources/download";
+        var response = await Client.ExecuteXtmWithJson(endpoint, Method.Get, null, Creds);
+        if (response.RawBytes == null)
+            throw new PluginMisconfigurationException("The file is empty");
+
+        var fileStream = new MemoryStream(response.RawBytes);
+        IEnumerable<BlackbirdZipEntry> files;
+        try
+        {
+            files = await fileStream.GetFilesFromZip();
+        }
+        catch (Exception ex)
+        {
+            throw new PluginApplicationException(
+                $"The file returned from server is empty or damaged. Please check and try again. Message: {ex.Message}");
+        }
+
+        var header = response.Headers?
+            .FirstOrDefault(x => x.Name!.Equals("xtm-file-description", StringComparison.OrdinalIgnoreCase))?
+            .Value?
+            .ToString();
+        
+        var fileDescriptions = new List<XtmSourceFileDescription>();
+        if (header != null)
+            fileDescriptions = JsonConvert.DeserializeObject<List<XtmSourceFileDescription>>(header) ?? [];
+
+        var filesWithData = new List<FileWithData<XtmSourceFileDescription>>();
+
+        foreach (var file in files)
+        {
+            var uploadedFile = await _fileManagementClient.UploadAsync(
+                file.FileStream,
+                MimeTypes.GetMimeType(file.UploadName),
+                file.UploadName
+            );
+
+            var matchingDescription = fileDescriptions.FirstOrDefault(d => d.FileName == file.UploadName) ?? 
+                new XtmSourceFileDescription
+                {
+                    FileName = file.UploadName,
+                    FileId = projectInput.ProjectId,
+                    JobIds = []
+                };
+
+            filesWithData.Add(new FileWithData<XtmSourceFileDescription>
+            {
+                Content = uploadedFile,
+                FileDescription = matchingDescription
+            });
+        }
+
+        return new DownloadFilesResponse<XtmSourceFileDescription>(filesWithData);
     }
 
     [Action("Upload source file", Description = "Upload a source file to a project")]
