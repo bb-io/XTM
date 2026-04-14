@@ -319,10 +319,10 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
             { "fileType", input.FileType }
         };
 
-        if (input.JobIds != null)
+        if (input.JobIds?.Any() == true)
             queryParameters.Add("jobIds", string.Join(",", input.JobIds));
 
-        if (input.TargetLanguages != null)
+        if (input.TargetLanguages?.Any() == true)
             queryParameters.Add("targetLanguages", string.Join(",", input.TargetLanguages));
 
         var response = await Client.ExecuteXtmWithJson(url.WithQuery(queryParameters),
