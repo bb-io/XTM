@@ -119,6 +119,7 @@ Before you can connect you need to make sure that:
 - **Download source files** Download source files for a project or selected jobs.
 - **Download project file** Download a generated project file.
 - **Download all project files** Download project files.
+- **Download reference files** Download reference files from a project.
 - **Download translated files** Download translated files from a project.
 - **Upload source file** Upload a source file to a project.
     Advanced settings:
