@@ -43,7 +43,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         if (input.JobIds?.Any() == true && input.ActiveWorkflowSteps?.Any() == true)
             throw new PluginMisconfigurationException("Please specify either Job IDs or active workflow steps, not both, as action can filter either by Job IDs or active workflow step.");
 
-        if (input.JobIds?.Any() != true)
+        if (input.JobIds?.Any() != true && input.FileType != "MULTI_EXCEL")
         {
             var projectStatusEndpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/status";
             var queryParams = new Dictionary<string, string?>();
@@ -79,9 +79,11 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         var generateEndpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/generate";
         var queryParameters = new Dictionary<string, string>
         {
-            { "jobIds", string.Join(",", input.JobIds) },
             { "fileType", input.FileType }
         };
+
+        if (input.FileType != "MULTI_EXCEL")
+        { queryParameters.Add("jobIds", string.Join(",", input.JobIds)); }
 
         if (input.TargetLanguage != null)
             queryParameters.Add("targetLanguage", input.TargetLanguage);
