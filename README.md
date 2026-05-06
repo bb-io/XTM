@@ -98,6 +98,7 @@ Before you can connect you need to make sure that:
     - **Boolean value**: Set an option value.
     - **Multiselect IDs**: Set multiple selected values.
 - **Get project custom field** Get a project custom field.
+- **Export project analysis** Get raw and normalized project analysis JSON output. The output of this action can be used by another app that supports importing analysis data
 
 ### LQA
 

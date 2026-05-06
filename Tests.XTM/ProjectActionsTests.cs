@@ -178,4 +178,19 @@ public class ProjectActionsTests : TestBaseMultipleConnections
         PrintResult(result);
         Assert.IsNotNull(result);
     }
+
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
+    public async Task ExportProjectAnalysis_IsSuccess(InvocationContext context)
+    {
+        // Arrange
+        var actions = new ProjectActions(context, FileManager);
+        var projectRequest = new ProjectRequest { ProjectId = "2840902" };
+        var languages = new TargetLanguagesMetricsRequest { };
+
+        // Act
+        var result = await actions.ExportProjectAnalysis(projectRequest, languages);
+
+        // Assert
+        TestContext.WriteLine(result.ExportedAnalysis.Name);
+    }
 }
