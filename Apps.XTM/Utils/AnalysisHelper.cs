@@ -22,7 +22,7 @@ public static class AnalysisHelper
         
         foreach (JToken langNode in analysisContent)
         {
-            string locale = langNode["targetLanguage"]!.ToString();
+            string locale = langNode["targetLanguage"]!.ToString().Replace('_', '-');
             JObject coreMetrics = (langNode["coreMetrics"] as JObject)!;
 
             AddAnalysis(results, coreMetrics, locale);
