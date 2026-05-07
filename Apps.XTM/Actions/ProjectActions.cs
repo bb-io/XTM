@@ -16,6 +16,10 @@ using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using RestSharp;
 using System.Net.Mime;
+using System.Text;
+using Blackbird.Filters.Analysis.Models;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Apps.XTM.Actions;
 
@@ -393,6 +397,44 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
         return await Client.ExecuteXtmWithJson<List<MetricsResponse>>(endpoint, Method.Get, null, Creds);
     }
 
+    [Action("Export project analysis", 
+        Description = 
+            "Get raw and normalized project analysis JSON output. " +
+            "The output of this action can be used by another app that supports importing analysis data")]
+    public async Task<ExportProjectAnalysisResponse> ExportProjectAnalysis(
+        [ActionParameter] ProjectRequest project, 
+        [ActionParameter] TargetLanguagesMetricsRequest languages)
+    {
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}/{ApiEndpoints.Metrics}";
+
+        if (languages.TargetLanguages is not null && languages.TargetLanguages.Any())
+            endpoint += "?targetLanguages=" + string.Join(",", languages.TargetLanguages);
+
+        JArray analysisContent;
+        try
+        {
+            var response = await Client.ExecuteXtmWithJson(endpoint, Method.Get, null, Creds);
+            string responseContent = response.Content!;
+            analysisContent = JArray.Parse(responseContent);
+        }
+        catch (Exception ex) when (ex.Message.Contains("Please wait for analysis"))
+        {
+            throw new PluginMisconfigurationException(
+                "This request cannot be processed at the moment because the specified project is under analysis. " +
+                "Consider using a Checkpoint or adding retries in the error handling tab");
+        }
+
+        List<Analysis> results = AnalysisHelper.GenerateAnalysis(analysisContent);
+        
+        string jsonString = JsonConvert.SerializeObject(results, Formatting.Indented);
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(jsonString));
+    
+        var fileName = $"analysis_{project.ProjectId}.json";
+        var fileReference = await fileManagementClient.UploadAsync(stream, "application/json", fileName);
+
+        return new(fileReference);
+    }
+    
     [Action("Get project metrics", Description = "Get metrics for a project")]
     public async Task<MetricByLanguagesResponse> GetProjectMetrics([ActionParameter] ProjectRequest project, [ActionParameter] TargetLanguagesMetricsRequest languages)
     {

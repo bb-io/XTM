@@ -501,14 +501,16 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
     [Action("Download reference files", Description = "Download reference files from a project")]
     public async Task<DownloadFilesResponse<XtmSourceFileDescription>> DownloadReferenceFiles(
-        [ActionParameter] ProjectRequest projectInput)
+    [ActionParameter] ProjectRequest projectInput)
     {
-        string endpoint = $"{ApiEndpoints.Projects}/{projectInput.ProjectId}/files/sources/download";
+        var endpoint = $"{ApiEndpoints.Projects}/{projectInput.ProjectId}/files/reference-materials/download";
+
         var response = await Client.ExecuteXtmWithJson(endpoint, Method.Get, null, Creds);
-        if (response.RawBytes == null)
+        if (response.RawBytes == null || response.RawBytes.Length == 0)
             throw new PluginMisconfigurationException("The file is empty");
 
-        var fileStream = new MemoryStream(response.RawBytes);
+        await using var fileStream = new MemoryStream(response.RawBytes);
+
         IEnumerable<BlackbirdZipEntry> files;
         try
         {
@@ -520,15 +522,6 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
                 $"The file returned from server is empty or damaged. Please check and try again. Message: {ex.Message}");
         }
 
-        var header = response.Headers?
-            .FirstOrDefault(x => x.Name!.Equals("xtm-file-description", StringComparison.OrdinalIgnoreCase))?
-            .Value?
-            .ToString();
-        
-        var fileDescriptions = new List<XtmSourceFileDescription>();
-        if (header != null)
-            fileDescriptions = JsonConvert.DeserializeObject<List<XtmSourceFileDescription>>(header) ?? [];
-
         var filesWithData = new List<FileWithData<XtmSourceFileDescription>>();
 
         foreach (var file in files)
@@ -539,18 +532,15 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
                 file.UploadName
             );
 
-            var matchingDescription = fileDescriptions.FirstOrDefault(d => d.FileName == file.UploadName) ?? 
-                new XtmSourceFileDescription
+            filesWithData.Add(new FileWithData<XtmSourceFileDescription>
+            {
+                Content = uploadedFile,
+                FileDescription = new XtmSourceFileDescription
                 {
                     FileName = file.UploadName,
                     FileId = projectInput.ProjectId,
                     JobIds = []
-                };
-
-            filesWithData.Add(new FileWithData<XtmSourceFileDescription>
-            {
-                Content = uploadedFile,
-                FileDescription = matchingDescription
+                }
             });
         }
 
