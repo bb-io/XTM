@@ -22,10 +22,11 @@ public static class AnalysisHelper
         
         foreach (JToken langNode in analysisContent)
         {
-            string locale = langNode["targetLanguage"]!.ToString().Replace('_', '-');
+            string originalLocale = langNode["targetLanguage"]!.ToString();
+            string normalizedLocale = langNode["targetLanguage"]!.ToString().Replace('_', '-');
             JObject coreMetrics = (langNode["coreMetrics"] as JObject)!;
 
-            AddAnalysis(results, coreMetrics, locale);
+            AddAnalysis(results, coreMetrics, normalizedLocale, originalLocale);
         }
 
         return results;
@@ -34,13 +35,14 @@ public static class AnalysisHelper
     private static void AddAnalysis(
         List<Analysis> analysis, 
         JObject metrics, 
-        string locale)
+        string normalizedLocale,
+        string originalLocale)
     {
         var rawDict = new Dictionary<string, decimal>();
         foreach (JProperty property in metrics.Properties())
             rawDict[property.Name] = property.Value.Value<decimal>();
 
-        var analysisRecord = Analysis.Map(locale, rawDict, AnalysisMap);
+        var analysisRecord = Analysis.Map(normalizedLocale, originalLocale, rawDict, AnalysisMap);
         analysis.Add(analysisRecord);
     }
 }
