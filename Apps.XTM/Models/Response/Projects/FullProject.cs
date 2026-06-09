@@ -14,6 +14,9 @@ public class FullProject
 
     [Display("Customer name")] public string CustomerName { get; set; }
 
+    [Display("Customer ID")]
+    public string? CustomerID { get; set; }
+
     [Display("Source language")] public string SourceLanguage { get; set; }
 
     [Display("Target languages")] public IEnumerable<string> TargetLanguages { get; set; }
