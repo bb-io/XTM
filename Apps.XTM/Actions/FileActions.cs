@@ -19,14 +19,14 @@ using Blackbird.Applications.Sdk.Utils.Models;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Filters.Extensions;
 using Blackbird.Filters.Transformations;
-using Blackbird.Filters.Xliff.Xliff1;
-using Blackbird.Filters.Xliff.Xliff2;
 using Microsoft.AspNetCore.WebUtilities;
 using MoreLinq;
 using Newtonsoft.Json;
 using RestSharp;
 using System.Text;
 using System.Xml.Linq;
+using Blackbird.Filters.Bilingual.Xliff1;
+using Blackbird.Filters.Bilingual.Xliff2;
 
 namespace Apps.XTM.Actions;
 
@@ -696,7 +696,13 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         if (estimatesRequest.LockSegmentsAboveThreshold == true
             || estimatesRequest.MarkSegmentsUnderThresholdAsNotCompleted == true)
         {
-            var transformation = await Transformation.Parse(inputFileStream, input.File.Name);
+            var loadResult = Transformation.Load(inputFileStream, input.File.Name);
+            if (!loadResult.Success)
+            {
+                throw new PluginApplicationException(loadResult.Error);
+            }
+
+            var transformation = loadResult.Value;
             var units = transformation.GetUnits()
                 .Where(u => u.Quality.Score != null && u.Quality.ScoreThreshold != null);
 
@@ -746,9 +752,9 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         }
         else
         {
-            var content = await inputFileStream.ReadString();
+            var content = inputFileStream.ReadString();
 
-            if (!Xliff2Serializer.IsXliff2(content))
+            if (!Xliff2Serializer.IsXliff2(inputFileStream, out _))
                 fileBytes = Encoding.UTF8.GetBytes(content);
             else
             {
