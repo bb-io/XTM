@@ -1,6 +1,8 @@
 ﻿using System.Linq;
 using System.Net.Mime;
 using System.Text;
+using System.Xml;
+using System.Xml.Linq;
 using Apps.XTM.Constants;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request.TranslationMemory;
@@ -127,6 +129,143 @@ public class TranslationMemoryActions : XtmInvocable
         {
             throw new PluginApplicationException(ex.Message);
         }
+    }
+
+    [Action("Generate TMX for tagging", Description = "Generates a TMX file from a scored XLIFF file. Only segments with a quality score equal to or above the threshold are included. Each translation unit is tagged to identify it as TAUS-origin.")]
+    public async Task<GenerateTmxFromXliffResponse> GenerateTmxFromXliff(
+        [ActionParameter] GenerateTmxFromXliffRequest input)
+    {
+        var tag = input.Tag ?? "auto_approved";
+        var tagGroup = input.TagGroup ?? "QE";
+
+        var (doc, srcLang, trgLang) = await ParseXliffAsync(input.File);
+        var tuElements = BuildTuElements(doc, srcLang, trgLang, tag, tagGroup);
+        var tmxDoc = BuildTmxDocument(srcLang, tuElements);
+        var outputName = Path.GetFileNameWithoutExtension(input.File.Name) + ".tmx";
+        var fileRef = await UploadTmxAsync(tmxDoc, outputName);
+
+        return new GenerateTmxFromXliffResponse
+        {
+            File = fileRef,
+            SegmentsTagged = tuElements.Count,
+            TagGroupUsed = tagGroup,
+            TagUsed = tag
+        };
+    }
+
+    private async Task<(XDocument doc, string srcLang, string trgLang)> ParseXliffAsync(
+        Blackbird.Applications.Sdk.Common.Files.FileReference fileRef)
+    {
+        var stream = await _fileManagementClient.DownloadAsync(fileRef);
+        var memoryStream = new MemoryStream();
+        await stream.CopyToAsync(memoryStream);
+        memoryStream.Position = 0;
+        
+        var doc = XDocument.Load(memoryStream);
+        var root = doc.Root!;
+
+        var srcLang = root.Attribute("srcLang")?.Value ?? "en-US";
+        var trgLang = root.Attribute("trgLang")?.Value
+            ?? throw new PluginMisconfigurationException("The XLIFF file is missing the 'trgLang' attribute on the root element.");
+
+        return (doc, srcLang, trgLang);
+    }
+
+    private static List<XElement> BuildTuElements(
+        XDocument doc, string srcLang, string trgLang, string tag, string tagGroup)
+    {
+        var xliffNs = XNamespace.Get("urn:oasis:names:tc:xliff:document:2.2");
+        var itsNs = XNamespace.Get("http://www.w3.org/2005/11/its");
+
+        return doc.Root!
+            .Descendants(xliffNs + "unit")
+            .Where(unit => MeetsQualityThreshold(unit, itsNs))
+            .Select(unit => TryExtractSegmentTexts(unit, xliffNs))
+            .OfType<(string src, string tgt)>()
+            .Select(texts => BuildTuElement(texts.src, texts.tgt, srcLang, trgLang, tag, tagGroup))
+            .ToList();
+    }
+
+    private static bool MeetsQualityThreshold(XElement unit, XNamespace itsNs)
+    {
+        var scoreAttr = unit.Attribute(itsNs + "locQualityRatingScore");
+        var thresholdAttr = unit.Attribute(itsNs + "locQualityRatingScoreThreshold");
+
+        if (scoreAttr == null || thresholdAttr == null)
+            return false;
+
+        var style = System.Globalization.NumberStyles.Float;
+        var culture = System.Globalization.CultureInfo.InvariantCulture;
+
+        return double.TryParse(scoreAttr.Value, style, culture, out var score)
+            && double.TryParse(thresholdAttr.Value, style, culture, out var threshold)
+            && score >= threshold;
+    }
+
+    private static (string src, string tgt)? TryExtractSegmentTexts(XElement unit, XNamespace xliffNs)
+    {
+        var segment = unit.Element(xliffNs + "segment");
+        if (segment == null)
+            return null;
+
+        var src = ExtractPlainText(segment.Element(xliffNs + "source")).Trim();
+        var tgt = ExtractPlainText(segment.Element(xliffNs + "target")).Trim();
+
+        return string.IsNullOrEmpty(src) || string.IsNullOrEmpty(tgt) ? null : (src, tgt);
+    }
+
+    private static XElement BuildTuElement(
+        string src, string tgt, string srcLang, string trgLang, string tag, string tagGroup)
+    {
+        return new XElement("tu",
+            new XElement("prop", new XAttribute("type", tagGroup), tag),
+            new XElement("tuv", new XAttribute(XNamespace.Xml + "lang", srcLang), new XElement("seg", src)),
+            new XElement("tuv", new XAttribute(XNamespace.Xml + "lang", trgLang), new XElement("seg", tgt))
+        );
+    }
+
+    private static XDocument BuildTmxDocument(string srcLang, IEnumerable<XElement> tuElements)
+    {
+        return new XDocument(
+            new XDeclaration("1.0", "UTF-8", null),
+            new XDocumentType("tmx", null, "tmx14.dtd", null),
+            new XElement("tmx", new XAttribute("version", "1.4"),
+                new XElement("header",
+                    new XAttribute("creationtool", "Blackbird"),
+                    new XAttribute("creationtoolversion", "1.0"),
+                    new XAttribute("segtype", "sentence"),
+                    new XAttribute("o-tmf", "XTM"),
+                    new XAttribute("adminlang", "en-US"),
+                    new XAttribute("srclang", srcLang),
+                    new XAttribute("datatype", "plaintext")),
+                new XElement("body", tuElements)
+            )
+        );
+    }
+
+    private async Task<Blackbird.Applications.Sdk.Common.Files.FileReference> UploadTmxAsync(
+        XDocument tmxDoc, string outputName)
+    {
+        var settings = new XmlWriterSettings
+        {
+            Indent = true,
+            IndentChars = "  ",
+            Encoding = new UTF8Encoding(false)
+        };
+
+        using var ms = new MemoryStream();
+        using (var writer = XmlWriter.Create(ms, settings))
+            tmxDoc.Save(writer);
+
+        ms.Position = 0;
+        return await _fileManagementClient.UploadAsync(ms, "application/x-tmx+xml", outputName);
+    }
+
+    private static string ExtractPlainText(XElement? element)
+    {
+        if (element == null)
+            return string.Empty;
+        return string.Concat(element.DescendantNodes().OfType<XText>().Select(t => t.Value));
     }
 
     #endregion
