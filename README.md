@@ -158,6 +158,10 @@ Before you can connect you need to make sure that:
     - **Bilingual terminology action**: Choose how bilingual terminology is handled.
     - **Tag group IDs**: Assign imported entries to a tag group.
     - **Tag IDs**: Assign tags within the selected tag group.
+- **Generate TMX for tagging** Generates a TMX file from a quality-scored XLIFF file (e.g. produced by TAUS background check). Only segments whose quality score is equal to or above the threshold embedded in the file are included. Each translation unit in the output carries a tag so that XTM can identify and treat these segments differently when importing into translation memory.
+    Advanced settings:
+    - **Tag to assign**: The tag value written into each `<tu>`. Defaults to `auto_approved`.
+    - **Tag group**: The tag group name used as the `<prop type>` attribute. Defaults to `QE`.
 
 ### Customers
 
