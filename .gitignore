@@ -359,3 +359,4 @@ healthchecksdb
 
 /Tests.XTM/TestFiles/Output/**
 !/Tests.XTM/TestFiles/Output/.gitkeep
+/Tests.XTM/appsettings.json
