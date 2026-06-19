@@ -17,16 +17,18 @@ using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using Blackbird.Applications.Sdk.Utils.Models;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
+using Blackbird.Filters.Bilingual.Xliff1;
+using Blackbird.Filters.Bilingual.Xliff2;
+using Blackbird.Filters.Enums;
 using Blackbird.Filters.Extensions;
 using Blackbird.Filters.Transformations;
+using DocumentFormat.OpenXml.Drawing.Diagrams;
 using Microsoft.AspNetCore.WebUtilities;
 using MoreLinq;
 using Newtonsoft.Json;
 using RestSharp;
 using System.Text;
 using System.Xml.Linq;
-using Blackbird.Filters.Bilingual.Xliff1;
-using Blackbird.Filters.Bilingual.Xliff2;
 
 namespace Apps.XTM.Actions;
 
@@ -696,6 +698,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         if (estimatesRequest.LockSegmentsAboveThreshold == true
             || estimatesRequest.MarkSegmentsUnderThresholdAsNotCompleted == true)
         {
+            // 2026-06-19 This branch is deprecated in favour of updating by segment state
             var loadResult = Transformation.Load(inputFileStream, input.File.Name);
             if (!loadResult.Success)
             {
@@ -727,6 +730,66 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
                     && unit.Quality.Score >= unit.Quality.ScoreThreshold)
                 {
                     unit.Other.Add(lockedAttribute);
+                }
+            }
+
+            foreach (var unit in transformation.GetUnits())
+            {
+                if (estimatesRequest.MarkSegmentStateQualifiersAsNotCompleted is not null)
+                {
+                    foreach (var segment in unit.Segments)
+                    {
+                        var stateQualifier = segment.TargetAttributes.FirstOrDefault(a => a.Name == "state-qualifier");
+                        var sholdMarkAsNonCompleted = estimatesRequest
+                            .MarkSegmentStateQualifiersAsNotCompleted
+                            .Contains(stateQualifier?.Value ?? string.Empty, StringComparer.OrdinalIgnoreCase);
+                        if (sholdMarkAsNonCompleted)
+                            segment.State = null;
+                        continue;
+                    }
+                }
+            }
+
+            var xliffV12 = Xliff1Serializer.Serialize(transformation);
+            fileBytes = Encoding.UTF8.GetBytes(xliffV12);
+        } else if (estimatesRequest.LockSegmentByStates?.Any() == true
+            || estimatesRequest.MarkSegmentsAsNotCompletedByStates?.Any() == true)
+        {
+            var lockSegmentsByStates = estimatesRequest.LockSegmentByStates?
+                .Select(SegmentStateHelper.ToSegmentState)
+                .Where(state => state != null)
+                .Select(state => state!.Value)
+                .ToHashSet() ?? [];
+
+            var markSegmentsAsNotCompletedByStates = estimatesRequest.MarkSegmentsAsNotCompletedByStates?
+                    .Select(SegmentStateHelper.ToSegmentState)
+                    .Where(state => state != null)
+                    .Select(state => state!.Value)
+                    .ToHashSet() ?? [];
+
+            var loadResult = Transformation.Load(inputFileStream, input.File.Name);
+            if (!loadResult.Success)
+            {
+                throw new PluginApplicationException(loadResult.Error);
+            }
+
+            var xtmNamespace = XNamespace.Get("urn:xliff-xtm-extensions");
+            var lockedAttribute = new XAttribute(xtmNamespace + "locked", "yes");
+
+            var transformation = loadResult.Value;
+
+            foreach (var unit in transformation.GetUnits())
+            {
+                foreach (var segment in unit.Segments)
+                {
+                    if (lockSegmentsByStates.Contains(segment.State ?? SegmentState.Initial))
+                    {
+                        unit.Other.Add(lockedAttribute);
+                    }
+                    if (markSegmentsAsNotCompletedByStates.Contains(segment.State ?? SegmentState.Initial))
+                    {
+                        segment.State = null;
+                    }
                 }
             }
 

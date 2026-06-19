@@ -1,13 +1,23 @@
-﻿using Blackbird.Applications.Sdk.Common;
+﻿using Apps.XTM.DataSourceHandlers.EnumHandlers;
+using Blackbird.Applications.Sdk.Common;
+using Blackbird.Applications.Sdk.Common.Dynamic;
 
 namespace Apps.XTM.Models.Request.Files;
 
 public class UploadTranslationFileEstimatesRequest
 {
-    [Display("Lock segments above threshold", Description = "Locks segments that have quality rating above threshold. Works with any XLIFF's standard quality attributes.")]
+    [Display("Mark segments as not completed by state", Description = "Mark segments as not completed if they match one of the selected states.")]
+    public IEnumerable<string>? MarkSegmentsAsNotCompletedByStates { get; set; }
+
+    [Display("Lock segments as not completed by state", Description = "Locks segments that match one of the selected states")]
+    [DataSource(typeof(XliffV2StateDataSourceHandler))]
+    public IEnumerable<string>? LockSegmentByStates { get; set; }
+
+    [Display("Lock segments above threshold (deprecated)", Description = "Deprecated. Use 'Lock segments as not completed by state' instead. Locks segments that have quality rating above threshold. Works with any XLIFF's standard quality attributes.")]
+    [DataSource(typeof(XliffV2StateDataSourceHandler))]
     public bool? LockSegmentsAboveThreshold { get; set; }
 
-    [Display("Mark segments under threshold as not completed", Description = "Mark segments as not completed if their quality rating is below threshold. Works with any XLIFF's standard quality attributes.")]
+    [Display("Mark segments under threshold as not completed (deprecated)", Description = "Deprecated. Use 'Mark segments as not completed by state' instead. Mark segments as not completed if their quality rating is below threshold. Works with any XLIFF's standard quality attributes.")]
     public bool? MarkSegmentsUnderThresholdAsNotCompleted { get; set; }
 
     [Display("Segment states to mark as not completed", Description = "Specifies which segment states qualifiers. Applies only if 'Lock segments above threshold' or 'Mark segments under threshold as not completed' inputs are enabled.")]
