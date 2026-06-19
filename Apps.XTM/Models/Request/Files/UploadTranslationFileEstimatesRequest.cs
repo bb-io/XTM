@@ -1,20 +1,20 @@
 ﻿using Apps.XTM.DataSourceHandlers.EnumHandlers;
 using Blackbird.Applications.Sdk.Common;
-using Blackbird.Applications.Sdk.Common.Dynamic;
+using Blackbird.Applications.Sdk.Common.Dictionaries;
 
 namespace Apps.XTM.Models.Request.Files;
 
 public class UploadTranslationFileEstimatesRequest
 {
     [Display("Mark segments as not completed by state", Description = "Mark segments as not completed if they match one of the selected states.")]
+    [StaticDataSource(typeof(XliffV2StateDataSourceHandler))]
     public IEnumerable<string>? MarkSegmentsAsNotCompletedByStates { get; set; }
 
     [Display("Lock segments as not completed by state", Description = "Locks segments that match one of the selected states")]
-    [DataSource(typeof(XliffV2StateDataSourceHandler))]
+    [StaticDataSource(typeof(XliffV2StateDataSourceHandler))]
     public IEnumerable<string>? LockSegmentByStates { get; set; }
 
     [Display("Lock segments above threshold (deprecated)", Description = "Deprecated. Use 'Lock segments as not completed by state' instead. Locks segments that have quality rating above threshold. Works with any XLIFF's standard quality attributes.")]
-    [DataSource(typeof(XliffV2StateDataSourceHandler))]
     public bool? LockSegmentsAboveThreshold { get; set; }
 
     [Display("Mark segments under threshold as not completed (deprecated)", Description = "Deprecated. Use 'Mark segments as not completed by state' instead. Mark segments as not completed if their quality rating is below threshold. Works with any XLIFF's standard quality attributes.")]
