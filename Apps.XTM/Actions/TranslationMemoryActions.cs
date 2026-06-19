@@ -105,12 +105,34 @@ public class TranslationMemoryActions : XtmInvocable
             Creds);
 
         var (entryName, tmxBytes) = ExtractSingleTmxFromZip(downloadResponse.RawBytes ?? []);
+        var filteredOutputName = $"{Path.GetFileNameWithoutExtension(entryName)}-filtered.tmx";
+
+        if (TryExtractPlainTextMessage(tmxBytes, out var exportedMessage))
+        {
+            if (exportedMessage.Contains("No TM matching given criteria was found.", StringComparison.OrdinalIgnoreCase))
+            {
+                var emptyFile = await UploadTmxAsync(BuildEmptyTmxDocument(input.SourceLanguage), filteredOutputName);
+
+                return new()
+                {
+                    ExportFileId = exportResponse.FileId,
+                    FilteredTmxFile = emptyFile,
+                    ExportedSegmentsScanned = 0,
+                    SegmentsMatched = 0,
+                    SegmentsSkipped = 0,
+                    ImportStatus = input.DryRun == true ? "DRY_RUN" : "SKIPPED_NO_MATCHES"
+                };
+            }
+
+            throw new PluginApplicationException(
+                $"The exported TM payload is not a valid TMX document. XTM returned: {exportedMessage}");
+        }
+
         var filterResult = FilterTmxByEdits(
             tmxBytes,
             input.CreatedByUserIds.ToHashSet(StringComparer.Ordinal),
             (input.UntrustedUserIds ?? []).ToHashSet(StringComparer.Ordinal));
 
-        var filteredOutputName = $"{Path.GetFileNameWithoutExtension(entryName)}-filtered.tmx";
         var filteredFile = await UploadTmxAsync(filterResult.Bytes, filteredOutputName);
 
         if (input.DryRun == true || filterResult.MatchedSegments == 0)
@@ -239,11 +261,16 @@ public class TranslationMemoryActions : XtmInvocable
 
         do
         {
-            statusResponse = await Client.ExecuteXtmWithJson<TMImportStatusResponse>(
+            var statusResponses = await Client.ExecuteXtmWithJson<List<TMImportStatusResponse>>(
                 $"{ApiEndpoints.TMFiles}/import/status?fileIds={fileId}",
                 Method.Get,
                 null,
                 Creds);
+
+            statusResponse = statusResponses.FirstOrDefault(x => x.FileId == fileId)
+                ?? statusResponses.FirstOrDefault()
+                ?? throw new PluginApplicationException(
+                    $"TM import status polling returned no entries for file ID {fileId}.");
 
             if (statusResponse.Status == "ERROR")
                 throw new PluginApplicationException(
@@ -561,9 +588,6 @@ public class TranslationMemoryActions : XtmInvocable
             parameters.Add("segmentsImportType", segmentsImportType);
         if (!string.IsNullOrEmpty(bilingualTerminologyAction))
             parameters.Add("bilingualTerminologyAction", bilingualTerminologyAction);
-        if (tagGroups != null && tagGroups.Any())
-            parameters.Add("tagGroups", JsonConvert.SerializeObject(tagGroups));
-
         var xtmRequest = new XTMRequest(new()
         {
             Url = url,
@@ -572,6 +596,8 @@ public class TranslationMemoryActions : XtmInvocable
 
         foreach (var param in parameters)
             xtmRequest.AddParameter(param.Key, param.Value, ParameterType.GetOrPost);
+
+        AddTagGroupParameters(xtmRequest, tagGroups);
 
         var fileStream = await _fileManagementClient.DownloadAsync(file);
         var fileBytes = await fileStream.GetByteData();
@@ -654,6 +680,30 @@ public class TranslationMemoryActions : XtmInvocable
                 $"Could not resolve tag group(s) for tag ID(s): {string.Join(", ", missingTagIds)}.");
 
         return payload;
+    }
+
+    private static void AddTagGroupParameters(
+        XTMRequest request,
+        IEnumerable<TagGroupImportPayload>? tagGroups)
+    {
+        if (tagGroups == null)
+            return;
+
+        var groupIndex = 0;
+        foreach (var group in tagGroups)
+        {
+            request.AddParameter($"tagGroups[{groupIndex}].id", group.Id, ParameterType.GetOrPost);
+
+            for (var tagIndex = 0; tagIndex < group.Tags.Count; tagIndex++)
+            {
+                request.AddParameter(
+                    $"tagGroups[{groupIndex}].tags[{tagIndex}].id",
+                    group.Tags[tagIndex].Id,
+                    ParameterType.GetOrPost);
+            }
+
+            groupIndex++;
+        }
     }
 
     #endregion
@@ -781,6 +831,42 @@ public class TranslationMemoryActions : XtmInvocable
             return string.Empty;
 
         return string.Concat(element.DescendantNodes().OfType<XText>().Select(t => t.Value));
+    }
+
+    private static bool TryExtractPlainTextMessage(byte[] contentBytes, out string message)
+    {
+        message = string.Empty;
+        if (contentBytes.Length == 0)
+            return false;
+
+        var preview = Encoding.UTF8.GetString(contentBytes).Trim('\uFEFF', '\u0000', ' ', '\r', '\n', '\t');
+        if (string.IsNullOrWhiteSpace(preview))
+            return false;
+
+        if (preview.StartsWith("<"))
+            return false;
+
+        message = preview;
+        return true;
+    }
+
+    private static XDocument BuildEmptyTmxDocument(string sourceLanguage)
+    {
+        return new XDocument(
+            new XDeclaration("1.0", "UTF-8", null),
+            new XDocumentType("tmx", null, "tmx14.dtd", null),
+            new XElement("tmx", new XAttribute("version", "1.4"),
+                new XElement("header",
+                    new XAttribute("creationtool", "Blackbird"),
+                    new XAttribute("creationtoolversion", "1.0"),
+                    new XAttribute("segtype", "sentence"),
+                    new XAttribute("o-tmf", "XTM"),
+                    new XAttribute("adminlang", "en-US"),
+                    new XAttribute("srclang", sourceLanguage),
+                    new XAttribute("datatype", "plaintext")),
+                new XElement("body")
+            )
+        );
     }
 
     #endregion
