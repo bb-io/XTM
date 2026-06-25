@@ -17,15 +17,15 @@ public class TagTmSegmentsBasedOnEditsTests : TestBaseMultipleConnections
         var result = await action.TagTmSegmentsBasedOnEdits(new TagTmSegmentsBasedOnEditsRequest
         {
             CustomerId = "2725347",
-            ProjectId = "2840311",
-            SourceLanguage = "en_US",
-            TargetLanguage = "uk_UA",
-            CreatedByUserIds = ["92530"],
-            ApprovalStatus = "ALL",
+            SourceLanguage = "en_GB",
+            TargetLanguage = "es",
+            CreatedByUserIds = ["111111", "111112"],
+            //ApprovalStatus = "ALL",
+            UntrustedUserIds = ["222222"],
             IncludeReverseMemory = false,
             DryRun = false,
             TagIds = ["45312"],
-            ImportProjectName = $"Test_import_{DateTime.UtcNow:yyyyMMdd_HHmmss}"
+            ImportProjectName = $"Farfetch_Tag_By_Edits_Result_{DateTime.UtcNow:yyyyMMdd_HHmmss}"
         });
 
         PrintResult(result);
@@ -33,10 +33,10 @@ public class TagTmSegmentsBasedOnEditsTests : TestBaseMultipleConnections
         Assert.IsNotNull(result);
         Assert.IsFalse(string.IsNullOrWhiteSpace(result.ExportFileId));
         Assert.IsNotNull(result.FilteredTmxFile);
-        //Assert.AreEqual("DRY_RUN", result.ImportStatus);
-        Assert.AreEqual(1, result.ExportedSegmentsScanned);
-        Assert.AreEqual(1, result.SegmentsMatched);
-        Assert.AreEqual(0, result.SegmentsSkipped);
+        Assert.AreEqual("DRY_RUN", result.ImportStatus);
+        Assert.AreEqual(5, result.ExportedSegmentsScanned);
+        Assert.AreEqual(3, result.SegmentsMatched);
+        Assert.AreEqual(2, result.SegmentsSkipped);
         Assert.AreEqual(result.ExportedSegmentsScanned - result.SegmentsMatched, result.SegmentsSkipped);
     }
 }
