@@ -10,7 +10,7 @@ public class UploadTranslationFileEstimatesRequest
     [StaticDataSource(typeof(XliffV2StateDataSourceHandler))]
     public IEnumerable<string>? MarkSegmentsAsNotCompletedByStates { get; set; }
 
-    [Display("Lock segments as not completed by state", Description = "Locks segments that match one of the selected states")]
+    [Display("Lock segments by state", Description = "Locks segments that match one of the selected states")]
     [StaticDataSource(typeof(XliffV2StateDataSourceHandler))]
     public IEnumerable<string>? LockSegmentByStates { get; set; }
 
@@ -20,6 +20,6 @@ public class UploadTranslationFileEstimatesRequest
     [Display("Mark segments under threshold as not completed (deprecated)", Description = "Deprecated. Use 'Mark segments as not completed by state' instead. Mark segments as not completed if their quality rating is below threshold. Works with any XLIFF's standard quality attributes.")]
     public bool? MarkSegmentsUnderThresholdAsNotCompleted { get; set; }
 
-    [Display("Segment states to mark as not completed", Description = "Specifies which segment states qualifiers. Applies only if 'Lock segments above threshold' or 'Mark segments under threshold as not completed' inputs are enabled.")]
+    [Display("Mark segments as not completed by state qualifiers (deprecated)", Description = "Deprecated. Specifies which segment states qualifiers. Applies only if 'Lock segments above threshold' or 'Mark segments under threshold as not completed' inputs are enabled.")]
     public IEnumerable<string>? MarkSegmentStateQualifiersAsNotCompleted { get; set; }
 }
