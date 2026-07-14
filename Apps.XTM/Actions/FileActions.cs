@@ -606,7 +606,18 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
        
 
         var fileStream = await _fileManagementClient.DownloadAsync(input.File);
-        var fileBytes = await fileStream.GetByteData();
+        byte[] fileBytes;
+        if (Xliff2Serializer.IsXliff2(fileStream, out var xliffNode))
+        {
+            var transformation = Xliff2Serializer.Deserialize(xliffNode);
+            var xliffV12 = Xliff1Serializer.Serialize(transformation);
+            fileBytes = Encoding.UTF8.GetBytes(xliffV12);
+        }
+        else
+        {
+            fileBytes = fileStream.ReadBytes();
+        }
+
         request.AddFile("files[0].file", fileBytes, fileName);
         request.AlwaysMultipartFormData = true;
 
