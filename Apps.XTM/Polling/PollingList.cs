@@ -297,7 +297,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             var statusResponse = await Client.ExecuteXtm<ProjectDetailedStatusResponse>(statusRequest);
 
             var jobsInSteps = statusResponse.Jobs
-                .Where(j => j.Steps.Any(s => s.Status == "IN_PROGRESS" && input.WorkflowSteps.Any(ws => s.DisplayStepName.StartsWith(s.DisplayStepName))));
+                .Where(j => j.Steps.Any(s => s.Status == "IN_PROGRESS" && input.WorkflowSteps.Any(ws => s.DisplayStepName.StartsWith(ws, StringComparison.OrdinalIgnoreCase))));
 
             foreach (var job in jobsInSteps)
             {
