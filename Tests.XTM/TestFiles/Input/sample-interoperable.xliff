@@ -1,0 +1,61 @@
+<xliff srcLang="en-US" trgLang="uk-UA" version="2.2" xmlns:mda="urn:oasis:names:tc:xliff:metadata:2.0" xmlns:its="http://www.w3.org/2005/11/its" xmlns="urn:oasis:names:tc:xliff:document:2.2">
+  <file id="f1">
+    <mda:metadata>
+      <mda:metaGroup category="blackbird">
+        <mda:meta type="original-media-type">text/x-gettext-translation</mda:meta>
+      </mda:metaGroup>
+      <mda:metaGroup category="po">
+        <mda:metaGroup category="header">
+          <mda:meta type="Project-Id-Version">collecting-references-demo 3.0</mda:meta>
+          <mda:meta type="Content-Type">text/plain; charset=UTF-8</mda:meta>
+          <mda:meta type="Content-Transfer-Encoding">8bit</mda:meta>
+          <mda:meta type="Language">en-US</mda:meta>
+        </mda:metaGroup>
+      </mda:metaGroup>
+    </mda:metadata>
+    <unit id="po:cHJkLTEwMS5sb2dpbg==:U2lnbiBpbiB0byB5b3VyIHdvcmtzcGFjZQ==" name="prd-101.login | Sign in to your workspace" its:tool="gpt-5.6-luna">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">po:cHJkLTEwMS5sb2dpbg==:U2lnbiBpbiB0byB5b3VyIHdvcmtzcGFjZQ==</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="gpt-5.6-luna">
+              <mda:meta type="value">243</mda:meta>
+              <mda:meta type="unit">tokens</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+        <mda:meta type="po/msgctxt-present">true</mda:meta>
+        <mda:meta type="po/msgctxt">prd-101.login</mda:meta>
+      </mda:metadata>
+      <notes>
+        <note category="po-extracted-comment">PRD-101 login</note>
+      </notes>
+      <segment state="translated">
+        <source>Sign in to your workspace</source>
+        <target order="0">Sign in to your workspace</target>
+      </segment>
+    </unit>
+    <unit id="po:cHJkLTEwMS5sb2dpbg==:S2VlcCBtZSBzaWduZWQgaW4gb24gdGhpcyBkZXZpY2U=" name="prd-101.login | Keep me signed in on this device" its:tool="gpt-5.6-luna">
+      <mda:metadata>
+        <mda:metaGroup category="blackbird">
+          <mda:meta type="key">po:cHJkLTEwMS5sb2dpbg==:S2VlcCBtZSBzaWduZWQgaW4gb24gdGhpcyBkZXZpY2U=</mda:meta>
+          <mda:metaGroup category="usage">
+            <mda:metaGroup category="gpt-5.6-luna">
+              <mda:meta type="value">243</mda:meta>
+              <mda:meta type="unit">tokens</mda:meta>
+            </mda:metaGroup>
+          </mda:metaGroup>
+        </mda:metaGroup>
+        <mda:meta type="po/msgctxt-present">true</mda:meta>
+        <mda:meta type="po/msgctxt">prd-101.login</mda:meta>
+      </mda:metadata>
+      <notes>
+        <note category="po-extracted-comment">PRD-101 login</note>
+      </notes>
+      <segment state="translated">
+        <source>Keep me signed in on this device</source>
+        <target order="0">Keep me signed in on this device</target>
+      </segment>
+    </unit>
+  </file>
+</xliff>
