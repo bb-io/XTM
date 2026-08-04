@@ -16,7 +16,7 @@ public class ProjectActionsTests : TestBaseMultipleConnections
     {
         // Arrange
         var action = new ProjectActions(context, FileManager);
-        var input = new ProjectRequest { ProjectId = "66245898" };
+        var input = new ProjectRequest { ProjectId = "2852348" };
 
         // Act
         var response = await action.GetProject(input);
@@ -31,7 +31,7 @@ public class ProjectActionsTests : TestBaseMultipleConnections
     {
         // Arrange
         var action = new ProjectActions(context, FileManager);
-        var input = new ProjectRequest { ProjectId = "2739500" };
+        var input = new ProjectRequest { ProjectId = "2852348" };
 
         // Act
         var response = await action.GetProjectDetails(input);

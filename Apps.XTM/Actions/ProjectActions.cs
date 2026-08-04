@@ -474,13 +474,10 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
     [Action("Get project completion", Description = "Get completion details for a project")]
     public async Task<ProjectCompletionResponse> GetProjectCompletion([ActionParameter] ProjectRequest project)
     {
-        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Analysis}";
+        var endpoint = $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Status}?fetchLevel=STEPS";
         var response = await ErrorHandler.ExecuteWithErrorHandlingAsync(async () =>
             await Client.ExecuteXtmWithJson<ProjectCompletionResponse>(endpoint, Method.Get, null, Creds)
         );
-
-        if (response.Jobs.Count != 0)
-            response.JobIds = response.Jobs.Select(x => x.JobId).ToList();
 
         return response;
     }
