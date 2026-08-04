@@ -277,6 +277,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
         // 2. For each project, get status at STEPS level and collect jobs in target steps
         //
         var currentObserved = new HashSet<string>();
+        var previouslyObserved = request.Memory?.ObservedJobs.ToHashSet() ?? [];
         var newJobsByProject = new Dictionary<string, List<string>>();
         var token = await Client.GetToken(Creds);
 
@@ -297,14 +298,16 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             var statusResponse = await Client.ExecuteXtm<ProjectDetailedStatusResponse>(statusRequest);
 
             var jobsInSteps = statusResponse.Jobs
-                .Where(j => j.Steps.Any(s => s.Status == "IN_PROGRESS" && input.WorkflowSteps.Any(ws => s.DisplayStepName.StartsWith(ws, StringComparison.OrdinalIgnoreCase))));
+                .Where(j => j.Steps.Any(s =>
+                    string.Equals(s.Status, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase) &&
+                    input.WorkflowSteps.Any(ws => IsMatchingWorkflowStep(s, ws))));
 
             foreach (var job in jobsInSteps)
             {
                 var key = $"{projectId}:{job.JobId}";
                 currentObserved.Add(key);
 
-                if (request.Memory?.ObservedJobs.Contains(key) == false)
+                if (request.Memory is not null && !previouslyObserved.Contains(key))
                 {
                     if (!newJobsByProject.ContainsKey(projectId))
                         newJobsByProject[projectId] = [];
@@ -320,7 +323,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             return new()
             {
                 FlyBird = false,
-                Memory = new() { ObservedJobs = currentObserved }
+                Memory = new() { ObservedJobs = currentObserved.ToList() }
             };
         }
 
@@ -328,7 +331,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
         return new()
         {
             FlyBird = newJobsByProject.Count > 0,
-            Memory = new() { ObservedJobs = currentObserved },
+            Memory = new() { ObservedJobs = currentObserved.ToList() },
             Result = new WorkflowTransitionPollingResponse
             {
                 Projects = newJobsByProject.Select(i => new WorkflowTransitionJobItem
@@ -339,6 +342,20 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             }
         };
     }
+
+    private static bool IsMatchingWorkflowStep(ProjectDetailedStatusWorkflowStep step, string selectedStep)
+    {
+        if (string.IsNullOrWhiteSpace(selectedStep))
+            return false;
+
+        return new[] { step.StepReferenceName, step.WorkflowStepName, step.DisplayStepName }
+            .Where(candidate => !string.IsNullOrWhiteSpace(candidate))
+            .Any(candidate => NormalizeWorkflowStepName(candidate)
+                .StartsWith(NormalizeWorkflowStepName(selectedStep), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string NormalizeWorkflowStepName(string value) =>
+        string.Concat(value.Where(c => !char.IsWhiteSpace(c)));
 
     private async Task<PollingEventResponse<DateMemory, ListProjectsResponse>> ProcessProjectsPolling(
         PollingEventRequest<DateMemory> request,

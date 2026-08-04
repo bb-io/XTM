@@ -116,10 +116,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
                     .SelectMany(e => e.Tasks)
                     .Any(t =>
                     {
-                        var payloadName = t.Step.WorkflowStepName ?? t.Step.WorkflowStep;
-
-                        return string.Equals(payloadName, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase)
-                               || (payloadName != null && payloadName.StartsWith(workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase));
+                        return IsMatchingWorkflowStep(t.Step, workflowOptionalRequest.WorkflowStep);
                     });
 
                 if (!anyMatch)
@@ -350,10 +347,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
                 .SelectMany(e => e.Tasks)
                 .Any(t =>
                 {
-                    var payloadName = t.Step.WorkflowStepName ?? t.Step.WorkflowStep;
-
-                    return string.Equals(payloadName, workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase)
-                           || (payloadName != null && payloadName.StartsWith(workflowOptionalRequest.WorkflowStep, StringComparison.OrdinalIgnoreCase));
+                    return IsMatchingWorkflowStep(t.Step, workflowOptionalRequest.WorkflowStep);
                 });
 
             if (!anyMatch)
@@ -580,6 +574,20 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
             Payload = payload
         };
     }
+
+    private static bool IsMatchingWorkflowStep(WorkflowStepPayload step, string selectedStep)
+    {
+        if (string.IsNullOrWhiteSpace(selectedStep))
+            return false;
+
+        return new[] { step.WorkflowStepName, step.WorkflowStep }
+            .Where(candidate => !string.IsNullOrWhiteSpace(candidate))
+            .Any(candidate => NormalizeWorkflowStepName(candidate)
+                .StartsWith(NormalizeWorkflowStepName(selectedStep), StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string NormalizeWorkflowStepName(string value) =>
+        string.Concat(value.Where(c => !char.IsWhiteSpace(c)));
     
     private Task<WebhookResponse<T>> GetPreflightResponse<T>()
         where T : class
