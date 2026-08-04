@@ -479,9 +479,6 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             await Client.ExecuteXtmWithJson<ProjectCompletionResponse>(endpoint, Method.Get, null, Creds)
         );
 
-        if (response.Jobs.Count != 0)
-            response.JobIds = response.Jobs.Select(x => x.JobId).ToList();
-
         return response;
     }
 
