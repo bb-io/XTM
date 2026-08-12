@@ -206,6 +206,14 @@ public class TranslationMemoryActions : XtmInvocable
 
     private void ValidateTaggingRequest(TagTmSegmentsBasedOnEditsRequest input)
     {
+        if (!int.TryParse(input.CustomerId, out _))
+            throw new PluginMisconfigurationException(
+                $"'Customer ID' must be a numeric XTM customer ID. Received: '{input.CustomerId}'.");
+
+        if (!string.IsNullOrWhiteSpace(input.ProjectId) && !long.TryParse(input.ProjectId, out _))
+            throw new PluginMisconfigurationException(
+                $"'Project ID' must be a numeric XTM project ID. Received: '{input.ProjectId}'.");
+
         if (input.CreatedByUserIds == null || !input.CreatedByUserIds.Any())
             throw new PluginMisconfigurationException("At least one 'Created by user ID' must be provided.");
 
