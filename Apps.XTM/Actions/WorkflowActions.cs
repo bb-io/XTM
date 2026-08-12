@@ -52,7 +52,7 @@ public class WorkflowActions(InvocationContext invocationContext) : XtmInvocable
 
         if (workflows == null || !workflows.Any())
         {
-            throw new Exception($"Workflow with ID {workflowId} not found");
+            throw new PluginApplicationException($"Workflow with ID {workflowId} not found");
         }
 
         return workflows.First();
