@@ -196,6 +196,7 @@ Before you can connect you need to make sure that:
 - **Search workflows** Search workflows.
 - **Search workflow steps** Search workflow steps.
 - **Get workflow by ID** Get workflow details by ID.
+- **Get latest assigned user** Get latest user assigned to a project job. Returns null user fields when job has no assigned user.
 - **Assign to workflow** Assign users to workflow steps in a project.
     Advanced settings:
     - **Type of user on a project**: Choose the user type to assign.
