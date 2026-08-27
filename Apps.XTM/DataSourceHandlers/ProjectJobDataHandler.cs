@@ -4,6 +4,7 @@ using Apps.XTM.Models.Request.Projects;
 using Apps.XTM.Models.Response.Projects;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using RestSharp;
 
@@ -17,7 +18,7 @@ public class ProjectJobDataHandler(
     public async Task<IEnumerable<DataSourceItem>> GetDataAsync(DataSourceContext context, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(project.ProjectId))
-            throw new Exception("Please specify project first.");
+            throw new PluginMisconfigurationException("Please specify project first.");
 
         var status = await Client.ExecuteXtmWithJson<ProjectDetailedStatusResponse>(
             $"{ApiEndpoints.Projects}/{project.ProjectId}{ApiEndpoints.Status}?fetchLevel=JOBS",

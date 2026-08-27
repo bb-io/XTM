@@ -1,0 +1,10 @@
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+  <file source-language="en-US" target-language="fr-FR" id="f1" datatype="plaintext" original="machine-translation.txt">
+    <body>
+      <trans-unit id="1">
+        <source>Machine translation provenance</source>
+        <target state="translated">Provenance de traduction automatique</target>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

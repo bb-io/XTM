@@ -17,10 +17,9 @@ public class FileActionsTests : TestBaseMultipleConnections
     public async Task AddLatestProvenanceData_MachineTranslationSandbox_WritesTranslationTool(InvocationContext context)
     {
         var testsDirectory = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory)!.Parent!.Parent!.Parent!.FullName;
-        var repositoryDirectory = Directory.GetParent(testsDirectory)!.FullName;
         var fileName = "live-machine-translation.XLF";
         File.Copy(
-            Path.Combine(repositoryDirectory, "temp/provenance-investigation/mt-google-pretranslation/soap-google-project-2854432/target/extracted/fr_FR/source-sent.xlf"),
+            Path.Combine(testsDirectory, "TestFiles/Input", "provenance-machine-translation.xlf"),
             Path.Combine(testsDirectory, "TestFiles/Input", fileName),
             true);
         var action = new FileActions(context, FileManager);
@@ -44,10 +43,9 @@ public class FileActionsTests : TestBaseMultipleConnections
     public async Task AddLatestProvenanceData_HumanReviewSandbox_WritesTranslationAndRevision(InvocationContext context)
     {
         var testsDirectory = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory)!.Parent!.Parent!.Parent!.FullName;
-        var repositoryDirectory = Directory.GetParent(testsDirectory)!.FullName;
         var fileName = "live-human-review.xlf";
         File.Copy(
-            Path.Combine(repositoryDirectory, "temp/provenance-investigation/human-translation-and-review/review-step/target/extracted/fr_FR/source-sent.xlf"),
+            Path.Combine(testsDirectory, "TestFiles/Input", "provenance-human-review.xlf"),
             Path.Combine(testsDirectory, "TestFiles/Input", fileName),
             true);
         var action = new FileActions(context, FileManager);

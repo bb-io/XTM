@@ -9,6 +9,7 @@ namespace Apps.XTM.Models.Request.Files;
 
 public class AddLatestProvenanceDataRequest
 {
+    [Display("File")]
     public FileReference File { get; set; } = default!;
 
     [Display("Job ID", Description = "Recommended for projects containing several files in the same target language.")]

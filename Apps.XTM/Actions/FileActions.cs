@@ -40,7 +40,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 {
     private readonly IFileManagementClient _fileManagementClient = fileManagementClient;
 
-    [Action("Add latest provenance data", Description = "Enrich an XLIFF file with latest file-level translation and revision provenance from XTM")]
+    [Action("Update XLIFF file with latest provenance data", Description = "Enrich an XLIFF file with latest file-level translation and revision provenance from XTM")]
     public async Task<FileResponse> AddLatestProvenanceData(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] AddLatestProvenanceDataRequest input)
@@ -140,7 +140,17 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
                 "No project jobs match supplied job ID or XLIFF target language. Specify a matching Job ID.");
         }
 
-        var selectedJobIds = selectedJobs.Select(job => long.Parse(job.JobId)).ToHashSet();
+        var selectedJobIds = selectedJobs
+            .Select(job => long.TryParse(job.JobId, out var jobId) ? (long?)jobId : null)
+            .Where(jobId => jobId.HasValue)
+            .Select(jobId => jobId!.Value)
+            .ToHashSet();
+        if (selectedJobIds.Count == 0)
+        {
+            throw new PluginApplicationException(
+                "No numeric XTM job IDs remain after filtering selected jobs.");
+        }
+
         var statistics = await Client.ExecuteXtmWithJson<List<ProjectStatisticsResponse>>(
             $"{ApiEndpoints.Projects}/{project.ProjectId}/statistics",
             Method.Get,
@@ -188,12 +198,16 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         }
 
         var definitionRoles = workflowDefinitions
-            .Where(step => !string.IsNullOrWhiteSpace(step.Role))
+            .Where(step => !string.IsNullOrWhiteSpace(step.Id)
+                && !string.IsNullOrWhiteSpace(step.Name)
+                && !string.IsNullOrWhiteSpace(step.Role))
             .GroupBy(step => step.Id)
             .ToDictionary(group => group.Key, group => group.First().Role!, StringComparer.OrdinalIgnoreCase);
         var stepRoles = projectWorkflows
             .SelectMany(workflow => workflow.Steps)
-            .Where(step => definitionRoles.ContainsKey(step.Id))
+            .Where(step => !string.IsNullOrWhiteSpace(step.Id)
+                && !string.IsNullOrWhiteSpace(step.Name)
+                && definitionRoles.ContainsKey(step.Id))
             .GroupBy(step => step.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(
                 group => group.Key,
