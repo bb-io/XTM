@@ -84,6 +84,33 @@ public class WorkflowActions(InvocationContext invocationContext) : XtmInvocable
         return response;
     }
 
+    [Action("Get latest assigned user", Description = "Get latest user assigned to a job")]
+    public async Task<LatestAssignedUserResponse> GetLatestAssignedUser(
+        [ActionParameter] ProjectRequest inputProject,
+        [ActionParameter, Display("Job ID")] string jobId)
+    {
+        var endpoint = $"{ApiEndpoints.Projects}/{inputProject.ProjectId}/workflow/assignment";
+        var response = await Client.ExecuteXtmWithJson<WorkflowAssignmentsResponse>(
+            endpoint,
+            Method.Get,
+            null,
+            Creds);
+
+        var latestAssignment = response.Jobs
+            .FirstOrDefault(job => job.JobId == jobId)?
+            .Steps
+            .SelectMany(step => step.Bundles)
+            .LastOrDefault(bundle => bundle.UserId is not null || !string.IsNullOrWhiteSpace(bundle.UserName));
+
+        return latestAssignment is null
+            ? new LatestAssignedUserResponse()
+            : new LatestAssignedUserResponse
+            {
+                UserId = latestAssignment.UserId,
+                UserName = latestAssignment.UserName
+            };
+    }
+
     [Action("Move jobs to next workflow step", Description = "Move jobs to the next workflow step in a project")]
     public async Task<MoveJobsToNextStepResponse> MoveJobsToNextWorkflowStep(
         [ActionParameter] ProjectRequest inputProject,
