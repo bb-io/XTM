@@ -21,7 +21,12 @@ public class TestBase
             .GetChildren()
             .Select(section =>
                 section.GetChildren()
-               .Select(child => new AuthenticationCredentialsProvider(child.Key, child.Value))
+               .Select(child => new AuthenticationCredentialsProvider(
+                   child.Key,
+                   child.Key.Equals("url", StringComparison.OrdinalIgnoreCase)
+                       && !child.Value!.Contains("/project-manager-api-rest", StringComparison.OrdinalIgnoreCase)
+                           ? child.Value.TrimEnd('/') + "/project-manager-api-rest"
+                           : child.Value))
             )
             .ToList();
 
