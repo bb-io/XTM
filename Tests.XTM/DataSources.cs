@@ -5,12 +5,27 @@ using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Apps.XTM.Models.Request.Projects;
 using Apps.XTM.Models.Request.Customers;
+using Apps.XTM.DataSourceHandlers.EnumHandlers;
 
 namespace Tests.XTM;
 
 [TestClass]
 public class DataSources : TestBaseMultipleConnections
 {
+    [TestMethod]
+    public void ProvenancePlacementDataSourceHandlerReturnsUniqueValues()
+    {
+        var handler = new ProvenancePlacementDataSourceHandler();
+
+        var result = handler.GetData().ToList();
+
+        Assert.HasCount(2, result);
+        Assert.HasCount(result.Count, result.Select(item => item.Value).Distinct());
+        CollectionAssert.AreEquivalent(
+            new[] { "Translation", "Revision" },
+            result.Select(item => item.Value).ToArray());
+    }
+
     [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
     public async Task CustomerHandler_IsSSuccess(InvocationContext context)
     {
@@ -66,6 +81,18 @@ public class DataSources : TestBaseMultipleConnections
         // Assert
         PrintDataHandlerResult(response);
         Assert.IsNotNull(response);
+    }
+
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
+    public async Task ProjectJobDataSourceHandlerReturnsAtMostTwentyValues(InvocationContext context)
+    {
+        var project = new ProjectRequest { ProjectId = "2739373" };
+        var handler = new ProjectJobDataSourceHandler(context, project);
+
+        var result = (await handler.GetDataAsync(new(), CancellationToken.None)).ToList();
+
+        Assert.IsNotNull(result);
+        Assert.IsLessThanOrEqualTo(20, result.Count);
     }
 
     [ContextDataSource(ConnectionTypes.Credentials), TestMethod]

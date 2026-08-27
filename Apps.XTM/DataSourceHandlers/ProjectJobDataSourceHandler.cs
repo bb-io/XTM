@@ -10,12 +10,14 @@ using RestSharp;
 
 namespace Apps.XTM.DataSourceHandlers;
 
-public class ProjectJobDataHandler(
+public class ProjectJobDataSourceHandler(
     InvocationContext invocationContext,
     [ActionParameter] ProjectRequest project)
     : XtmInvocable(invocationContext), IAsyncDataSourceItemHandler
 {
-    public async Task<IEnumerable<DataSourceItem>> GetDataAsync(DataSourceContext context, CancellationToken cancellationToken)
+    public async Task<IEnumerable<DataSourceItem>> GetDataAsync(
+        DataSourceContext context,
+        CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(project.ProjectId))
             throw new PluginMisconfigurationException("Please specify project first.");
@@ -27,7 +29,7 @@ public class ProjectJobDataHandler(
             Creds);
 
         return status.Jobs
-            .Where(job => context.SearchString is null
+            .Where(job => string.IsNullOrWhiteSpace(context.SearchString)
                 || job.JobId.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase)
                 || job.FileName.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase)
                 || job.TargetLanguage.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase))

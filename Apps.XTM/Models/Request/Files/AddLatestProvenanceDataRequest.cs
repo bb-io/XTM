@@ -13,10 +13,10 @@ public class AddLatestProvenanceDataRequest
     public FileReference File { get; set; } = default!;
 
     [Display("Job ID", Description = "Recommended for projects containing several files in the same target language.")]
-    [DataSource(typeof(ProjectJobDataHandler))]
+    [DataSource(typeof(ProjectJobDataSourceHandler))]
     public string? JobId { get; set; }
 
     [Display("Provenance placement", Description = "When omitted, translation and revision evidence is written to its matching destination.")]
-    [StaticDataSource(typeof(ProvenancePlacementDataHandler))]
+    [StaticDataSource(typeof(ProvenancePlacementDataSourceHandler))]
     public string? Placement { get; set; }
 }
