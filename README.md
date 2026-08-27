@@ -110,7 +110,6 @@ Before you can connect you need to make sure that:
 
 ### Files
 
-- **Update XLIFF file with latest provenance data** Enrich an XLIFF file with latest file-level translation and revision provenance from XTM.
 - **Generate files** Generate files for a project.
     Advanced settings:
     - **Target language**: Generate files for a specific target language.
