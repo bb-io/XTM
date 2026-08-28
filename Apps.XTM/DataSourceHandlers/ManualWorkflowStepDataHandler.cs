@@ -6,6 +6,7 @@ using Apps.XTM.Models.Response.Workflows;
 using Apps.XTM.Webhooks.Models.Response;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
 using RestSharp;
@@ -23,9 +24,9 @@ public class ManualWorkflowStepDataHandler(
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(project.ProjectId))
-            throw new Exception("Please specify project first.");
+            throw new PluginMisconfigurationException("Please specify project first.");
         if (string.IsNullOrWhiteSpace(input.JobId))
-            throw new Exception("Please specify job ID first.");
+            throw new PluginMisconfigurationException("Please specify job ID first.");
 
         var workflows = await Client.ExecuteXtmWithJson<List<ProjectWorkflowResponse>>(
             $"{ApiEndpoints.Projects}/{project.ProjectId}/workflow".WithQuery(

@@ -505,7 +505,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         return new DownloadFilesResponse<XtmProjectFileDescription>(result);
     }
 
-    [Action("Add provenance metadata", Description = "Add translation or review provenance to units in a translated file using generated job data and workflow assignments. By default, person attribution applies only to signed-off segments")]
+    [Action("Add provenance metadata", Description = "Add translation or review provenance to units in a translated file using generated job data and workflow assignments. By default, person attribution applies only to signed-off segments. Output is XLIFF 2.2")]
     public async Task<FileResponse> AddMetadata(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] AddMetadataRequest input)
@@ -774,9 +774,9 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
                 assignedBundles = assignments.Jobs
                     .FirstOrDefault(x => x.JobId == input.JobId)?
                     .Steps.FirstOrDefault(x =>
-                        string.Equals(x.ReferenceStepName, selectedStep.ReferenceStepName, StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(x.Name, selectedStep.Name, StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(x.DisplayStepName, selectedStep.DisplayStepName, StringComparison.OrdinalIgnoreCase))?
+                        WorkflowStepNamesMatch(x.ReferenceStepName, selectedStep.ReferenceStepName)
+                        || WorkflowStepNamesMatch(x.Name, selectedStep.Name)
+                        || WorkflowStepNamesMatch(x.DisplayStepName, selectedStep.DisplayStepName))?
                     .Bundles ?? [];
             }
         }
@@ -1263,5 +1263,12 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
     private static string NormalizeElementText(XElement element)
     {
         return Regex.Replace(element.Value, @"\s+", " ").Trim();
+    }
+
+    private static bool WorkflowStepNamesMatch(string? left, string? right)
+    {
+        return !string.IsNullOrWhiteSpace(left)
+               && !string.IsNullOrWhiteSpace(right)
+               && string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
     }
 }

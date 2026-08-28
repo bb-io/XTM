@@ -264,7 +264,7 @@ public class FileActionsTests : TestBaseMultipleConnections
         Assert.IsNotEmpty(result.RawFiles);
     }
 
-    [ContextDataSource(ConnectionTypes.Credentials), TestMethod, Timeout(90000)]
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod, Timeout(180000)]
     public async Task AddMetadata_LiveProject_AppliesProvenancePriority(InvocationContext context)
     {
         var action = new FileActions(context, FileManager);
