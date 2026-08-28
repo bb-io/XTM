@@ -1,15 +1,4 @@
-using Blackbird.Applications.Sdk.Common;
-
 namespace Apps.XTM.Models.Response.Workflows;
-
-public class LatestAssignedUserResponse
-{
-    [Display("User name")]
-    public string? UserName { get; set; }
-
-    [Display("User ID")]
-    public string? UserId { get; set; }
-}
 
 public class WorkflowAssignmentsResponse
 {
@@ -25,11 +14,23 @@ public class WorkflowAssignmentJobResponse
 
 public class WorkflowAssignmentStepResponse
 {
+    public string? Name { get; set; }
+
+    public string? DisplayStepName { get; set; }
+
+    public string? ReferenceStepName { get; set; }
+
     public List<WorkflowAssignmentBundleResponse> Bundles { get; set; } = [];
 }
 
 public class WorkflowAssignmentBundleResponse
 {
+    public long? Id { get; set; }
+
+    public int? From { get; set; }
+
+    public int? To { get; set; }
+
     public string? UserId { get; set; }
 
     public string? UserName { get; set; }

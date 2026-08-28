@@ -1,4 +1,5 @@
 ﻿using Apps.XTM.Constants;
+using Apps.XTM.DataSourceHandlers.EnumHandlers;
 using Apps.XTM.Extensions;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request;
@@ -7,7 +8,9 @@ using Apps.XTM.Models.Request.Projects;
 using Apps.XTM.Models.Response;
 using Apps.XTM.Models.Response.Files;
 using Apps.XTM.Models.Response.Projects;
+using Apps.XTM.Models.Response.Workflows;
 using Apps.XTM.RestUtilities;
+using Apps.XTM.Webhooks.Models.Response;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
@@ -28,6 +31,7 @@ using MoreLinq;
 using Newtonsoft.Json;
 using RestSharp;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
 namespace Apps.XTM.Actions;
@@ -501,6 +505,365 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         return new DownloadFilesResponse<XtmProjectFileDescription>(result);
     }
 
+    [Action("Add provenance metadata", Description = "Add translation or review provenance to units in a translated file using generated job data and workflow assignments. By default, person attribution applies only to signed-off segments. Output is XLIFF 2.2")]
+    public async Task<FileResponse> AddMetadata(
+        [ActionParameter] ProjectRequest project,
+        [ActionParameter] AddMetadataRequest input)
+    {
+        var attributionMode = string.IsNullOrWhiteSpace(input.AttributeSegmentsToUser)
+            ? SegmentAttributionDataSourceHandler.OnlyConfirmed
+            : input.AttributeSegmentsToUser;
+        if (attributionMode is not (
+            SegmentAttributionDataSourceHandler.All
+            or SegmentAttributionDataSourceHandler.OnlyConfirmed
+            or SegmentAttributionDataSourceHandler.OnlyChanged
+            or SegmentAttributionDataSourceHandler.None))
+        {
+            throw new PluginMisconfigurationException(
+                "Attribute segments to user must be all segments, only confirmed segments, only changed segments, or no segments.");
+        }
+
+        var provenanceTypeOverride = string.IsNullOrWhiteSpace(input.ProvenanceType)
+            ? null
+            : input.ProvenanceType.Trim().ToLowerInvariant();
+        if (provenanceTypeOverride is not null
+            and not ProvenanceTypeDataSourceHandler.Translation
+            and not ProvenanceTypeDataSourceHandler.Review)
+        {
+            throw new PluginMisconfigurationException(
+                "Provenance type must be translation or review.");
+        }
+
+        await using var inputStream = await _fileManagementClient.DownloadAsync(input.File);
+        var inputBytes = await inputStream.GetByteData();
+        using var inputVersionStream = new MemoryStream(inputBytes);
+        var isXliff2 = Xliff2Serializer.IsXliff2(inputVersionStream, out _);
+        inputVersionStream.Position = 0;
+        var isXliff1 = Xliff1Serializer.IsXliff1(inputVersionStream, out _);
+        if (!isXliff1 && !isXliff2)
+            throw new PluginMisconfigurationException("Translated file must be a valid XLIFF 1 or XLIFF 2 file.");
+
+        var loadResult = Transformation.Load(new MemoryStream(inputBytes), input.File.Name, input.File.ContentType);
+        if (!loadResult.Success)
+            throw new PluginMisconfigurationException($"Translated XLIFF could not be parsed. Details: {loadResult.Error}");
+
+        var transformation = loadResult.Value!;
+        var inputDocument = XDocument.Load(new MemoryStream(inputBytes), LoadOptions.PreserveWhitespace);
+        var inputUnitSources = new List<(string? Id, List<XElement> Sources)>();
+        if (isXliff1)
+        {
+            foreach (var transUnit in inputDocument.Descendants().Where(x => x.Name.LocalName == "trans-unit"))
+            {
+                var segmentedSource = transUnit.Elements().FirstOrDefault(x => x.Name.LocalName == "seg-source");
+                inputUnitSources.Add(((string?)transUnit.Attribute("id"), segmentedSource is null
+                    ? transUnit.Elements().Where(x => x.Name.LocalName == "source").Take(1).ToList()
+                    : segmentedSource.Descendants()
+                        .Where(x => x.Name.LocalName == "mrk" && (string?)x.Attribute("mtype") == "seg")
+                        .ToList()));
+            }
+        }
+        else
+        {
+            foreach (var unit in inputDocument.Descendants().Where(x => x.Name.LocalName == "unit"))
+            {
+                inputUnitSources.Add(((string?)unit.Attribute("id"), unit.Descendants()
+                    .Where(x => x.Name.LocalName == "source"
+                        && x.Parent?.Name.LocalName is "segment" or "ignorable")
+                    .ToList()));
+            }
+        }
+
+        var inputUnits = transformation.GetUnits().ToList();
+        if (inputUnits.Count != inputUnitSources.Count || inputUnitSources.Any(x => x.Sources.Count == 0))
+            throw new PluginMisconfigurationException("Translated XLIFF unit structure could not be mapped to its source segments.");
+
+        var inputUnitsById = isXliff2
+            ? inputUnits
+                .Where(x => !string.IsNullOrWhiteSpace(x.Id))
+                .GroupBy(x => x.Id!)
+                .Where(x => x.Count() == 1)
+                .ToDictionary(x => x.Key, x => x.Single())
+            : [];
+        if (isXliff2 && (inputUnitsById.Count != inputUnits.Count
+            || inputUnitSources.Any(x => string.IsNullOrWhiteSpace(x.Id) || !inputUnitsById.ContainsKey(x.Id))))
+        {
+            throw new PluginMisconfigurationException(
+                "Translated XLIFF 2 units must have unique IDs so provenance can be mapped safely.");
+        }
+
+        var downloadUrl = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/download".WithQuery(
+            new Dictionary<string, string>
+            {
+                { "fileScope", "JOB" },
+                { "fileType", "XLIFF" },
+                { "jobIds", input.JobId },
+            });
+
+        RestResponse downloadResponse;
+        try
+        {
+            downloadResponse = await Client.ExecuteXtmWithJson(downloadUrl, Method.Get, null, Creds);
+        }
+        catch (PluginApplicationException ex) when (ex.Message.Contains("Unavailable data", StringComparison.OrdinalIgnoreCase)
+            || ex.Message.Contains("file was not found", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new PluginMisconfigurationException(
+                "Generated XLIFF file is unavailable. Generate XLIFF files for this job in XTM before running Add metadata.");
+        }
+
+        using var downloadedZip = new MemoryStream(downloadResponse.RawBytes ?? []);
+        IEnumerable<BlackbirdZipEntry> downloadedFiles;
+        try
+        {
+            downloadedFiles = await downloadedZip.GetFilesFromZip();
+        }
+        catch (Exception ex)
+        {
+            throw new PluginApplicationException($"Generated XLIFF ZIP could not be read. Details: {ex.Message}");
+        }
+
+        var downloadedXliff = downloadedFiles.FirstOrDefault(x =>
+            Path.GetExtension(x.UploadName).Equals(".xlf", StringComparison.OrdinalIgnoreCase)
+            || Path.GetExtension(x.UploadName).Equals(".xliff", StringComparison.OrdinalIgnoreCase));
+        if (downloadedXliff is null)
+            throw new PluginMisconfigurationException("Generated files do not contain an XLIFF file for the selected job.");
+
+        var xtmBytes = await downloadedXliff.FileStream.GetByteData();
+        var xtmDocument = XDocument.Load(new MemoryStream(xtmBytes), LoadOptions.PreserveWhitespace);
+        var xtmSegments = new List<(
+            XElement Source,
+            string? State,
+            string? Qualifier,
+            bool Changed,
+            bool ChangedFromEmpty)>();
+
+        foreach (var transUnit in xtmDocument.Descendants().Where(x => x.Name.LocalName == "trans-unit"))
+        {
+            var segmentedSource = transUnit.Elements().FirstOrDefault(x => x.Name.LocalName == "seg-source");
+            var sourceSegments = segmentedSource is null
+                ? transUnit.Elements().Where(x => x.Name.LocalName == "source").Take(1).ToList()
+                : segmentedSource.Descendants()
+                    .Where(x => x.Name.LocalName == "mrk" && (string?)x.Attribute("mtype") == "seg")
+                    .ToList();
+            var targetContainer = transUnit.Elements().FirstOrDefault(x => x.Name.LocalName == "target");
+
+            foreach (var source in sourceSegments)
+            {
+                var segmentId = (string?)source.Attribute("mid");
+                var target = segmentId is null
+                    ? targetContainer
+                    : targetContainer?.Descendants().FirstOrDefault(x =>
+                        x.Name.LocalName == "mrk" && (string?)x.Attribute("mid") == segmentId);
+                var state = (string?)target?.Attribute("state") ?? (string?)targetContainer?.Attribute("state");
+                var qualifier = (string?)target?.Attribute("state-qualifier")
+                    ?? (string?)targetContainer?.Attribute("state-qualifier");
+                var alternatives = transUnit.Elements()
+                    .Where(x => x.Name.LocalName == "alt-trans")
+                    .Where(x => segmentId is null
+                        || sourceSegments.Count == 1
+                        || string.Equals((string?)x.Attribute("mid"), segmentId, StringComparison.Ordinal)
+                        || x.Elements().Where(y => y.Name.LocalName == "target").Descendants().Any(y =>
+                            y.Name.LocalName == "mrk"
+                            && string.Equals((string?)y.Attribute("mid"), segmentId, StringComparison.Ordinal)))
+                    .ToList();
+                var matchingAlternative = qualifier?.ToLowerInvariant() switch
+                {
+                    "mt-suggestion" => alternatives.FirstOrDefault(x =>
+                        string.Equals((string?)x.Attribute("extype"), "MACHINE-TRANSLATION", StringComparison.OrdinalIgnoreCase)),
+                    "exact-match" => alternatives.FirstOrDefault(x =>
+                        string.Equals((string?)x.Attribute("extype"), "exact-match", StringComparison.OrdinalIgnoreCase)),
+                    _ => alternatives.FirstOrDefault(),
+                };
+                var alternativeTargetContainer = matchingAlternative?.Elements()
+                    .FirstOrDefault(x => x.Name.LocalName == "target");
+                var alternativeTarget = segmentId is null
+                    ? alternativeTargetContainer
+                    : alternativeTargetContainer?.Descendants().FirstOrDefault(x =>
+                        x.Name.LocalName == "mrk" && (string?)x.Attribute("mid") == segmentId);
+                if (alternativeTarget is null && alternativeTargetContainer is not null
+                    && (sourceSegments.Count == 1
+                        || string.Equals(
+                            (string?)matchingAlternative?.Attribute("mid"),
+                            segmentId,
+                            StringComparison.Ordinal)))
+                {
+                    alternativeTarget = alternativeTargetContainer;
+                }
+
+                var targetContent = target is null
+                    ? string.Empty
+                    : string.Concat(target.Nodes().Select(x => x.ToString(SaveOptions.DisableFormatting)));
+                var alternativeContent = alternativeTarget is null
+                    ? string.Empty
+                    : string.Concat(alternativeTarget.Nodes().Select(x => x.ToString(SaveOptions.DisableFormatting)));
+                var targetPreservesWhitespace = target?.AncestorsAndSelf()
+                    .FirstOrDefault(x => x.Attribute(XNamespace.Xml + "space") is not null)?
+                    .Attribute(XNamespace.Xml + "space")?.Value == "preserve";
+                var alternativePreservesWhitespace = alternativeTarget?.AncestorsAndSelf()
+                    .FirstOrDefault(x => x.Attribute(XNamespace.Xml + "space") is not null)?
+                    .Attribute(XNamespace.Xml + "space")?.Value == "preserve";
+                if (!targetPreservesWhitespace)
+                    targetContent = targetContent.Trim();
+                if (!alternativePreservesWhitespace)
+                    alternativeContent = alternativeContent.Trim();
+                var changed = target is not null && (alternativeTarget is null
+                    ? targetContent.Length > 0
+                    : !string.Equals(targetContent, alternativeContent, StringComparison.Ordinal));
+                var changedFromEmpty = changed
+                    && targetContent.Length > 0
+                    && alternativeContent.Length == 0;
+
+                xtmSegments.Add((source, state, qualifier, changed, changedFromEmpty));
+            }
+        }
+
+        if (inputUnitSources.Sum(x => x.Sources.Count) != xtmSegments.Count)
+            throw new PluginMisconfigurationException(
+                $"Translated XLIFF contains {inputUnitSources.Sum(x => x.Sources.Count)} segments, but generated XTM XLIFF contains {xtmSegments.Count}. Provenance cannot be mapped safely.");
+
+        var assignedBundles = new List<WorkflowAssignmentBundleResponse>();
+        WorkflowStepResponse? selectedStepDefinition = null;
+        if (attributionMode != SegmentAttributionDataSourceHandler.None || provenanceTypeOverride is null)
+        {
+            var projectWorkflows = await Client.ExecuteXtmWithJson<List<ProjectWorkflowResponse>>(
+                $"{ApiEndpoints.Projects}/{project.ProjectId}/workflow?jobIds={input.JobId}",
+                Method.Get,
+                null,
+                Creds);
+            var projectSteps = projectWorkflows.SelectMany(x => x.Steps).ToList();
+            var stepIds = projectSteps
+                .Select(x => x.Id)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct()
+                .ToList();
+            var stepDefinitions = stepIds.Count == 0
+                ? []
+                : await Client.ExecuteXtmWithJson<List<WorkflowStepResponse>>(
+                    $"{ApiEndpoints.Workflows}{ApiEndpoints.Steps}?ids={string.Join("&ids=", stepIds)}",
+                    Method.Get,
+                    null,
+                    Creds);
+            var automaticStepIds = stepDefinitions
+                .Where(x => x.Type?.Contains("AUTOMATIC", StringComparison.OrdinalIgnoreCase) == true)
+                .Select(x => x.Id)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var manualSteps = projectSteps.Where(x => !automaticStepIds.Contains(x.Id)).ToList();
+            var selectedStep = string.IsNullOrWhiteSpace(input.WorkflowStep)
+                ? manualSteps.LastOrDefault()
+                : manualSteps.FirstOrDefault(x =>
+                    string.Equals(x.ReferenceStepName, input.WorkflowStep, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(x.Name, input.WorkflowStep, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(x.DisplayStepName, input.WorkflowStep, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(input.WorkflowStep) && selectedStep is null)
+                throw new PluginMisconfigurationException(
+                    $"Workflow step '{input.WorkflowStep}' does not exist in this job or is automatic.");
+
+            selectedStepDefinition = selectedStep is null
+                ? null
+                : stepDefinitions.FirstOrDefault(x =>
+                    string.Equals(x.Id, selectedStep.Id, StringComparison.OrdinalIgnoreCase));
+
+            if (attributionMode != SegmentAttributionDataSourceHandler.None && selectedStep is not null)
+            {
+                var assignments = await Client.ExecuteXtmWithJson<WorkflowAssignmentsResponse>(
+                    $"{ApiEndpoints.Projects}/{project.ProjectId}/workflow/assignment?jobIds={input.JobId}",
+                    Method.Get,
+                    null,
+                    Creds);
+                assignedBundles = assignments.Jobs
+                    .FirstOrDefault(x => x.JobId == input.JobId)?
+                    .Steps.FirstOrDefault(x =>
+                        WorkflowStepNamesMatch(x.ReferenceStepName, selectedStep.ReferenceStepName)
+                        || WorkflowStepNamesMatch(x.Name, selectedStep.Name)
+                        || WorkflowStepNamesMatch(x.DisplayStepName, selectedStep.DisplayStepName))?
+                    .Bundles ?? [];
+            }
+        }
+
+        var xtmSegmentIndex = 0;
+        for (var unitIndex = 0; unitIndex < inputUnits.Count; unitIndex++)
+        {
+            var inputUnit = isXliff2
+                ? inputUnitsById[inputUnitSources[unitIndex].Id!]
+                : inputUnits[unitIndex];
+            string? person = null;
+            string? specificTool = null;
+            var changedExistingTarget = false;
+
+            foreach (var inputSource in inputUnitSources[unitIndex].Sources)
+            {
+                var xtmSegment = xtmSegments[xtmSegmentIndex];
+                if (!string.Equals(
+                    NormalizeElementText(inputSource),
+                    NormalizeElementText(xtmSegment.Source),
+                    StringComparison.Ordinal))
+                {
+                    throw new PluginMisconfigurationException(
+                        $"Segment {xtmSegmentIndex + 1} source differs between translated XLIFF and generated XTM XLIFF. Provenance cannot be mapped safely.");
+                }
+
+                var appliesToPerson = attributionMode switch
+                {
+                    SegmentAttributionDataSourceHandler.All => true,
+                    SegmentAttributionDataSourceHandler.OnlyConfirmed =>
+                        string.Equals(xtmSegment.State, "signed-off", StringComparison.OrdinalIgnoreCase),
+                    SegmentAttributionDataSourceHandler.OnlyChanged => xtmSegment.Changed,
+                    _ => false,
+                };
+                var segmentPosition = xtmSegmentIndex + 1;
+                var assignedBundle = assignedBundles.FirstOrDefault(x =>
+                    (!x.From.HasValue || segmentPosition >= x.From.Value)
+                    && (!x.To.HasValue || segmentPosition <= x.To.Value)
+                    && !string.IsNullOrWhiteSpace(x.UserId)
+                    && !string.IsNullOrWhiteSpace(x.UserName));
+                if (person is null && appliesToPerson && assignedBundle is not null)
+                    person = $"{assignedBundle.UserName} (ID {assignedBundle.UserId})";
+
+                if (specificTool is null && !string.IsNullOrWhiteSpace(xtmSegment.Qualifier))
+                {
+                    var qualifier = Regex.Replace(
+                        xtmSegment.Qualifier.Trim().ToLowerInvariant(),
+                        "[-_]+",
+                        " ");
+                    specificTool = $"XTM ({qualifier})";
+                }
+
+                if (xtmSegment.Changed && !xtmSegment.ChangedFromEmpty)
+                    changedExistingTarget = true;
+
+                xtmSegmentIndex++;
+            }
+
+            var provenanceType = provenanceTypeOverride
+                ?? selectedStepDefinition?.Role?.ToUpperInvariant() switch
+                {
+                    "TRANSLATE" => ProvenanceTypeDataSourceHandler.Translation,
+                    "REVIEW" or "CORRECT" or "LQA" => ProvenanceTypeDataSourceHandler.Review,
+                    _ => changedExistingTarget
+                        ? ProvenanceTypeDataSourceHandler.Review
+                        : ProvenanceTypeDataSourceHandler.Translation,
+                };
+            var provenance = provenanceType == ProvenanceTypeDataSourceHandler.Review
+                ? inputUnit.Provenance.Review
+                : inputUnit.Provenance.Translation;
+            provenance.Person = person;
+            provenance.PersonReference = null;
+            provenance.Tool = person is not null
+                ? "XTM"
+                : specificTool ?? "XTM";
+            provenance.ToolReference = null;
+        }
+
+        var outputName = input.File.Name;
+        var output = await _fileManagementClient.UploadAsync(
+            transformation.Serialize().ToStream(),
+            "application/xliff+xml",
+            outputName);
+
+        return new FileResponse(output);
+    }
+
     [Action("Download reference files", Description = "Download reference files from a project")]
     public async Task<DownloadFilesResponse<XtmSourceFileDescription>> DownloadReferenceFiles(
     [ActionParameter] ProjectRequest projectInput)
@@ -895,5 +1258,17 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         var response = await Client.ExecuteXtmWithJson(url, Method.Get, null, Creds);
 
         return response.RawBytes ?? [];
+    }
+
+    private static string NormalizeElementText(XElement element)
+    {
+        return Regex.Replace(element.Value, @"\s+", " ").Trim();
+    }
+
+    private static bool WorkflowStepNamesMatch(string? left, string? right)
+    {
+        return !string.IsNullOrWhiteSpace(left)
+               && !string.IsNullOrWhiteSpace(right)
+               && string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
     }
 }

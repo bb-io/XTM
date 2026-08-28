@@ -122,6 +122,11 @@ Before you can connect you need to make sure that:
 - **Download all project files** Download project files.
 - **Download reference files** Download reference files from a project.
 - **Download translated files** Download translated files from a project.
+- **Add provenance metadata** Add translation or review provenance to units in a translated file using generated job data and workflow assignments. By default, person attribution applies only to signed-off segments. Output is always XLIFF 2.2, including when input uses XLIFF 1.2.
+    Advanced settings:
+    - **Attribute segments to user**: Choose all segments, only confirmed segments, only changed segments, or no segments. Defaults to only confirmed segments.
+    - **Provenance type**: Override whether every unit receives translation or review provenance. If omitted, infer the type from the selected workflow step and segment changes.
+    - **Workflow step**: Select the manual workflow step used for person attribution and provenance inference. Defaults to the last non-automatic step.
 - **Upload source file** Upload a source file to a project.
     Advanced settings:
     - **Tag IDs**: Apply tags to the uploaded file.
@@ -196,7 +201,6 @@ Before you can connect you need to make sure that:
 - **Search workflows** Search workflows.
 - **Search workflow steps** Search workflow steps.
 - **Get workflow by ID** Get workflow details by ID.
-- **Get latest assigned user** Get latest user assigned to a project job. Returns null user fields when job has no assigned user.
 - **Assign to workflow** Assign users to workflow steps in a project.
     Advanced settings:
     - **Type of user on a project**: Choose the user type to assign.

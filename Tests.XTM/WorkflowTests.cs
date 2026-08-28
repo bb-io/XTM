@@ -12,33 +12,6 @@ namespace Tests.XTM;
 public class WorkflowTests : TestBaseMultipleConnections
 {
     [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
-    public async Task GetLatestAssignedUser_WithAssignedUser_ReturnsUser(InvocationContext context)
-    {
-        var action = new WorkflowActions(context);
-        var project = new ProjectRequest { ProjectId = "2854476" };
-
-        var response = await action.GetLatestAssignedUser(project, "2854490");
-
-        Assert.IsNotNull(response);
-        Assert.AreEqual("92530", response.UserId);
-        Assert.AreEqual("Blackbird", response.UserName);
-        PrintResult(response);
-    }
-
-    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
-    public async Task GetLatestAssignedUser_WithoutAssignedUser_ReturnsNullProperties(InvocationContext context)
-    {
-        var action = new WorkflowActions(context);
-        var project = new ProjectRequest { ProjectId = "2854476" };
-
-        var response = await action.GetLatestAssignedUser(project, "2854488");
-
-        Assert.IsNotNull(response);
-        Assert.IsNull(response.UserId);
-        Assert.IsNull(response.UserName);
-    }
-
-    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
     public async Task MoveWorkflowsToNextStep_ReturnsResponse(InvocationContext context)
     {
         // Arrange
