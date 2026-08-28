@@ -122,6 +122,10 @@ Before you can connect you need to make sure that:
 - **Download all project files** Download project files.
 - **Download reference files** Download reference files from a project.
 - **Download translated files** Download translated files from a project.
+- **Add provenance metadata** Add translation or review provenance to units in a translated file using generated job data and workflow assignments. By default, person attribution applies only to signed-off segments.
+    Advanced settings:
+    - **Provenance type**: Override whether every unit receives translation or review provenance. If omitted, infer the type from the selected workflow step and segment changes.
+    - **Workflow step**: Select the manual workflow step used for person attribution and provenance inference. Defaults to the last non-automatic step.
 - **Upload source file** Upload a source file to a project.
     Advanced settings:
     - **Tag IDs**: Apply tags to the uploaded file.

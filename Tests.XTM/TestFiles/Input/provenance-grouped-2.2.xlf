@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:2.2" xmlns:its="http://www.w3.org/2005/11/its" version="2.2" srcLang="en-US" trgLang="uk-UA">
+  <file id="f1">
+    <unit id="t1">
+      <segment id="s1">
+        <source>Governance for Multilingual Content Operations</source>
+        <target>Управління операціями з багатомовним контентом NEW</target>
+      </segment>
+    </unit>
+    <unit id="t2">
+      <segment id="s2">
+        <source>Blackbird unifies content, context, and automation into one orchestration layer.</source>
+        <target>Blackbird об'єднує контент, контекст та автоматизацію в один рівень оркестрації. NEW</target>
+      </segment>
+    </unit>
+    <group id="outer">
+      <unit id="t3" its:tool="Existing translator">
+        <segment id="s3">
+          <source>Built on iPaaS infrastructure with a data fabric and a persistent memory layer, it adapts, transforms, and governs enterprise content at scale.</source>
+          <target>Побудована на інфраструктурі iPaaS з тканиною даних та шаром постійної пам'яті, вона адаптує, трансформує та керує корпоративним контентом у великих масштабах. NEW</target>
+        </segment>
+      </unit>
+      <group id="inner">
+        <unit id="t4">
+          <segment id="s4">
+            <source>Book a Demo</source>
+            <target>Замовити демо-версію</target>
+          </segment>
+        </unit>
+      </group>
+      <unit id="t5">
+        <segment id="s5">
+          <source>From raw content to multilingual experiences — Blackbird transforms how global teams orchestrate, adapt, and automate content with AI, interoperability, and human-in-the-loop control.</source>
+          <target>Від необробленого контенту до багатомовного досвіду — Blackbird трансформує те, як глобальні команди організовують, адаптують та автоматизують контент за допомогою штучного інтелекту, сумісності та контролю «люди в циклі».</target>
+        </segment>
+      </unit>
+    </group>
+  </file>
+</xliff>

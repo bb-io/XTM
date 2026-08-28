@@ -3,6 +3,7 @@ using Apps.XTM.Constants;
 using Apps.XTM.DataSourceHandlers;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Invocation;
+using Apps.XTM.Models.Request.Files;
 using Apps.XTM.Models.Request.Projects;
 using Apps.XTM.Models.Request.Customers;
 
@@ -66,6 +67,22 @@ public class DataSources : TestBaseMultipleConnections
         // Assert
         PrintDataHandlerResult(response);
         Assert.IsNotNull(response);
+    }
+
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
+    public async Task ManualWorkflowStepDataHandlerReturnsOnlyManualSteps(InvocationContext context)
+    {
+        var handler = new ManualWorkflowStepDataHandler(
+            context,
+            new ProjectRequest { ProjectId = "2854476" },
+            new AddMetadataRequest { JobId = "2854490" });
+
+        var response = (await handler.GetDataAsync(
+            new DataSourceContext(),
+            CancellationToken.None)).ToList();
+
+        Assert.HasCount(1, response);
+        Assert.AreEqual("translate1", response[0].Value);
     }
 
     [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
