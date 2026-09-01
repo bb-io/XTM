@@ -133,6 +133,15 @@ Before you can connect you need to make sure that:
     - **Translation type**: Set the translation type for the uploaded file.
     - **Metadata in JSON format**: Attach metadata to the uploaded file.
     - **Reanalyse project**: Choose whether to reanalyze the project after upload.
+- **Upload source XLIFF excluding selected states** Upload the complete XLIFF while marking units in selected states with `translate="no"`, so XTM processes only the remaining segments and can still generate the complete translated file. XLIFF 2 files are converted to XLIFF 1.2 before upload. If no segments remain, the XTM upload is skipped. The action returns the prepared file, whether it was uploaded, segment totals, excluded and remaining segment counts, and an approximate source word count for the remaining segments.
+    Advanced settings:
+    - **Exclude segments with states**: Select the segment states to exclude from translation. Defaults to **Final**.
+    - **Workflow ID**: Apply a workflow to the uploaded file.
+    - **Target languages**: Limit the upload to selected project target languages.
+    - **Tag IDs**: Apply tags to the uploaded file.
+    - **Translation type**: Set the translation type for the uploaded file.
+    - **Metadata in JSON format**: Attach metadata to the uploaded file.
+    - **Reanalyse project**: Choose whether to reanalyze the project after upload.
 - **Upload reference file** Upload a reference file to a project.
     Advanced settings:
     - **Override file name**: Use a custom name for the uploaded file.
