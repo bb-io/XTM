@@ -10,6 +10,7 @@ using Apps.XTM.Models.Response.Files;
 using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.Models.Response.Workflows;
 using Apps.XTM.RestUtilities;
+using Apps.XTM.Utils;
 using Apps.XTM.Webhooks.Models.Response;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
@@ -917,6 +918,65 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         [ActionParameter] ProjectRequest project,
         [ActionParameter] UploadSourceFileRequest input)
     {
+        var fileName = input.Name?.Trim() ?? input.File.Name ??
+            throw new PluginMisconfigurationException("File name is required");
+
+        await using var fileStream = await _fileManagementClient.DownloadAsync(input.File);
+        var fileBytes = await fileStream.GetByteData();
+        using var seekableStream = new MemoryStream(fileBytes);
+
+        if (Xliff2Serializer.IsXliff2(seekableStream, out var xliffNode))
+        {
+            var transformation = Xliff2Serializer.Deserialize(xliffNode);
+            var xliffV12 = Xliff1Serializer.Serialize(transformation);
+            fileBytes = Encoding.UTF8.GetBytes(xliffV12);
+        }
+
+        return await UploadSourceFileBytes(project, input, fileBytes, fileName);
+    }
+
+    [Action("Upload source XLIFF excluding selected states", Description = "Upload a complete XLIFF file while excluding segments in selected states from translation")]
+    public async Task<UploadSelectedSourceXliffResponse> UploadSelectedSourceXliff(
+        [ActionParameter] ProjectRequest project,
+        [ActionParameter] UploadSelectedSourceXliffRequest input)
+    {
+        var fileName = input.Name?.Trim() ?? input.File.Name ??
+            throw new PluginMisconfigurationException("File name is required");
+
+        await using var fileStream = await _fileManagementClient.DownloadAsync(input.File);
+        var sourceBytes = await fileStream.GetByteData();
+        var prepared = XliffSourceSelection.Prepare(sourceBytes, input.ExcludeSegmentStates);
+
+        await using var preparedStream = new MemoryStream(prepared.Content);
+        var preparedFile = await _fileManagementClient.UploadAsync(
+            preparedStream,
+            "application/xliff+xml",
+            fileName);
+
+        CreateProjectResponse? uploadResponse = null;
+        if (prepared.SegmentsLeft > 0)
+            uploadResponse = await UploadSourceFileBytes(project, input, prepared.Content, fileName);
+
+        return new UploadSelectedSourceXliffResponse
+        {
+            Name = uploadResponse?.Name ?? fileName,
+            ProjectId = uploadResponse?.ProjectId ?? project.ProjectId,
+            Jobs = uploadResponse?.Jobs ?? [],
+            File = preparedFile,
+            Uploaded = uploadResponse != null,
+            SegmentsExcluded = prepared.SegmentsExcluded,
+            SegmentsTotal = prepared.SegmentsTotal,
+            SegmentsLeft = prepared.SegmentsLeft,
+            ApproximateWordCount = prepared.ApproximateWordCount,
+        };
+    }
+
+    private async Task<CreateProjectResponse> UploadSourceFileBytes(
+        ProjectRequest project,
+        UploadSourceFileRequest input,
+        byte[] fileBytes,
+        string fileName)
+    {
         var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/sources/upload";
         var token = await Client.GetToken(Creds);
 
@@ -928,7 +988,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
         var parameters = new Dictionary<string, string>
         {
-            { "files[0].name", input.Name?.Trim() ?? input.File.Name },
+            { "files[0].name", fileName },
         };
 
         if (!string.IsNullOrEmpty(input.WorkflowId))
@@ -964,20 +1024,6 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         }
 
         parameters.ToList().ForEach(x => request.AddParameter(x.Key, x.Value));
-
-        string fileName = input.Name ?? input.File.Name ?? throw new PluginMisconfigurationException("File name is required");
-       
-
-        await using var fileStream = await _fileManagementClient.DownloadAsync(input.File);
-        var fileBytes = await fileStream.GetByteData();
-        using var seekableStream = new MemoryStream(fileBytes);
-
-        if (Xliff2Serializer.IsXliff2(seekableStream, out var xliffNode))
-        {
-            var transformation = Xliff2Serializer.Deserialize(xliffNode);
-            var xliffV12 = Xliff1Serializer.Serialize(transformation);
-            fileBytes = Encoding.UTF8.GetBytes(xliffV12);
-        }
 
         request.AddFile("files[0].file", fileBytes, fileName);
         request.AlwaysMultipartFormData = true;

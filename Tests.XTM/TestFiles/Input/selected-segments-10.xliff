@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff srcLang="en-US" trgLang="uk-UA" version="2.2"
+       xmlns="urn:oasis:names:tc:xliff:document:2.2">
+  <file id="f1" original="selected-segments-10.json">
+    <unit id="u1" name="app.title">
+      <segment state="final">
+        <source>Welcome to the test application</source>
+        <target>Ласкаво просимо до тестового застосунку</target>
+      </segment>
+    </unit>
+    <unit id="u2" name="navigation.home">
+      <segment state="final">
+        <source>Open the home page</source>
+        <target>Відкрити домашню сторінку</target>
+      </segment>
+    </unit>
+    <unit id="u3" name="navigation.settings">
+      <segment state="final">
+        <source>Open application settings</source>
+        <target>Відкрити налаштування застосунку</target>
+      </segment>
+    </unit>
+    <unit id="u4" name="profile.edit">
+      <segment state="final">
+        <source>Edit your user profile</source>
+        <target>Редагувати профіль користувача</target>
+      </segment>
+    </unit>
+    <unit id="u5" name="action.save">
+      <segment state="final">
+        <source>Save all current changes</source>
+        <target>Зберегти всі поточні зміни</target>
+      </segment>
+    </unit>
+    <unit id="u6" name="action.cancel">
+      <segment state="final">
+        <source>Cancel and return</source>
+        <target>Скасувати та повернутися</target>
+      </segment>
+    </unit>
+    <unit id="u7" name="session.logout">
+      <segment state="final">
+        <source>Sign out of this session</source>
+        <target>Вийти з цього сеансу</target>
+      </segment>
+    </unit>
+    <unit id="u8" name="account.new_label">
+      <segment>
+        <source>Translate this new account label</source>
+        <target />
+      </segment>
+    </unit>
+    <unit id="u9" name="billing.changed_message">
+      <segment>
+        <source>Translate this changed billing message</source>
+        <target />
+      </segment>
+    </unit>
+    <unit id="u10" name="notification.new_text">
+      <segment>
+        <source>Translate this new notification text</source>
+        <target />
+      </segment>
+    </unit>
+  </file>
+</xliff>
