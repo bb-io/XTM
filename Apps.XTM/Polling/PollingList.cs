@@ -24,16 +24,27 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
 {
     [PollingEvent("On projects created (polling)", "Triggers when new projects are created")]
     public Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsCreated(
-        PollingEventRequest<DateMemory> request) => ProcessProjectsPolling(request,
-        $"createdDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
+        PollingEventRequest<DateMemory> request)
+    {
+        var pollingStart = DateTime.UtcNow;
+        
+        return ProcessProjectsPolling(
+            request,
+            $"createdDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}",
+            pollingStart);
+    }
 
     [PollingEvent("On projects updated (polling)", "Triggers when projects are updated")]
     public async Task<PollingEventResponse<DateMemory, ListProjectsResponse>> OnProjectsUpdated(
         PollingEventRequest<DateMemory> request,
         [PollingEventParameter] ProjectOptionalRequest projectOptionalRequest)
     {
-        var result = await ProcessProjectsPolling(request,
-            $"modifiedDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
+        var pollingStart = DateTime.UtcNow;
+        
+        var result = await ProcessProjectsPolling(
+            request,
+            $"modifiedDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}",
+            pollingStart);
 
         if (projectOptionalRequest.ProjectId != null)
         {
@@ -91,72 +102,68 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
         PollingEventRequest<DateMemory> request,
         [PollingEventParameter] ProjectOptionalRequest projectOptionalRequest)
     {
-        try
+        var pollingStart = DateTime.UtcNow;
+        
+        var result = await ProcessProjectsPolling(
+            request,
+            $"finishedDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}",
+            pollingStart);
+
+        if (result.Result == null || result.Result.Projects.Count == 0)
         {
-            var result = await ProcessProjectsPolling(request,
-                $"finishedDateFrom={request.Memory?.LastInteractionDate.ToString("o", CultureInfo.InvariantCulture)}");
-
-            if (result.Result == null || result.Result.Projects == null)
-            {
-                result.FlyBird = false;
-                return result;
-            }
-
-            if (projectOptionalRequest.ProjectId != null)
-            {
-                var filteredProjects = result.Result?.Projects?.Where(x => x.Id == projectOptionalRequest.ProjectId).ToList();
-                if (filteredProjects != null && filteredProjects.Count > 0)
-                {
-                    result.Result = new(filteredProjects);
-                }
-                else
-                {
-                    result.FlyBird = false;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains) && result.Result?.Projects != null)
-            {
-                var filteredProjects = new List<SimpleProject>();
-                foreach (var project in result.Result?.Projects!)
-                {
-                    var projectInfo = await Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.Id}", Method.Get, null, Creds);
-                    if (projectInfo.CustomerName.Contains(projectOptionalRequest.CustomerNameContains))
-                    {
-                        filteredProjects.Add(project);
-                    }
-                }
-
-                if (filteredProjects.Count > 0)
-                {
-                    result.Result = new(filteredProjects);
-                }
-                else
-                {
-                    result.FlyBird = false;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains))
-            {
-                var filteredProjects = result.Result?.Projects?.Where(x => !string.IsNullOrEmpty(x.Name) && x.Name.Contains(projectOptionalRequest.ProjectNameContains, StringComparison.OrdinalIgnoreCase)).ToList();
-                if (filteredProjects != null && filteredProjects.Count > 0)
-                {
-                    result.Result = new(filteredProjects);
-                }
-                else
-                {
-                    result.FlyBird = false;
-                }
-            }
-
+            result.FlyBird = false;
             return result;
         }
-        catch (Exception ex)
+
+        if (projectOptionalRequest.ProjectId != null)
         {
-            InvocationContext.Logger?.LogError($"[XTM OnProjectsFinished] Event failed. {ex.Message} - {ex.StackTrace}", null);
-            throw;
+            var filteredProjects = result.Result?.Projects?.Where(x => x.Id == projectOptionalRequest.ProjectId).ToList();
+            if (filteredProjects != null && filteredProjects.Count > 0)
+            {
+                result.Result = new(filteredProjects);
+            }
+            else
+            {
+                result.FlyBird = false;
+            }
         }
+
+        if (!string.IsNullOrEmpty(projectOptionalRequest.CustomerNameContains) && result.Result?.Projects != null)
+        {
+            var filteredProjects = new List<SimpleProject>();
+            foreach (var project in result.Result?.Projects!)
+            {
+                var projectInfo = await Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.Id}", Method.Get, null, Creds);
+                if (projectInfo.CustomerName.Contains(projectOptionalRequest.CustomerNameContains, StringComparison.OrdinalIgnoreCase))
+                {
+                    filteredProjects.Add(project);
+                }
+            }
+
+            if (filteredProjects.Count > 0)
+            {
+                result.Result = new(filteredProjects);
+            }
+            else
+            {
+                result.FlyBird = false;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(projectOptionalRequest.ProjectNameContains))
+        {
+            var filteredProjects = result.Result?.Projects?.Where(x => !string.IsNullOrEmpty(x.Name) && x.Name.Contains(projectOptionalRequest.ProjectNameContains, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (filteredProjects != null && filteredProjects.Count > 0)
+            {
+                result.Result = new(filteredProjects);
+            }
+            else
+            {
+                result.FlyBird = false;
+            }
+        }
+
+        return result;
     }
 
     [PollingEvent("On project status changed (polling)", "Triggers when a project's status changes")]
@@ -359,7 +366,8 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
 
     private async Task<PollingEventResponse<DateMemory, ListProjectsResponse>> ProcessProjectsPolling(
         PollingEventRequest<DateMemory> request,
-        string query)
+        string query,
+        DateTime pollingStart)
     {
         if (request.Memory is null)
         {
@@ -368,7 +376,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
                 FlyBird = false,
                 Memory = new()
                 {
-                    LastInteractionDate = DateTime.UtcNow
+                    LastInteractionDate = pollingStart
                 }
             };
         }
@@ -396,7 +404,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
                 FlyBird = false,
                 Memory = new()
                 {
-                    LastInteractionDate = DateTime.UtcNow
+                    LastInteractionDate = pollingStart
                 }
             };
         }
@@ -407,7 +415,7 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
             Result = new(result),
             Memory = new()
             {
-                LastInteractionDate = DateTime.UtcNow
+                LastInteractionDate = pollingStart
             }
         };
     }
