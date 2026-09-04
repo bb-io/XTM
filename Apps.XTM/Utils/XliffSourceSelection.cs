@@ -12,7 +12,7 @@ namespace Apps.XTM.Utils;
 public static partial class XliffSourceSelection
 {
     private const string BlackbirdNamespace = "https://blackbird.io/xliff/xtm-source-selection";
-    private const string ExcludedByBlackbirdAttribute = "exluded";
+    private const string ExcludedByBlackbirdAttribute = "excluded";
 
     public static PreparedSourceXliff Prepare(byte[] content, IEnumerable<string>? excludedStates)
     {

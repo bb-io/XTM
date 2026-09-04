@@ -45,11 +45,11 @@ public class XliffSourceSelectionTests
         Assert.AreEqual(4, result.ApproximateWordCount);
         Assert.AreEqual(3, units.Count);
         Assert.AreEqual("no", units["u1"].Attribute("translate")?.Value);
-        Assert.AreEqual("true", units["u1"].Attributes().Single(x => x.Name.LocalName == "exluded").Value);
+        Assert.AreEqual("true", units["u1"].Attributes().Single(x => x.Name.LocalName == "excluded").Value);
         Assert.IsNull(units["u2"].Attribute("translate"));
         Assert.AreEqual("no", units["u3"].Attribute("translate")?.Value);
-        Assert.AreEqual("true", units["u3"].Attributes().Single(x => x.Name.LocalName == "exluded").Value);
-        StringAssert.Contains(Encoding.UTF8.GetString(result.Content), "bb:exluded=\"true\"");
+        Assert.AreEqual("true", units["u3"].Attributes().Single(x => x.Name.LocalName == "excluded").Value);
+        StringAssert.Contains(Encoding.UTF8.GetString(result.Content), "bb:excluded=\"true\"");
     }
 
     [TestMethod]
@@ -94,7 +94,7 @@ public class XliffSourceSelectionTests
 
         Assert.AreEqual("1.2", document.Root?.Attribute("version")?.Value);
         Assert.AreEqual("no", units["1"].Attribute("translate")?.Value);
-        Assert.IsFalse(units["1"].Attributes().Any(x => x.Name.LocalName == "exluded"));
+        Assert.IsFalse(units["1"].Attributes().Any(x => x.Name.LocalName == "excluded"));
         Assert.IsNull(units["2"].Attribute("translate"));
         Assert.AreEqual(2, result.SegmentsTotal);
         Assert.AreEqual(1, result.SegmentsExcluded);
@@ -109,7 +109,7 @@ public class XliffSourceSelectionTests
               <file original="messages.json" source-language="en-US" target-language="fr-CA" datatype="plaintext">
                 <body>
                   <trans-unit id="original" translate="no"><source>Originally excluded</source></trans-unit>
-                  <trans-unit id="blackbird" translate="no" bb:exluded="true"><source>Excluded by Blackbird</source></trans-unit>
+                  <trans-unit id="blackbird" translate="no" bb:excluded="true"><source>Excluded by Blackbird</source></trans-unit>
                 </body>
               </file>
             </xliff>
@@ -122,7 +122,7 @@ public class XliffSourceSelectionTests
 
         Assert.AreEqual("no", units["original"].Attribute("translate")?.Value);
         Assert.IsNull(units["blackbird"].Attribute("translate"), Encoding.UTF8.GetString(result));
-        Assert.IsFalse(units["blackbird"].Attributes().Any(x => x.Name.LocalName == "exluded"));
+        Assert.IsFalse(units["blackbird"].Attributes().Any(x => x.Name.LocalName == "excluded"));
         Assert.DoesNotContain("xliff/xtm-source-selection", Encoding.UTF8.GetString(result));
     }
 
