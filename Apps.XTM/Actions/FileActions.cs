@@ -465,7 +465,10 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
         foreach (var file in files)
         {
-            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
+            var targetBytes = await file.FileStream.GetByteData();
+            var restoredBytes = XliffSourceSelection.RemoveBlackbirdExclusions(targetBytes);
+            await using var restoredStream = new MemoryStream(restoredBytes);
+            var uploadedFile = await _fileManagementClient.UploadAsync(restoredStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
 
             var description = xtmFileDescriptions?.FirstOrDefault(d => (d.TargetLanguage + "_" + d.FileName) == file.UploadName);
 
