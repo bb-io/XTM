@@ -14,30 +14,28 @@ public static partial class XliffSourceSelection
     private const string BlackbirdNamespace = "https://blackbird.io/xliff/xtm-source-selection";
     private const string ExcludedByBlackbirdAttribute = "excluded";
 
-    public static PreparedSourceXliff Prepare(byte[] content, IEnumerable<string>? excludedStates)
+    public static PreparedSourceXliff Prepare(byte[] content, IEnumerable<string>? excludedStates,
+        string fileName = "source.xlf", string? contentType = null, string? sourceLanguage = null)
     {
         Transformation transformation;
-        bool sourceIsXliff2;
+        bool sourceIsXliff1;
 
         try
         {
+            if (content.AsSpan().StartsWith(Encoding.UTF8.Preamble))
+                content = content[Encoding.UTF8.Preamble.Length..];
             using var stream = new MemoryStream(content);
 
-            if (Xliff2Serializer.IsXliff2(stream, out var xliff2Node))
-            {
-                transformation = Xliff2Serializer.Deserialize(xliff2Node);
-                sourceIsXliff2 = true;
-            }
-            else if (Xliff1Serializer.IsXliff1(stream, out var xliff1Node))
-            {
-                transformation = Xliff1Serializer.Deserialize(xliff1Node);
-                sourceIsXliff2 = false;
-            }
-            else
-            {
+            sourceIsXliff1 = Xliff1Serializer.IsXliff1(stream, out _);
+            stream.Position = 0;
+            var loaded = Transformation.Load(stream, fileName, contentType);
+            if (!loaded.Success || loaded.Value is null)
                 throw new PluginMisconfigurationException(
-                    "The source file must be a valid XLIFF 1 or XLIFF 2 file.");
-            }
+                    $"The source file could not be read. Provide a file supported by Blackbird filters. {loaded.Error}");
+
+            transformation = loaded.Value;
+            if (string.IsNullOrWhiteSpace(transformation.SourceLanguage))
+                transformation.SourceLanguage = sourceLanguage?.Replace('_', '-');
         }
         catch (PluginMisconfigurationException)
         {
@@ -46,39 +44,47 @@ public static partial class XliffSourceSelection
         catch (Exception exception)
         {
             throw new PluginMisconfigurationException(
-                $"The source file must be a valid XLIFF 1 or XLIFF 2 file. {exception.Message}");
+                $"The source file could not be read. Provide a file supported by Blackbird filters. {exception.Message}");
         }
 
         var states = NormalizeStates(excludedStates);
-        var units = transformation.GetUnits().ToArray();
+        var nodes = new Stack<(Node Node, bool Translate)>();
+        nodes.Push((transformation, true));
         var total = 0;
         var excluded = 0;
         var approximateWordCount = 0;
         var hasBlackbirdExclusions = false;
         var markerName = XNamespace.Get(BlackbirdNamespace) + ExcludedByBlackbirdAttribute;
 
-        foreach (var unit in units)
+        while (nodes.TryPop(out var item))
         {
-            var segments = unit.Segments.Where(x => !sourceIsXliff2 || !x.IsIgnorbale).ToArray();
+            var translate = item.Node.Translate ?? item.Translate;
+            if (item.Node is Transformation container)
+            {
+                foreach (var child in container.Children)
+                    nodes.Push((child, translate));
+            }
+            else if (item.Node is Blackbird.Filters.Transformations.Group group)
+            {
+                foreach (var child in group.Children)
+                    nodes.Push((child, translate));
+            }
+
+            if (item.Node is not Unit unit)
+                continue;
+
+            var segments = unit.Segments.Where(x => sourceIsXliff1 || !x.IsIgnorbale).ToArray();
             if (segments.Length == 0)
                 continue;
 
-            if (sourceIsXliff2 && segments.Length > 1)
-            {
-                var unitId = unit.Id ?? "(missing ID)";
-                throw new PluginMisconfigurationException(
-                    $"XLIFF unit '{unitId}' contains multiple segments. " +
-                    "This action currently supports one segment per unit so the XLIFF 2 to XLIFF 1.2 conversion remains lossless.");
-            }
-
-            var unitSegmentCount = sourceIsXliff2 ? segments.Length : 1;
+            var unitSegmentCount = segments.Length;
             total += unitSegmentCount;
-            var alreadyExcluded = unit.Translate == false;
+            var alreadyExcluded = !translate;
             var selectedSegments = segments.Where(segment =>
             {
                 var state = (segment.State ?? SegmentState.Initial).Serialize();
                 return states.Contains(state)
-                    || (!sourceIsXliff2
+                    || (sourceIsXliff1
                         && segment.State == SegmentState.Reviewed
                         && states.Contains(SegmentState.Final.Serialize()));
             }).ToArray();
@@ -98,10 +104,12 @@ public static partial class XliffSourceSelection
                 {
                     unit.Other.RemoveAll(x => x is XAttribute attribute && attribute.Name == markerName);
                     unit.Other.Add(new XAttribute(markerName, "true"));
+                    if (unit.Translate == true)
+                        unit.Other.Add(new XAttribute(XNamespace.Get(BlackbirdNamespace) + "original-translate", "yes"));
+                    unit.Translate = false;
                     hasBlackbirdExclusions = true;
                 }
 
-                unit.Translate = false;
                 excluded += unitSegmentCount;
             }
             else
@@ -111,21 +119,45 @@ public static partial class XliffSourceSelection
         }
 
         if (total == 0)
-            throw new PluginMisconfigurationException("The XLIFF file does not contain any segments.");
+            throw new PluginMisconfigurationException("The source file does not contain any segments to translate.");
 
         if (hasBlackbirdExclusions)
         {
-            transformation.XliffOther.RemoveAll(x => x is XAttribute attribute
-                && attribute.Name == XNamespace.Xmlns + "bb"
-                && attribute.Value != BlackbirdNamespace);
-
-            if (!transformation.XliffOther.OfType<XAttribute>().Any(x => x.Name == XNamespace.Xmlns + "bb"))
-                transformation.XliffOther.Add(new XAttribute(XNamespace.Xmlns + "bb", BlackbirdNamespace));
+            var namespaceAttributes = transformation.XliffOther.OfType<XAttribute>().ToArray();
+            if (!namespaceAttributes.Any(x => x.IsNamespaceDeclaration && x.Value == BlackbirdNamespace))
+            {
+                var prefix = "bb";
+                while (namespaceAttributes.Any(x => x.Name == XNamespace.Xmlns + prefix))
+                    prefix += "x";
+                transformation.XliffOther.Add(new XAttribute(XNamespace.Xmlns + prefix, BlackbirdNamespace));
+            }
         }
 
-        var xliff1 = Xliff1Serializer.Serialize(transformation);
+        var xliff = Xliff2Serializer.Serialize(transformation, Xliff2Version.Xliff21);
+        // Filters 1.2.16 duplicates single-file metadata and notes when serializing XLIFF 2.1.
+        // Repeated metadata keys prevent downstream Source()/Target() reconstruction.
+        if (!transformation.Children.OfType<Transformation>().Any())
+        {
+            var document = XDocument.Parse(xliff, LoadOptions.PreserveWhitespace);
+            XNamespace metadataNamespace = "urn:oasis:names:tc:xliff:metadata:2.0";
+            var file = document.Root?.Element(document.Root.Name.Namespace + "file");
+            var metadata = file?.Element(metadataNamespace + "metadata");
+            if (metadata is not null)
+            {
+                foreach (var group in metadata.DescendantsAndSelf())
+                {
+                    var seen = new HashSet<XNode>(XNode.EqualityComparer);
+                    group.Elements(metadataNamespace + "meta").Where(x => !seen.Add(x)).Remove();
+                }
+            }
+            var notes = file?.Element(file.Name.Namespace + "notes");
+            var seenNotes = new HashSet<XNode>(XNode.EqualityComparer);
+            notes?.Elements().Where(x => !seenNotes.Add(x)).Remove();
+            xliff = document.ToString(SaveOptions.DisableFormatting);
+        }
+
         return new PreparedSourceXliff(
-            Encoding.UTF8.GetBytes(xliff1),
+            Encoding.UTF8.GetBytes(xliff),
             total,
             excluded,
             total - excluded,
@@ -134,48 +166,62 @@ public static partial class XliffSourceSelection
 
     public static byte[] RemoveBlackbirdExclusions(byte[] content)
     {
-        Transformation transformation;
-
-        using (var stream = new MemoryStream(content))
+        XDocument document;
+        try
         {
-            if (Xliff1Serializer.IsXliff1(stream, out var xliff1Node))
-                transformation = Xliff1Serializer.Deserialize(xliff1Node);
-            else if (Xliff2Serializer.IsXliff2(stream, out var xliff2Node))
-                transformation = Xliff2Serializer.Deserialize(xliff2Node);
-            else
-                return content;
+            using var stream = new MemoryStream(content);
+            document = XDocument.Load(stream, LoadOptions.PreserveWhitespace);
         }
+        catch (System.Xml.XmlException)
+        {
+            return content;
+        }
+
+        if (document.Root?.Name.LocalName != "xliff"
+            || document.Root.Name.NamespaceName is not ("urn:oasis:names:tc:xliff:document:1.2"
+                or "urn:oasis:names:tc:xliff:document:2.0" or "urn:oasis:names:tc:xliff:document:2.2"))
+            return content;
 
         var markerName = XNamespace.Get(BlackbirdNamespace) + ExcludedByBlackbirdAttribute;
         var restored = false;
-        var units = transformation.GetUnits().ToArray();
 
-        foreach (var unit in units)
+        foreach (var unit in document.Descendants().Where(x => x.Name.Namespace == document.Root.Name.Namespace
+            && x.Name.LocalName is "unit" or "trans-unit"))
         {
-            var markers = unit.Other.OfType<XAttribute>()
-                .Where(x => x.Name == markerName
-                    && string.Equals(x.Value, "true", StringComparison.OrdinalIgnoreCase))
-                .ToArray();
-
-            if (markers.Length == 0)
+            var marker = unit.Attribute(markerName);
+            if (!string.Equals(marker?.Value, "true", StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            unit.Translate = null;
-            unit.Other.RemoveAll(markers.Contains);
+            if (unit.Attribute("translate")?.Value == "no")
+            {
+                if (unit.Attribute(XNamespace.Get(BlackbirdNamespace) + "original-translate")?.Value == "yes")
+                    unit.SetAttributeValue("translate", "yes");
+                else
+                    unit.Attribute("translate")!.Remove();
+            }
+            unit.Attribute(XNamespace.Get(BlackbirdNamespace) + "original-translate")?.Remove();
+            marker!.Remove();
             restored = true;
         }
 
         if (!restored)
             return content;
 
-        if (!units.SelectMany(x => x.Other.OfType<XAttribute>()).Any(x => x.Name == markerName))
+        if (!document.Descendants().Any(x => x.Name.NamespaceName == BlackbirdNamespace
+            || x.Attributes().Any(a => !a.IsNamespaceDeclaration && a.Name.NamespaceName == BlackbirdNamespace)))
         {
-            transformation.XliffOther.RemoveAll(x => x is XAttribute attribute
-                && attribute.Name == XNamespace.Xmlns + "bb"
-                && attribute.Value == BlackbirdNamespace);
+            document.Descendants().Attributes().Where(x => x.IsNamespaceDeclaration
+                && x.Value == BlackbirdNamespace).Remove();
         }
 
-        return Encoding.UTF8.GetBytes(Xliff1Serializer.Serialize(transformation));
+        using var output = new MemoryStream();
+        using (var writer = System.Xml.XmlWriter.Create(output, new System.Xml.XmlWriterSettings
+        {
+            Encoding = new UTF8Encoding(false),
+            OmitXmlDeclaration = document.Declaration is null,
+        }))
+            document.Save(writer);
+        return output.ToArray();
     }
 
     private static HashSet<string> NormalizeStates(IEnumerable<string>? states)

@@ -122,6 +122,7 @@ Before you can connect you need to make sure that:
 - **Download all project files** Download project files.
 - **Download reference files** Download reference files from a project.
 - **Download translated files** Download translated files from a project.
+- **Download translated interoperable file** Generate and download the translated XLIFF 2.1 for a single job created by **Upload interoperable source file**. Waits for XTM to finish generating the file, then removes exclusions added during upload while preserving original `translate="no"` settings and interoperability metadata. Use the job ID for the desired target language. The output remains XLIFF, including when the original source was another file format.
 - **Add provenance metadata** Add translation or review provenance to units in a translated file using generated job data and workflow assignments. By default, person attribution applies only to signed-off segments. Output is always XLIFF 2.2, including when input uses XLIFF 1.2.
     Advanced settings:
     - **Attribute segments to user**: Choose all segments, only confirmed segments, only changed segments, or no segments. Defaults to only confirmed segments.
@@ -133,7 +134,7 @@ Before you can connect you need to make sure that:
     - **Translation type**: Set the translation type for the uploaded file.
     - **Metadata in JSON format**: Attach metadata to the uploaded file.
     - **Reanalyse project**: Choose whether to reanalyze the project after upload.
-- **Upload source XLIFF excluding selected states** Upload the complete XLIFF while marking units in selected states with `translate="no"`, so XTM processes only the remaining segments and can still generate the complete translated file. XLIFF 2 files are converted to XLIFF 1.2 before upload. If no segments remain, the XTM upload is skipped. The action returns the prepared file, whether it was uploaded, segment totals, excluded and remaining segment counts, and an approximate source word count for the remaining segments.
+- **Upload interoperable source file** Accept any file supported by Blackbird filters and convert it to XLIFF 2.1 before uploading it as a source file to XTM. Units in selected states receive temporary `translate="no"` exclusions, so XTM processes only the remaining segments. Original exclusions and interoperability metadata are preserved. Files without a source language use the project's source language; non-XLIFF filenames receive an `.xlf` suffix. If no segments remain, the XTM upload is skipped. The action returns the prepared file, whether it was uploaded, segment totals, excluded and remaining segment counts, and an approximate source word count for the remaining segments. Units containing both excluded and translatable segments must be split into separate units before upload because XLIFF applies `translate` to the whole unit.
     Advanced settings:
     - **Exclude segments with states**: Select the segment states to exclude from translation. Defaults to **Final**.
     - **Workflow ID**: Apply a workflow to the uploaded file.
