@@ -83,6 +83,45 @@ public class XliffSourceSelectionTests
         StringAssert.Contains(reader.ReadToEnd(), "Hello from Blackbird.");
     }
 
+    [DataTestMethod]
+    [DataRow("2.1", "urn:oasis:names:tc:xliff:document:2.0")]
+    [DataRow("2.2", "urn:oasis:names:tc:xliff:document:2.2")]
+    public void Prepare_FileMetadata_RemainsUnchangedWithoutBlankLinesAcrossRepeatedConversions(
+        string version, string xliffNamespace)
+    {
+        var input = $$"""
+            <xliff xmlns="{{xliffNamespace}}" xmlns:mda="urn:oasis:names:tc:xliff:metadata:2.0" version="{{version}}" srcLang="en-GB">
+              <file id="f1">
+                <mda:metadata>
+                  <mda:metaGroup category="blackbird">
+                    <mda:meta type="original-name">messages</mda:meta>
+                  </mda:metaGroup>
+                  <mda:metaGroup category="phrase-strings">
+                    <mda:meta type="project-id">project-123</mda:meta>
+                    <mda:meta type="source-locale-code">en-GB</mda:meta>
+                    <mda:meta type="target-locale-code">fr-FR</mda:meta>
+                  </mda:metaGroup>
+                </mda:metadata>
+                <unit id="u1"><segment><source>New text</source></segment></unit>
+              </file>
+            </xliff>
+            """;
+        XNamespace metadataNamespace = "urn:oasis:names:tc:xliff:metadata:2.0";
+        var expected = XDocument.Parse(input).Descendants(metadataNamespace + "metadata").Single().ToString();
+        var content = Encoding.UTF8.GetBytes(input);
+
+        for (var pass = 0; pass < 3; pass++)
+        {
+            content = XliffSourceSelection.Prepare(content, null).Content;
+            var output = Encoding.UTF8.GetString(content);
+            var document = XDocument.Parse(output);
+
+            Assert.AreEqual("2.1", document.Root?.Attribute("version")?.Value);
+            Assert.AreEqual(expected, document.Descendants(metadataNamespace + "metadata").Single().ToString());
+            Assert.IsFalse(output.Split('\n').Any(string.IsNullOrWhiteSpace), output);
+        }
+    }
+
     [TestMethod]
     public void Prepare_FileNotes_ArePreservedOnceInXliff21()
     {

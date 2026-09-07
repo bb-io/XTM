@@ -134,27 +134,6 @@ public static partial class XliffSourceSelection
         }
 
         var xliff = Xliff2Serializer.Serialize(transformation, Xliff2Version.Xliff21);
-        // Filters 1.2.16 duplicates single-file metadata and notes when serializing XLIFF 2.1.
-        // Repeated metadata keys prevent downstream Source()/Target() reconstruction.
-        if (!transformation.Children.OfType<Transformation>().Any())
-        {
-            var document = XDocument.Parse(xliff, LoadOptions.PreserveWhitespace);
-            XNamespace metadataNamespace = "urn:oasis:names:tc:xliff:metadata:2.0";
-            var file = document.Root?.Element(document.Root.Name.Namespace + "file");
-            var metadata = file?.Element(metadataNamespace + "metadata");
-            if (metadata is not null)
-            {
-                foreach (var group in metadata.DescendantsAndSelf())
-                {
-                    var seen = new HashSet<XNode>(XNode.EqualityComparer);
-                    group.Elements(metadataNamespace + "meta").Where(x => !seen.Add(x)).Remove();
-                }
-            }
-            var notes = file?.Element(file.Name.Namespace + "notes");
-            var seenNotes = new HashSet<XNode>(XNode.EqualityComparer);
-            notes?.Elements().Where(x => !seenNotes.Add(x)).Remove();
-            xliff = document.ToString(SaveOptions.DisableFormatting);
-        }
 
         return new PreparedSourceXliff(
             Encoding.UTF8.GetBytes(xliff),
