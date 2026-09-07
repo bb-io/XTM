@@ -1,0 +1,7 @@
+<xliff xmlns="urn:oasis:names:tc:xliff:document:2.0" version="2.1" srcLang="en-GB" trgLang="de-DE">
+  <file id="f1" original="probe.txt">
+    <unit id="original" translate="no"><segment id="original-segment"><source>Original locked probe</source><target>Ursprünglich gesperrt</target></segment></unit>
+    <unit id="completed"><segment id="completed-segment" state="final"><source>Completed probe</source><target>Abgeschlossene Probe</target></segment></unit>
+    <unit id="editable"><segment id="editable-segment" state="initial"><source>Translate this xliff probe sentence.</source><target /></segment></unit>
+  </file>
+</xliff>

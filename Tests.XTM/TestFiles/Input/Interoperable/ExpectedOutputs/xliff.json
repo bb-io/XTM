@@ -1,0 +1,149 @@
+{
+  "Upload": {
+    "FileName": "source.xliff",
+    "ContentType": "application/xliff+xml",
+    "Uploaded": true,
+    "SegmentsTotal": 3,
+    "SegmentsExcluded": 2,
+    "SegmentsLeft": 1,
+    "ApproximateWordCount": 5,
+    "MatchingJobs": 1
+  },
+  "Prepared": {
+    "Version": "2.1",
+    "Namespace": "urn:oasis:names:tc:xliff:document:2.0",
+    "SourceLanguage": "en-GB",
+    "BlackbirdAttributeCount": 1,
+    "Units": [
+      {
+        "Id": "completed",
+        "Translate": "no",
+        "Excluded": "true",
+        "Sources": [
+          "Completed probe"
+        ],
+        "Targets": [
+          "Abgeschlossene Probe"
+        ]
+      },
+      {
+        "Id": "original",
+        "Translate": "no",
+        "Excluded": null,
+        "Sources": [
+          "Original locked probe"
+        ],
+        "Targets": [
+          "Ursprünglich gesperrt"
+        ]
+      },
+      {
+        "Id": "editable",
+        "Translate": null,
+        "Excluded": null,
+        "Sources": [
+          "Translate this xliff probe sentence."
+        ],
+        "Targets": [
+          ""
+        ]
+      }
+    ]
+  },
+  "UploadedSource": {
+    "Version": "2.1",
+    "Namespace": "urn:oasis:names:tc:xliff:document:2.0",
+    "SourceLanguage": "en-GB",
+    "BlackbirdAttributeCount": 1,
+    "Units": [
+      {
+        "Id": "completed",
+        "Translate": "no",
+        "Excluded": "true",
+        "Sources": [
+          "Completed probe"
+        ],
+        "Targets": [
+          "Abgeschlossene Probe"
+        ]
+      },
+      {
+        "Id": "original",
+        "Translate": "no",
+        "Excluded": null,
+        "Sources": [
+          "Original locked probe"
+        ],
+        "Targets": [
+          "Ursprünglich gesperrt"
+        ]
+      },
+      {
+        "Id": "editable",
+        "Translate": null,
+        "Excluded": null,
+        "Sources": [
+          "Translate this xliff probe sentence."
+        ],
+        "Targets": [
+          ""
+        ]
+      }
+    ]
+  },
+  "Analysis": {
+    "Status": "FINISHED",
+    "Sources": [
+      "Translate this xliff probe sentence."
+    ]
+  },
+  "Generated": {
+    "Status": "FINISHED",
+    "FileCount": 1
+  },
+  "TranslationUpload": {
+    "Status": "FINISHED"
+  },
+  "Downloaded": {
+    "Version": "2.1",
+    "Namespace": "urn:oasis:names:tc:xliff:document:2.0",
+    "SourceLanguage": "en-GB",
+    "BlackbirdAttributeCount": 0,
+    "Units": [
+      {
+        "Id": "completed",
+        "Translate": null,
+        "Excluded": null,
+        "Sources": [
+          "Completed probe"
+        ],
+        "Targets": [
+          "Abgeschlossene Probe"
+        ]
+      },
+      {
+        "Id": "original",
+        "Translate": "no",
+        "Excluded": null,
+        "Sources": [
+          "Original locked probe"
+        ],
+        "Targets": [
+          "Ursprünglich gesperrt"
+        ]
+      },
+      {
+        "Id": "editable",
+        "Translate": null,
+        "Excluded": null,
+        "Sources": [
+          "Translate this xliff probe sentence."
+        ],
+        "Targets": [
+          "Dieser Satz wurde live übersetzt."
+        ]
+      }
+    ]
+  },
+  "Reconstructed": null
+}

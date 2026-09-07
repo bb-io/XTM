@@ -1,0 +1,122 @@
+{
+  "Upload": {
+    "FileName": "source.html.xlf",
+    "ContentType": "application/xliff+xml",
+    "Uploaded": true,
+    "SegmentsTotal": 2,
+    "SegmentsExcluded": 0,
+    "SegmentsLeft": 2,
+    "ApproximateWordCount": 7,
+    "MatchingJobs": 1
+  },
+  "Prepared": {
+    "Version": "2.1",
+    "Namespace": "urn:oasis:names:tc:xliff:document:2.0",
+    "SourceLanguage": "en-GB",
+    "BlackbirdAttributeCount": 0,
+    "Units": [
+      {
+        "Id": null,
+        "Translate": null,
+        "Excluded": null,
+        "Sources": [
+          "Probe description"
+        ],
+        "Targets": [
+          ""
+        ]
+      },
+      {
+        "Id": null,
+        "Translate": null,
+        "Excluded": null,
+        "Sources": [
+          "Translate this html probe sentence."
+        ],
+        "Targets": [
+          ""
+        ]
+      }
+    ]
+  },
+  "UploadedSource": {
+    "Version": "2.1",
+    "Namespace": "urn:oasis:names:tc:xliff:document:2.0",
+    "SourceLanguage": "en-GB",
+    "BlackbirdAttributeCount": 0,
+    "Units": [
+      {
+        "Id": null,
+        "Translate": null,
+        "Excluded": null,
+        "Sources": [
+          "Probe description"
+        ],
+        "Targets": [
+          ""
+        ]
+      },
+      {
+        "Id": null,
+        "Translate": null,
+        "Excluded": null,
+        "Sources": [
+          "Translate this html probe sentence."
+        ],
+        "Targets": [
+          ""
+        ]
+      }
+    ]
+  },
+  "Analysis": {
+    "Status": "FINISHED",
+    "Sources": [
+      "Probe description",
+      "Translate this html probe sentence."
+    ]
+  },
+  "Generated": {
+    "Status": "FINISHED",
+    "FileCount": 1
+  },
+  "TranslationUpload": {
+    "Status": "FINISHED"
+  },
+  "Downloaded": {
+    "Version": "2.1",
+    "Namespace": "urn:oasis:names:tc:xliff:document:2.0",
+    "SourceLanguage": "en-GB",
+    "BlackbirdAttributeCount": 0,
+    "Units": [
+      {
+        "Id": null,
+        "Translate": null,
+        "Excluded": null,
+        "Sources": [
+          "Probe description"
+        ],
+        "Targets": [
+          "Probe description"
+        ]
+      },
+      {
+        "Id": null,
+        "Translate": null,
+        "Excluded": null,
+        "Sources": [
+          "Translate this html probe sentence."
+        ],
+        "Targets": [
+          "Dieser Satz wurde live übersetzt."
+        ]
+      }
+    ]
+  },
+  "Reconstructed": {
+    "Paragraphs": [
+      "Dieser Satz wurde live übersetzt."
+    ],
+    "Description": "Probe description"
+  }
+}
