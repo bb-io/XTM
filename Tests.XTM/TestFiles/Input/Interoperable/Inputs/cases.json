@@ -1,0 +1,51 @@
+{
+  "Project": {
+    "name": "Blackbird interoperable roundtrip test",
+    "customerId": "2725347",
+    "workflowId": "5896",
+    "sourceLanguage": "en_GB",
+    "targetLanguages": "de_DE"
+  },
+  "Cases": [
+    {
+      "Format": "xliff",
+      "SourceFile": "source.xliff",
+      "ContentType": "application/xliff+xml",
+      "ExcludeSegmentStates": [
+        "final"
+      ],
+      "TranslationState": "translated",
+      "Translations": {
+        "Translate this xliff probe sentence.": "Dieser Satz wurde live übersetzt."
+      },
+      "ExpectedOutput": "xliff.json"
+    },
+    {
+      "Format": "html",
+      "SourceFile": "source.html",
+      "ContentType": "text/html",
+      "ExcludeSegmentStates": [
+        "final"
+      ],
+      "TranslationState": "translated",
+      "Translations": {
+        "Translate this html probe sentence.": "Dieser Satz wurde live übersetzt.",
+        "Probe description": "Probe description"
+      },
+      "ExpectedOutput": "html.json"
+    },
+    {
+      "Format": "txt",
+      "SourceFile": "source.txt",
+      "ContentType": "text/plain",
+      "ExcludeSegmentStates": [
+        "final"
+      ],
+      "TranslationState": "translated",
+      "Translations": {
+        "Translate this txt probe sentence.": "Dieser Satz wurde live übersetzt."
+      },
+      "ExpectedOutput": "txt.json"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "Upload": {
+    "FileName": "source.txt.xlf",
+    "ContentType": "application/xliff+xml",
+    "Uploaded": true,
+    "SegmentsTotal": 1,
+    "SegmentsExcluded": 0,
+    "SegmentsLeft": 1,
+    "ApproximateWordCount": 5,
+    "MatchingJobs": 1
+  },
+  "Prepared": {
+    "Version": "2.1",
+    "Namespace": "urn:oasis:names:tc:xliff:document:2.0",
+    "SourceLanguage": "en-GB",
+    "BlackbirdAttributeCount": 0,
+    "Units": [
+      {
+        "Id": null,
+        "Translate": null,
+        "Excluded": null,
+        "Sources": [
+          "Translate this txt probe sentence."
+        ],
+        "Targets": [
+          ""
+        ]
+      }
+    ]
+  },
+  "UploadedSource": {
+    "Version": "2.1",
+    "Namespace": "urn:oasis:names:tc:xliff:document:2.0",
+    "SourceLanguage": "en-GB",
+    "BlackbirdAttributeCount": 0,
+    "Units": [
+      {
+        "Id": null,
+        "Translate": null,
+        "Excluded": null,
+        "Sources": [
+          "Translate this txt probe sentence."
+        ],
+        "Targets": [
+          ""
+        ]
+      }
+    ]
+  },
+  "Analysis": {
+    "Status": "FINISHED",
+    "Sources": [
+      "Translate this txt probe sentence."
+    ]
+  },
+  "Generated": {
+    "Status": "FINISHED",
+    "FileCount": 1
+  },
+  "TranslationUpload": {
+    "Status": "FINISHED"
+  },
+  "Downloaded": {
+    "Version": "2.1",
+    "Namespace": "urn:oasis:names:tc:xliff:document:2.0",
+    "SourceLanguage": "en-GB",
+    "BlackbirdAttributeCount": 0,
+    "Units": [
+      {
+        "Id": null,
+        "Translate": null,
+        "Excluded": null,
+        "Sources": [
+          "Translate this txt probe sentence."
+        ],
+        "Targets": [
+          "Dieser Satz wurde live übersetzt."
+        ]
+      }
+    ]
+  },
+  "Reconstructed": {
+    "Text": "Dieser Satz wurde live übersetzt."
+  }
+}

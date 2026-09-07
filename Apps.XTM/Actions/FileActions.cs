@@ -465,7 +465,10 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
         foreach (var file in files)
         {
-            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
+            var targetBytes = await file.FileStream.GetByteData();
+            var restoredBytes = XliffSourceSelection.RemoveBlackbirdExclusions(targetBytes);
+            await using var restoredStream = new MemoryStream(restoredBytes);
+            var uploadedFile = await _fileManagementClient.UploadAsync(restoredStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
 
             var description = xtmFileDescriptions?.FirstOrDefault(d => (d.TargetLanguage + "_" + d.FileName) == file.UploadName);
 
@@ -935,43 +938,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         return await UploadSourceFileBytes(project, input, fileBytes, fileName);
     }
 
-    [Action("Upload source XLIFF excluding selected states", Description = "Upload a complete XLIFF file while excluding segments in selected states from translation")]
-    public async Task<UploadSelectedSourceXliffResponse> UploadSelectedSourceXliff(
-        [ActionParameter] ProjectRequest project,
-        [ActionParameter] UploadSelectedSourceXliffRequest input)
-    {
-        var fileName = input.Name?.Trim() ?? input.File.Name ??
-            throw new PluginMisconfigurationException("File name is required");
-
-        await using var fileStream = await _fileManagementClient.DownloadAsync(input.File);
-        var sourceBytes = await fileStream.GetByteData();
-        var prepared = XliffSourceSelection.Prepare(sourceBytes, input.ExcludeSegmentStates);
-
-        await using var preparedStream = new MemoryStream(prepared.Content);
-        var preparedFile = await _fileManagementClient.UploadAsync(
-            preparedStream,
-            "application/xliff+xml",
-            fileName);
-
-        CreateProjectResponse? uploadResponse = null;
-        if (prepared.SegmentsLeft > 0)
-            uploadResponse = await UploadSourceFileBytes(project, input, prepared.Content, fileName);
-
-        return new UploadSelectedSourceXliffResponse
-        {
-            Name = uploadResponse?.Name ?? fileName,
-            ProjectId = uploadResponse?.ProjectId ?? project.ProjectId,
-            Jobs = uploadResponse?.Jobs ?? [],
-            File = preparedFile,
-            Uploaded = uploadResponse != null,
-            SegmentsExcluded = prepared.SegmentsExcluded,
-            SegmentsTotal = prepared.SegmentsTotal,
-            SegmentsLeft = prepared.SegmentsLeft,
-            ApproximateWordCount = prepared.ApproximateWordCount,
-        };
-    }
-
-    private async Task<CreateProjectResponse> UploadSourceFileBytes(
+    internal async Task<CreateProjectResponse> UploadSourceFileBytes(
         ProjectRequest project,
         UploadSourceFileRequest input,
         byte[] fileBytes,
