@@ -70,7 +70,9 @@ public class InteroperableFileActionsTests : TestBaseMultipleConnections
                 });
                 var preparedPath = Path.Combine(outputDirectory, uploaded.File.Name);
                 localFiles.Add(preparedPath);
-                var sourceJobs = uploaded.Jobs.Where(x => x.FileName == uploaded.File.Name).ToArray();
+                var sourceJobs = uploaded.Jobs;
+                Assert.IsTrue(sourceJobs.All(x => x.FileName == uploaded.File.Name),
+                    $"{format}: Upload returned jobs for another source file.");
                 AssertMatchesFixture(expected["Upload"]!, JObject.FromObject(new
                 {
                     FileName = uploaded.File.Name.Replace(fileNamePrefix, "", StringComparison.Ordinal),

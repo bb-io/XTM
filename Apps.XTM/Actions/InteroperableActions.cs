@@ -67,7 +67,7 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
         {
             Name = uploadResponse?.Name ?? fileName,
             ProjectId = uploadResponse?.ProjectId ?? project.ProjectId,
-            Jobs = uploadResponse?.Jobs ?? [],
+            Jobs = uploadResponse?.Jobs?.Where(x => x.FileName == fileName).ToArray() ?? [],
             File = preparedFile,
             Uploaded = uploadResponse != null,
             SegmentsExcluded = prepared.SegmentsExcluded,
