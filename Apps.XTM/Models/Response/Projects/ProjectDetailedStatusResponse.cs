@@ -52,14 +52,27 @@ public class ProjectDetailedStatusWorkflowJob
 
 public class ProjectDetailedStatusWorkflowStep
 {
+    private string? _referenceStepName;
+    private string? _legacyStepReferenceName;
+
     [JsonProperty("workflowStepName")]
     public string WorkflowStepName { get; set; }
 
     [JsonProperty("displayStepName")]
     public string DisplayStepName { get; set; }
 
+    [JsonProperty("referenceStepName")]
+    public string StepReferenceName
+    {
+        get => _referenceStepName ?? _legacyStepReferenceName ?? string.Empty;
+        set => _referenceStepName = value;
+    }
+
     [JsonProperty("stepReferenceName")]
-    public string StepReferenceName { get; set; }
+    private string? LegacyStepReferenceName
+    {
+        set => _legacyStepReferenceName = value;
+    }
 
     [JsonProperty("status")]
     public string Status { get; set; }

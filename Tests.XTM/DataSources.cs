@@ -75,7 +75,7 @@ public class DataSources : TestBaseMultipleConnections
         var handler = new ManualWorkflowStepDataHandler(
             context,
             new ProjectRequest { ProjectId = "2854476" },
-            new AddMetadataRequest { JobId = "2854490" });
+            new DownloadTranslatedInteroperableFileRequest { JobId = "2854490" });
 
         var response = (await handler.GetDataAsync(
             new DataSourceContext(),
