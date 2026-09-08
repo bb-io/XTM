@@ -71,7 +71,8 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
         var preparedFile = await fileManagementClient.UploadAsync(stream, "application/xliff+xml", fileName);
 
         var upload = prepared.SegmentsLeft > 0
-            ? await _fileActions.UploadSourceFileBytes(project, input, prepared.Content, fileName)
+            ? await _fileActions.UploadSourceFileBytes(project, input, prepared.Content, fileName,
+                input.MatchType)
             : null;
 
         return new UploadSelectedSourceXliffResponse

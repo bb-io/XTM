@@ -136,12 +136,13 @@ Before you can connect you need to make sure that:
 - **Upload interoperable source file** Accept any file supported by Blackbird filters and convert it to XLIFF 2.1 before uploading it as a source file to XTM. Units in selected states receive temporary `translate="no"` exclusions, so XTM processes only the remaining segments. Original exclusions and interoperability metadata are preserved. Files without a source language use the project's source language; non-XLIFF filenames receive an `.xlf` suffix. If no segments remain, the XTM upload is skipped. The action returns the prepared file, whether it was uploaded, segment totals, excluded and remaining segment counts, and an approximate source word count for the remaining segments. Units containing both excluded and translatable segments must be split into separate units before upload because XLIFF applies `translate` to the whole unit.
     Advanced settings:
     - **Exclude segments with states**: Select the segment states to exclude from translation. Defaults to **Final**.
+    - **Match type**: **Match names** (`MATCH_NAMES`, default) replaces an existing source file with the same name. **No match** (`NO_MATCH`) adds a new file and renames it if the name already exists.
     - **Workflow ID**: Apply a workflow to the uploaded file.
     - **Target languages**: Limit the upload to selected project target languages.
     - **Tag IDs**: Apply tags to the uploaded file.
     - **Translation type**: Set the translation type for the uploaded file.
     - **Metadata in JSON format**: Attach metadata to the uploaded file.
-    - **Reanalyse project**: Choose whether to reanalyze the project after upload.
+    - **Reanalyse project**: Choose whether to reanalyze the project after upload. Defaults to **No** (`NO`).
 - **Upload reference file** Upload a reference file to a project.
     Advanced settings:
     - **Override file name**: Use a custom name for the uploaded file.
