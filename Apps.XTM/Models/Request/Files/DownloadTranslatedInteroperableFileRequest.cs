@@ -13,7 +13,7 @@ public class DownloadTranslatedInteroperableFileRequest
 
     [Display("Attribute segments to user", Description = "Attribute segments to the selected workflow step's assignee. This is a workflow attribution policy, not XTM editor history. Defaults to only confirmed segments.")]
     [StaticDataSource(typeof(SegmentAttributionDataSourceHandler))]
-    public string AttributeSegmentsToUser { get; set; } = SegmentAttributionDataSourceHandler.OnlyConfirmed;
+    public string? AttributeSegmentsToUser { get; set; } = SegmentAttributionDataSourceHandler.OnlyConfirmed;
 
     [Display("Provenance type", Description = "Override translation or review provenance. Otherwise use the selected workflow step's role.")]
     [StaticDataSource(typeof(ProvenanceTypeDataSourceHandler))]
