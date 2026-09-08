@@ -579,7 +579,8 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         ProjectRequest project,
         UploadSourceFileRequest input,
         byte[] fileBytes,
-        string fileName)
+        string fileName,
+        string? matchType = null)
     {
         var url = $"{ApiEndpoints.Projects}/{project.ProjectId}/files/sources/upload";
         var token = await Client.GetToken(Creds);
@@ -613,6 +614,9 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
             for (var i = 0; i < tags.Length; i++)
                 parameters.Add($"files[0].tagIds[{i}]", tags[i]);
         }
+
+        if (matchType is not null)
+            request.AddQueryParameter("matchType", matchType);
 
         if (!string.IsNullOrWhiteSpace(input.ReanalyseProject)
             && (input.ReanalyseProject =="YES" || input.ReanalyseProject=="NO"))
