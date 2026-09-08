@@ -7,12 +7,11 @@ namespace Apps.XTM.Models.Request.Files;
 
 public class UploadSelectedSourceXliffRequest : UploadSourceFileRequest
 {
-    [Display("Match type", Description = "Match names replaces an existing source file with the same name. No match adds a new file and renames it if needed. Defaults to Match names.")]
-    [StaticDataSource(typeof(SourceFileMatchTypeDataSourceHandler))]
-    public string? MatchType { get; set; } = "MATCH_NAMES";
-
     [Display("Exclude segments with states", Description = "Segments with these XLIFF states are kept in the file but marked as non-translatable. Defaults to Final.")]
     [StaticDataSource(typeof(XliffV2StateDataSourceHandler))]
-    public IEnumerable<string>? ExcludeSegmentStates { get; set; } =
-        [SegmentStateHelper.Serialize(SegmentState.Final)];
+    public IEnumerable<string>? ExcludeSegmentStates { get; set; } = [SegmentStateHelper.Serialize(SegmentState.Final)];
+	
+	[Display("Upload type", Description = "Match names replaces an existing source file with the same name. No match adds a new file and renames it if needed. Defaults to Match names.")]
+    [StaticDataSource(typeof(SourceFileMatchTypeDataSourceHandler))]
+    public string? MatchType { get; set; } = "MATCH_NAMES";
 }
