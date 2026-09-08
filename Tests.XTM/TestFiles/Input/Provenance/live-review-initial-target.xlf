@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff xmlns="urn:oasis:names:tc:xliff:document:2.0" xmlns:mda="urn:oasis:names:tc:xliff:metadata:2.0" version="2.1" srcLang="en-GB" trgLang="de-DE">
+<file id="file-one" original="provenance-probe.txt">
+<unit id="unit-empty"><segment id="segment-empty"><source>Provenance amber owl 2026-09-08T09:16:12.807Z: untouched empty target.</source><target>Provenance amber owl 2026-09-08T09:16:12.807Z: untouched empty target.</target></segment></unit>
+<unit id="unit-change"><segment id="segment-change"><source>Provenance violet fox 2026-09-08T09:16:12.807Z: edit this translation.</source><target>Ursprünglicher violetter Fuchs.</target></segment></unit>
+<unit id="unit-confirm"><segment id="segment-confirm"><source>Provenance silver moth 2026-09-08T09:16:12.807Z: confirm unchanged target.</source><target>Unveränderte silberne Motte.</target></segment></unit>
+<unit id="unit-new"><segment id="segment-new"><source>Provenance copper ant 2026-09-08T09:16:12.807Z: create first translation.</source><target>Provenance copper ant 2026-09-08T09:16:12.807Z: create first translation.</target></segment></unit>
+<unit id="unit-multi"><segment id="segment-first"><source>Provenance cobalt bee 2026-09-08T09:16:12.807Z: first segment.</source><target>Kobaltbiene zuerst.</target></segment><segment id="segment-second"><source>Provenance ochre fly 2026-09-08T09:16:12.807Z: second segment.</source><target>Ockerfliege danach.</target></segment></unit>
+</file></xliff>

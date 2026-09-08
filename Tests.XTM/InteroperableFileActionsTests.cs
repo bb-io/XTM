@@ -188,6 +188,21 @@ public class InteroperableFileActionsTests : TestBaseMultipleConnections
                 localFiles.Add(downloadedPath);
                 AssertMatchesFixture(expected["Downloaded"]!, ReadXliffOutput(XDocument.Load(downloadedPath), format == "xliff"),
                     $"{format}: Downloaded");
+                XNamespace its = "http://www.w3.org/2005/11/its";
+                XNamespace xliff = "urn:oasis:names:tc:xliff:document:2.0";
+                var translatedSources = analyzedUnits.Select(x => x.Elements().Single(e => e.Name.LocalName == "source").Value)
+                    .ToHashSet(StringComparer.Ordinal);
+                foreach (var unit in XDocument.Load(downloadedPath).Descendants(xliff + "unit"))
+                {
+                    var wasTranslated = unit.Elements(xliff + "segment")
+                        .Any(x => translatedSources.Contains(x.Element(xliff + "source")!.Value));
+                    var provenanceTool = (string?)unit.Attribute(its + "tool") ?? (string?)unit.Attribute(its + "revTool");
+                    if (wasTranslated)
+                        Assert.IsTrue(provenanceTool?.StartsWith("XTM", StringComparison.Ordinal) == true,
+                            $"{format}: Translated unit {unit.Attribute("id")} is missing XTM provenance.");
+                    else
+                        Assert.IsNull(provenanceTool, $"{format}: Excluded unit received XTM provenance.");
+                }
                 if (expected["Reconstructed"]!.Type != JTokenType.Null)
                 {
                     using var downloadedStream = File.OpenRead(downloadedPath);

@@ -16,7 +16,7 @@ namespace Apps.XTM.DataSourceHandlers;
 public class ManualWorkflowStepDataHandler(
     InvocationContext invocationContext,
     [ActionParameter] ProjectRequest project,
-    [ActionParameter] AddMetadataRequest input)
+    [ActionParameter] DownloadTranslatedInteroperableFileRequest input)
     : XtmInvocable(invocationContext), IAsyncDataSourceItemHandler
 {
     public async Task<IEnumerable<DataSourceItem>> GetDataAsync(
@@ -50,13 +50,14 @@ public class ManualWorkflowStepDataHandler(
             Method.Get,
             null,
             Creds);
-        var automaticStepIds = stepDefinitions
-            .Where(x => x.Type?.Contains("AUTOMATIC", StringComparison.OrdinalIgnoreCase) == true)
+        var manualStepIds = stepDefinitions
+            .Where(x => x.Type?.Trim().ToUpperInvariant() is "ONLINE_TRANSLATION"
+                or "OFFLINE_PROCESSING_READ_ONLY" or "OFFLINE_PROCESSING" or "EXTERNAL_MANUAL" or "OUTER_MANUAL")
             .Select(x => x.Id)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         return projectSteps
-            .Where(x => !automaticStepIds.Contains(x.Id))
+            .Where(x => manualStepIds.Contains(x.Id))
             .Where(x => context.SearchString is null
                 || x.DisplayStepName.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase)
                 || x.Name.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase))
