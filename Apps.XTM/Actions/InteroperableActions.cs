@@ -361,7 +361,7 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
     {
         // XTM replaces original IDs with t1, t2, ... in offline XLIFF. Flatten the TARGET's
         // translatable segments in document order, excluding non-translatable units, ignorables, and
-        // blank text-only sources, then pair by position with offline trans-units. Validate counts,
+        // blank text-only sources, then align with consecutive offline trans-units. Validate boundaries,
         // source/target content, and inline-code topology before updating the original parent units.
         // This relies on XTM preserving order, as observed in live probes: reordered segments with
         // identical source AND target content cannot be detected. This is not an identity-based join.
@@ -415,32 +415,32 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
         var originalOfflineUnits = offlineRoot.Descendants(xtm + "trans-unit").ToArray();
         if (offlineSegments.Length != originalOfflineUnits.Length)
             throw new PluginApplicationException("XTM's offline XLIFF contains unsupported unit structure. Provenance cannot be mapped safely.");
-        if (segments.Length != offlineSegments.Length)
+        if (segments.Length > offlineSegments.Length)
             throw new PluginApplicationException($"The translated XLIFF contains {segments.Length} translatable segments, but XTM's offline XLIFF contains {offlineSegments.Length}. Provenance cannot be mapped safely.");
 
-        var unitEvidence = new Dictionary<XElement, List<(string? Person, string? Qualifier)>>();
-        for (var index = 0; index < segments.Length; index++)
+        var offlineSources = originalOfflineUnits.Select((unit, index) =>
+            NormalizeElementContent(unit.Element(xtm + "source"), parts: unit.Element(xtm + "seg-source") is null
+                ? offlineSegments[index].Unit.Segments.Single().Source : null)).ToArray();
+        var offlineTargets = originalOfflineUnits.Select((unit, index) =>
+            NormalizeElementContent(unit.Element(xtm + "target"), parts: unit.Element(xtm + "seg-source") is null
+                ? offlineSegments[index].Unit.Segments.Single().Target : null)).ToArray();
+        var populatedTargets = offlineTargets.Select((content, index) =>
         {
-            var segment = segments[index];
+            var populates = offlineSegments[index].File.Other.OfType<XAttribute>().Any(attribute =>
+                attribute.Name == XNamespace.Get("urn:xliff-xtm-extensions") + "populate-target-with-source"
+                && attribute.Value == "yes");
+            return content.Length == 0 && populates ? offlineSources[index] : content;
+        }).ToArray();
+        var mappedSegments = MapOfflineSegments(segments, originalOfflineUnits, offlineSources, offlineTargets, populatedTargets);
+        var unitEvidence = new Dictionary<XElement, List<(string? Person, string? Qualifier)>>();
+        for (var index = 0; index < offlineSegments.Length; index++)
+        {
+            var segment = mappedSegments[index];
             var exported = offlineSegments[index];
             var originalExport = originalOfflineUnits[index];
-            // A segmented XLIFF 1 unit has no single model segment representing its wrapper source/target.
             var offlineSegment = originalExport.Element(xtm + "seg-source") is null
                 ? exported.Unit.Segments.Single() : null;
-            var source = segment.Element(xliff + "source")!;
-            var offlineSource = originalExport.Element(xtm + "source");
-            var target = segment.Element(xliff + "target");
             var offlineTarget = originalExport.Element(xtm + "target");
-            var sourceContent = NormalizeElementContent(source);
-            var targetContent = NormalizeElementContent(target);
-            var offlineContent = NormalizeElementContent(offlineTarget, parts: offlineSegment?.Target);
-            var copiedSource = offlineContent.Length == 0 && targetContent == sourceContent
-                && exported.File.Other.OfType<XAttribute>().FirstOrDefault(attribute =>
-                    attribute.Name == XNamespace.Get("urn:xliff-xtm-extensions") + "populate-target-with-source")?.Value == "yes";
-            if (offlineSource is null
-                || sourceContent != NormalizeElementContent(offlineSource, parts: offlineSegment?.Source)
-                || (targetContent != offlineContent && !copiedSource))
-                throw new PluginApplicationException($"Segment {index + 1} differs between the translated and offline XLIFF. Provenance cannot be mapped safely; finish editing and generate both files again.");
 
             var qualifier = (offlineSegment is null
                 ? (string?)offlineTarget?.Attribute("state-qualifier")
@@ -527,6 +527,63 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
         }))
             targetDocument.Save(writer);
         return output.ToArray();
+    }
+
+    private static XElement[] MapOfflineSegments(XElement[] segments, XElement[] offlineUnits,
+        string[] sources, string[] targets, string[] populatedTargets)
+    {
+        var mapped = new XElement[offlineUnits.Length];
+        var offset = 0;
+        foreach (var segment in segments)
+        {
+            var ns = segment.Name.Namespace;
+            var source = NormalizeElementContent(segment.Element(ns + "source"));
+            var target = NormalizeElementContent(segment.Element(ns + "target"));
+            var matches = new List<int>();
+            for (var end = offset; end < offlineUnits.Length; end++)
+            {
+                // Only direct siblings in an XTM group may form a split segment. Never join
+                // unrelated body units, nested groups, or exports from different files.
+                if (end > offset && (offlineUnits[offset].Parent?.Name != Xliff1Serializer.XliffNs + "group"
+                    || offlineUnits[end].Parent != offlineUnits[offset].Parent))
+                    break;
+                var count = end - offset + 1;
+                if (offlineUnits.Skip(offset).Take(count).All(unit => unit.Element(Xliff1Serializer.XliffNs + "source") is not null)
+                    && MatchesSplitContent(source, sources.AsSpan(offset, count))
+                    && (MatchesSplitContent(target, targets.AsSpan(offset, count))
+                        || MatchesSplitContent(target, populatedTargets.AsSpan(offset, count))))
+                    matches.Add(count);
+            }
+            if (matches.Count != 1)
+                throw new PluginApplicationException($"Segment {Array.IndexOf(segments, segment) + 1} differs between the translated and offline XLIFF. Provenance cannot be mapped safely; the mapping is missing or ambiguous.");
+            for (var i = 0; i < matches[0]; i++)
+                mapped[offset++] = segment;
+        }
+        if (offset != offlineUnits.Length)
+            throw new PluginApplicationException($"The translated XLIFF contains {segments.Length} translatable segments, but XTM's offline XLIFF contains {offlineUnits.Length}. Provenance cannot be mapped safely.");
+        return mapped;
+    }
+
+    private static bool MatchesSplitContent(string content, ReadOnlySpan<string> pieces)
+    {
+        if (pieces.Length == 1)
+            return content == pieces[0];
+        // Consume exact text/code topology. Only whitespace at a split boundary may be
+        // absent from the offline export; never normalize whitespace inside a sentence.
+        var offset = 0;
+        for (var index = 0; index < pieces.Length; index++)
+        {
+            var piece = pieces[index];
+            if (string.IsNullOrWhiteSpace(piece))
+                return false; // Empty fragments provide no evidence for a unique split.
+            if (index > 0 && !char.IsWhiteSpace(piece[0]))
+                while (offset < content.Length && char.IsWhiteSpace(content[offset]))
+                    offset++;
+            if (!content.AsSpan(offset).StartsWith(piece, StringComparison.Ordinal))
+                return false;
+            offset += piece.Length;
+        }
+        return offset == content.Length;
     }
 
     private static string NormalizeElementContent(XElement? element, bool trim = true, bool preserveInlineContent = false,
