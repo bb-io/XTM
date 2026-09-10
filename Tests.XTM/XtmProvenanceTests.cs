@@ -15,6 +15,62 @@ public class XtmProvenanceTests
             .CreateDelegate<Func<byte[], byte[], string, string, IReadOnlyList<WorkflowAssignmentBundleResponse>, byte[]>>();
 
     [TestMethod]
+    [DataRow("plain", true, true)]
+    [DataRow("whitespace", true, true)]
+    [DataRow("inline", true, true)]
+    [DataRow("different-person", true, false)]
+    [DataRow("unconfirmed", true, false)]
+    [DataRow("different-group", false, false)]
+    [DataRow("changed-source", false, false)]
+    [DataRow("changed-target", false, false)]
+    [DataRow("changed-inline", false, false)]
+    [DataRow("extra-empty", false, false)]
+    public void Apply_SentenceSplit_ValidatesContentAndAggregatesEveryOfflineSegment(
+        string scenario, bool succeeds, bool person)
+    {
+        var code = scenario.Contains("inline") ? "<ph id=\"1\"/>" : "";
+        var offlineCode = scenario == "changed-inline" ? "" : code;
+        var space = scenario == "whitespace" ? "  \n" : " ";
+        var target = $"""
+            <xliff xmlns="urn:oasis:names:tc:xliff:document:2.0" version="2.1" srcLang="en" trgLang="de"><file id="f">
+            <unit id="split"><segment id="original"><source>First{code}.{space}Second.</source><target>Erste{code}.{space}Zweite.</target></segment></unit>
+            <unit id="after"><segment><source>Last.</source><target>Letzte.</target></segment></unit>
+            </file></xliff>
+            """;
+        var boundary = scenario == "different-group" ? "</group><group id=\"other\">" : "";
+        var source = scenario == "changed-source" ? "Changed." : "Second.";
+        var translated = scenario == "changed-target" ? "Changed." : "Zweite.";
+        var state = scenario == "unconfirmed" ? "translated" : "signed-off";
+        var extra = scenario == "extra-empty" ? "<trans-unit id=\"t13\"><source/><target/></trans-unit>" : "";
+        var offline = $"""
+            <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" version="1.2"><file source-language="en" target-language="de"><body>
+            <group id="g1"><trans-unit id="t10"><source>First{offlineCode}.</source><target state="signed-off">Erste{offlineCode}.</target></trans-unit>
+            {boundary}<trans-unit id="t11"><source>{source}</source><target state="{state}">{translated}</target></trans-unit></group>
+            <group id="g2"><trans-unit id="t12"><source>Last.</source><target state="signed-off">Letzte.</target></trans-unit>{extra}</group>
+            </body></file></xliff>
+            """;
+        WorkflowAssignmentBundleResponse[] bundles = [
+            new() { From = 10, To = 10, UserId = "1", UserName = "Reviewer" },
+            new() { From = 11, To = 11, UserId = scenario == "different-person" ? "2" : "1", UserName = "Reviewer" },
+            new() { From = 12, To = 12, UserId = "3", UserName = "Next" }];
+        byte[] Apply() => ApplyProvenance(Encoding.UTF8.GetBytes(target), Encoding.UTF8.GetBytes(offline),
+            "only_confirmed", "translation", bundles);
+        if (!succeeds)
+        {
+            Assert.Throws<PluginApplicationException>(() => Apply());
+            return;
+        }
+        var result = XDocument.Parse(Encoding.UTF8.GetString(Apply()), LoadOptions.PreserveWhitespace);
+        XNamespace x = "urn:oasis:names:tc:xliff:document:2.0";
+        XNamespace its = "http://www.w3.org/2005/11/its";
+        var units = result.Descendants(x + "unit").ToArray();
+        Assert.AreEqual(person ? "Reviewer (ID 1)" : null, (string?)units[0].Attribute(its + "person"));
+        Assert.AreEqual("Next (ID 3)", (string?)units[1].Attribute(its + "person"));
+        var original = XDocument.Parse(target, LoadOptions.PreserveWhitespace);
+        Assert.IsTrue(XNode.DeepEquals(original.Descendants(x + "segment").First(), units[0].Element(x + "segment")));
+    }
+
+    [TestMethod]
     [DataRow("live-review-initial", "only_confirmed", "translation", "")]
     [DataRow("live-review-translated", "only_confirmed", "translation", "")]
     [DataRow("live-review-review-start", "only_confirmed", "review", "")]
