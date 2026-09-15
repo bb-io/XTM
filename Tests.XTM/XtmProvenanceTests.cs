@@ -22,8 +22,8 @@ public class XtmProvenanceTests
     [DataRow("unconfirmed", true, false)]
     [DataRow("different-group", false, false)]
     [DataRow("changed-source", false, false)]
-    [DataRow("changed-target", false, false)]
-    [DataRow("changed-inline", false, false)]
+    [DataRow("changed-target", true, true)]
+    [DataRow("changed-inline", true, true)]
     [DataRow("extra-empty", false, false)]
     public void Apply_SentenceSplit_ValidatesContentAndAggregatesEveryOfflineSegment(
         string scenario, bool succeeds, bool person)
@@ -386,7 +386,7 @@ public class XtmProvenanceTests
     [TestMethod]
     [DataRow(false)]
     [DataRow(true)]
-    public void Apply_ReusedUnitIdsAndSources_ValidatesTargetsAcrossFileScopes(bool swappedTargets)
+    public void Apply_ReusedUnitIdsAndSources_UsesJobOrderAcrossFileScopes(bool swappedTargets)
     {
         const string target = """
             <xliff xmlns="urn:oasis:names:tc:xliff:document:2.0" version="2.1" srcLang="en" trgLang="de">
@@ -405,21 +405,12 @@ public class XtmProvenanceTests
             new WorkflowAssignmentBundleResponse { From = 1, To = 1, UserId = "1", UserName = "First" },
             new WorkflowAssignmentBundleResponse { From = 2, To = 2, UserId = "2", UserName = "Second" },
         };
-        if (swappedTargets)
-        {
-            var exception = Assert.Throws<PluginApplicationException>(() => ApplyProvenance(
-                Encoding.UTF8.GetBytes(target), Encoding.UTF8.GetBytes(offline), "all", "review", bundles));
-            StringAssert.Contains(exception.Message, "Segment 1 differs");
-        }
-        else
-        {
-            var output = XDocument.Parse(Encoding.UTF8.GetString(ApplyProvenance(
-                Encoding.UTF8.GetBytes(target), Encoding.UTF8.GetBytes(offline), "all", "review", bundles)));
-            XNamespace its = "http://www.w3.org/2005/11/its";
-            var units = output.Descendants().Where(x => x.Name.LocalName == "unit").ToArray();
-            Assert.AreEqual("First (ID 1)", (string?)units[0].Attribute(its + "revPerson"));
-            Assert.AreEqual("Second (ID 2)", (string?)units[1].Attribute(its + "revPerson"));
-        }
+        var output = XDocument.Parse(Encoding.UTF8.GetString(ApplyProvenance(
+            Encoding.UTF8.GetBytes(target), Encoding.UTF8.GetBytes(offline), "all", "review", bundles)));
+        XNamespace its = "http://www.w3.org/2005/11/its";
+        var units = output.Descendants().Where(x => x.Name.LocalName == "unit").ToArray();
+        Assert.AreEqual("First (ID 1)", (string?)units[0].Attribute(its + "revPerson"));
+        Assert.AreEqual("Second (ID 2)", (string?)units[1].Attribute(its + "revPerson"));
     }
 
     [TestMethod]
@@ -428,8 +419,8 @@ public class XtmProvenanceTests
     [DataRow("prefixed", null)]
     [DataRow("segmented", null)]
     [DataRow("annotation", null)]
-    [DataRow("first-missing-populate", "Segment 1 differs")]
-    [DataRow("second-missing-populate", "Segment 6 differs")]
+    [DataRow("first-missing-populate", null)]
+    [DataRow("second-missing-populate", null)]
     [DataRow("source-language", null)]
     [DataRow("target-language", null)]
     [DataRow("missing-source-language", null)]
@@ -524,13 +515,13 @@ public class XtmProvenanceTests
     }
 
     [TestMethod]
-    [DataRow("source", "Segment 1 differs")]
-    [DataRow("missing-source", "Segment 1 differs")]
-    [DataRow("inherited-space", "Segment 1 differs")]
-    [DataRow("target", "Segment 1 differs")]
+    [DataRow("source", "target unit 'u', offline unit 't1'")]
+    [DataRow("missing-source", "Source text is missing or differs")]
+    [DataRow("inherited-space", null)]
+    [DataRow("target", null)]
     [DataRow("count", "translatable segments")]
-    [DataRow("inline-code", "Segment 1 differs")]
-    public void Apply_RejectsMismatchedExports(string mismatch, string expectedError)
+    [DataRow("inline-code", null)]
+    public void Apply_ValidatesSourcesAndToleratesRepresentationAndTargetDifferences(string mismatch, string? expectedError)
     {
         const string target = """
             <xliff xmlns="urn:oasis:names:tc:xliff:document:2.0" version="2.1" srcLang="en" trgLang="de"><file id="f"><unit id="u"><segment id="s"><source>Hello</source><target>Hallo</target></segment></unit></file></xliff>
@@ -553,6 +544,15 @@ public class XtmProvenanceTests
         else if (mismatch == "inline-code")
             offline.Descendants().Single(x => x.Name.LocalName == "source").Add(new XElement(offline.Root!.Name.Namespace + "ph", new XAttribute("id", "1")));
         var offlineBytes = Encoding.UTF8.GetBytes(offline.ToString());
+        if (expectedError is null)
+        {
+            var output = XDocument.Parse(Encoding.UTF8.GetString(ApplyProvenance(
+                Encoding.UTF8.GetBytes(target), offlineBytes, "none", "translation", [])));
+            var original = XDocument.Parse(target);
+            Assert.IsTrue(XNode.DeepEquals(original.Descendants().Single(x => x.Name.LocalName == "segment"),
+                output.Descendants().Single(x => x.Name.LocalName == "segment")));
+            return;
+        }
         var exception = Assert.Throws<PluginApplicationException>(() => ApplyProvenance(
             Encoding.UTF8.GetBytes(target), offlineBytes, "none", "translation", []));
         StringAssert.Contains(exception.Message, expectedError);

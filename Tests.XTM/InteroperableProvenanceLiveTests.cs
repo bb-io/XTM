@@ -12,6 +12,21 @@ namespace Tests.XTM;
 [TestClass]
 public class InteroperableProvenanceLiveTests : TestBaseMultipleConnections
 {
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod, TestCategory("Live"), Timeout(360000)]
+    public async Task Download_Introperable(InvocationContext context)
+    {
+        // Segment 6 differs between the translated and offline XLIFF. Provenance cannot be mapped safely; the mapping is missing or ambiguous.
+        var actions = new InteroperableActions(context, FileManager);
+        var projectId = "217983736";
+        var jobId = "217983852";
+
+        var response = await actions.DownloadTranslatedInteroperableFile(
+            new ProjectRequest { ProjectId = projectId },
+            new DownloadTranslatedInteroperableFileRequest { JobId = jobId });
+
+        Assert.IsNotNull(response.File);
+    }
+
     // Opt-in regression for the supplied 753-unit file with 20 active units, where u10 is
     // exported as two offline sentences. This only generates and downloads job files.
     [ContextDataSource(ConnectionTypes.Credentials), TestMethod, TestCategory("Live"), Timeout(360000)]

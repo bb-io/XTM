@@ -24,6 +24,7 @@ using Blackbird.Filters.Transformations;
 using Blackbird.Filters.Transformations.Annotation;
 using Blackbird.Filters.Transformations.Tags;
 using RestSharp;
+using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
@@ -135,8 +136,9 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
         byte[] withProvenance;
         try
         {
-            withProvenance = ApplyProvenance(target, downloadedFiles["XLIFF"].Bytes,
-                attributionMode, provenanceType, assignments);
+            withProvenance = ApplyProvenanceWithDiagnostics(target, downloadedFiles["XLIFF"].Bytes,
+                attributionMode, provenanceType, assignments, message => InvocationContext.Logger?.LogInformation?.Invoke(
+                    $"[XTM_DownloadTranslatedInteroperableFile] Project {project.ProjectId}, job {input.JobId}: {message}", []));
         }
         catch (PluginApplicationException exception)
         {
@@ -358,13 +360,17 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
 
     private static byte[] ApplyProvenance(byte[] translated, byte[] offline, string attributionMode,
         string provenanceType, IReadOnlyList<WorkflowAssignmentBundleResponse> assignedBundles)
+        => ApplyProvenanceWithDiagnostics(translated, offline, attributionMode, provenanceType, assignedBundles, null);
+
+    private static byte[] ApplyProvenanceWithDiagnostics(byte[] translated, byte[] offline, string attributionMode,
+        string provenanceType, IReadOnlyList<WorkflowAssignmentBundleResponse> assignedBundles, Action<string>? log)
     {
         // XTM replaces original IDs with t1, t2, ... in offline XLIFF. Flatten the TARGET's
         // translatable segments in document order, excluding non-translatable units, ignorables, and
-        // blank text-only sources, then align with consecutive offline trans-units. Validate boundaries,
-        // source/target content, and inline-code topology before updating the original parent units.
+        // blank text-only sources, then align with consecutive offline trans-units by source text.
+        // Target differences are diagnostic only: same-job exports can represent markup differently.
         // This relies on XTM preserving order, as observed in live probes: reordered segments with
-        // identical source AND target content cannot be detected. This is not an identity-based join.
+        // identical normalized sources cannot be detected. This is not an identity-based join.
         // Offline tN IDs are used only for workflow assignment ranges, not original unit matching.
         using var targetStream = new MemoryStream(translated);
         var targetLoad = Transformation.Load(targetStream, "translated.xlf");
@@ -404,7 +410,7 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
             offlineFiles = [offlineTransformation];
 
         // XTM replaces source IDs with t1, t2, ... and omits excluded units and ignorables.
-        // Both exports belong to the same generated job; validate their ordered content before attribution.
+        // Both exports belong to the same generated job; validate their ordered sources before attribution.
         var segments = targetDocument.Descendants(xliff + "unit")
             .Where(unit => unit.AncestorsAndSelf().Attributes("translate").FirstOrDefault()?.Value != "no")
             .SelectMany(unit => unit.Elements(xliff + "segment"))
@@ -432,10 +438,11 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
             return content.Length == 0 && populates ? offlineSources[index] : content;
         }).ToArray();
         var mappedSegments = MapOfflineSegments(segments, originalOfflineUnits, offlineSources, offlineTargets, populatedTargets);
+        log?.Invoke(mappedSegments.Summary);
         var unitEvidence = new Dictionary<XElement, List<(string? Person, string? Qualifier)>>();
         for (var index = 0; index < offlineSegments.Length; index++)
         {
-            var segment = mappedSegments[index];
+            var segment = mappedSegments.Segments[index];
             var exported = offlineSegments[index];
             var originalExport = originalOfflineUnits[index];
             var offlineSegment = originalExport.Element(xtm + "seg-source") is null
@@ -529,39 +536,113 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
         return output.ToArray();
     }
 
-    private static XElement[] MapOfflineSegments(XElement[] segments, XElement[] offlineUnits,
+    private static (XElement[] Segments, string Summary) MapOfflineSegments(XElement[] segments, XElement[] offlineUnits,
         string[] sources, string[] targets, string[] populatedTargets)
     {
-        var mapped = new XElement[offlineUnits.Length];
-        var offset = 0;
-        foreach (var segment in segments)
+        var sourceElements = segments.Select(segment => segment.Element(segment.Name.Namespace + "source")).ToArray();
+        var targetSources = sourceElements.Select(source => NormalizeElementContent(source)).ToArray();
+        var forgivingSources = sources.Select(NormalizeMappingText).ToArray();
+        var forgivingTargetSources = targetSources.Select(NormalizeMappingText).ToArray();
+        var hasSource = offlineUnits.Select(unit => unit.Element(Xliff1Serializer.XliffNs + "source") is not null).ToArray();
+
+        bool SourcesMatch(int segment, int offset, int count) =>
+            sourceElements[segment] is not null && hasSource.AsSpan(offset, count).IndexOf(false) < 0
+            && (MatchesSplitContent(targetSources[segment], sources.AsSpan(offset, count))
+                || forgivingTargetSources[segment].Length > 0
+                    && MatchesSplitContent(forgivingTargetSources[segment], forgivingSources.AsSpan(offset, count)));
+
+        PluginApplicationException Mismatch(int segment, int offset, string reason) => new(
+            $"Cannot align translatable segment {segment + 1} (target unit '{segments[segment].Parent?.Attribute("id")?.Value ?? "(missing ID)"}', "
+            + $"offline unit '{(offset < offlineUnits.Length ? offlineUnits[offset].Attribute("id")?.Value : "(none)")}'): {reason} "
+            + "Both exports are expected to preserve job order.");
+
+        var lengths = new int[segments.Length];
+        if (segments.Length == offlineUnits.Length)
         {
-            var ns = segment.Name.Namespace;
-            var source = NormalizeElementContent(segment.Element(ns + "source"));
-            var target = NormalizeElementContent(segment.Element(ns + "target"));
-            var matches = new List<int>();
-            for (var end = offset; end < offlineUnits.Length; end++)
+            // Equal counts establish positional pairs, including repeated source strings.
+            for (var i = 0; i < segments.Length; i++)
             {
-                // Only direct siblings in an XTM group may form a split segment. Never join
-                // unrelated body units, nested groups, or exports from different files.
-                if (end > offset && (offlineUnits[offset].Parent?.Name != Xliff1Serializer.XliffNs + "group"
-                    || offlineUnits[end].Parent != offlineUnits[offset].Parent))
-                    break;
-                var count = end - offset + 1;
-                if (offlineUnits.Skip(offset).Take(count).All(unit => unit.Element(Xliff1Serializer.XliffNs + "source") is not null)
-                    && MatchesSplitContent(source, sources.AsSpan(offset, count))
-                    && (MatchesSplitContent(target, targets.AsSpan(offset, count))
-                        || MatchesSplitContent(target, populatedTargets.AsSpan(offset, count))))
-                    matches.Add(count);
+                if (!SourcesMatch(i, i, 1))
+                    throw Mismatch(i, i, "Source text is missing or differs after forgiving normalization.");
+                lengths[i] = 1;
             }
-            if (matches.Count != 1)
-                throw new PluginApplicationException($"Segment {Array.IndexOf(segments, segment) + 1} differs between the translated and offline XLIFF. Provenance cannot be mapped safely; the mapping is missing or ambiguous.");
-            for (var i = 0; i < matches[0]; i++)
-                mapped[offset++] = segment;
         }
-        if (offset != offlineUnits.Length)
-            throw new PluginApplicationException($"The translated XLIFF contains {segments.Length} translatable segments, but XTM's offline XLIFF contains {offlineUnits.Length}. Provenance cannot be mapped safely.");
-        return mapped;
+        else
+        {
+            // Count complete ordered alignments (capped at two). A locally ambiguous prefix
+            // may still have just one valid continuation; never choose a split greedily.
+            var layers = new List<Dictionary<int, (int Ways, int Previous)>>
+            {
+                new() { [0] = (1, -1) },
+            };
+            for (var i = 0; i < segments.Length; i++)
+            {
+                var next = new Dictionary<int, (int Ways, int Previous)>();
+                foreach (var (offset, path) in layers[i])
+                {
+                    var limit = offlineUnits.Length - (segments.Length - i - 1);
+                    for (var end = offset; end < limit; end++)
+                    {
+                        // Only direct siblings in the same offline group can form a split.
+                        if (end > offset && (offlineUnits[offset].Parent?.Name != Xliff1Serializer.XliffNs + "group"
+                            || offlineUnits[end].Parent != offlineUnits[offset].Parent))
+                            break;
+                        if (!SourcesMatch(i, offset, end - offset + 1))
+                            continue;
+                        var previousWays = next.TryGetValue(end + 1, out var previous) ? previous.Ways : 0;
+                        next[end + 1] = (Math.Min(2, previousWays + path.Ways), offset);
+                    }
+                }
+                if (next.Count == 0)
+                    throw Mismatch(i, layers[i].Keys.Min(),
+                        "No complete source alignment is possible within offline group boundaries; source text differs or offline units would remain unmatched.");
+                layers.Add(next);
+            }
+            if (!layers[^1].TryGetValue(offlineUnits.Length, out var final))
+                throw new PluginApplicationException("Cannot map provenance: offline units remain unmatched after source alignment.");
+            if (final.Ways > 1)
+                throw new PluginApplicationException("Cannot map provenance: multiple complete source alignments are valid within offline groups. The split mapping is ambiguous.");
+            var cursor = offlineUnits.Length;
+            for (var i = segments.Length - 1; i >= 0; i--)
+            {
+                var previous = layers[i + 1][cursor].Previous;
+                lengths[i] = cursor - previous;
+                cursor = previous;
+            }
+        }
+
+        var mapped = new XElement[offlineUnits.Length];
+        var mappedOffset = 0;
+        var exact = 0;
+        var targetDifferences = 0;
+        for (var i = 0; i < segments.Length; i++)
+        {
+            var segment = segments[i];
+            var ns = segment.Name.Namespace;
+            var target = NormalizeElementContent(segment.Element(ns + "target"));
+            var count = lengths[i];
+            var targetMatches = MatchesSplitContent(target, targets.AsSpan(mappedOffset, count))
+                || MatchesSplitContent(target, populatedTargets.AsSpan(mappedOffset, count));
+            if (!targetMatches)
+                targetDifferences += count;
+            if (targetMatches && MatchesSplitContent(targetSources[i], sources.AsSpan(mappedOffset, count)))
+                exact += count;
+            for (var j = 0; j < count; j++)
+                mapped[mappedOffset++] = segment;
+        }
+        return (mapped, $"Mapped {mapped.Length} offline units: {exact} exact matches, {mapped.Length - exact} forgiving matches; "
+            + $"{targetDifferences} offline units mapped to segments with target differences.");
+    }
+
+    private static string NormalizeMappingText(string content)
+    {
+        // Comparison only. NormalizeElementContent has already removed native XLIFF code
+        // payloads. Decode once, strip markup and code markers, and collapse whitespace.
+        // Match quoted attributes as a whole, including '>' inside an attribute value.
+        var decoded = WebUtility.HtmlDecode(content);
+        var text = Regex.Replace(decoded, "</?[A-Za-z][A-Za-z0-9:_-]*(?=[\\s/>])(?:[^<>\"']|\"[^\"]*\"|'[^']*')*>", "");
+        text = text.Replace("\uE000", "").Replace("\uE001", "").Replace("\uE002", "");
+        return Regex.Replace(text, @"\s+", " ").Trim();
     }
 
     private static bool MatchesSplitContent(string content, ReadOnlySpan<string> pieces)

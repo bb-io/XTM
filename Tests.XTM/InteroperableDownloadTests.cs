@@ -35,8 +35,8 @@ public class InteroperableDownloadTests
     [DataRow("invalid-target-zip", "XTM returned an invalid TARGET archive")]
     [DataRow("error-target", "XTM could not generate the TARGET file: ERROR. Fixture generation failed.")]
     [DataRow("warning-xliff", "XTM could not generate the XLIFF file: WARNING. Fixture generation failed.")]
-    [DataRow("source-mismatch", "Segment 1 differs between the translated and offline XLIFF.")]
-    [DataRow("target-mismatch", "Segment 1 differs between the translated and offline XLIFF.")]
+    [DataRow("source-mismatch", "target unit 'u1', offline unit 't1'")]
+    [DataRow("target-mismatch", null)]
     [DataRow("language-mismatch", null)]
     [DataRow("count-mismatch", "The translated XLIFF contains 1 translatable segments, but XTM's offline XLIFF contains 0.")]
     [Timeout(30000)]
@@ -189,6 +189,7 @@ public class InteroperableDownloadTests
                 return new FileReference { Name = fileName, ContentType = contentType };
             });
         var warnings = new List<string?>();
+        var information = new List<string?>();
         var invocation = new InvocationContext
         {
             Logger = new("Warning")
@@ -202,6 +203,9 @@ public class InteroperableDownloadTests
                 new AuthenticationCredentialsProvider(CredsNames.Token, "local-test-token"),
             ],
         };
+        // The ready case also verifies that an unset information delegate is harmless.
+        if (scenario != "ready")
+            invocation.Logger.LogInformation = (message, _) => information.Add(message);
         var actions = new InteroperableActions(invocation, fileManager.Object);
         try
         {
@@ -249,6 +253,13 @@ public class InteroperableDownloadTests
                 Assert.AreEqual(scenario == "target-pending" ? 2 : 1, statusCounts["TARGET"]);
                 Assert.AreEqual(scenario == "xliff-pending" ? 2 : 1, statusCounts["XLIFF"]);
                 fileManager.Verify(x => x.UploadAsync(It.IsAny<Stream>(), "application/xliff+xml", "translated.xlf"), Times.Once);
+                if (scenario != "ready")
+                {
+                    Assert.HasCount(1, information);
+                    StringAssert.Contains(information[0]!, scenario == "target-mismatch"
+                        ? "Mapped 1 offline units: 0 exact matches, 1 forgiving matches"
+                        : "Mapped 1 offline units: 1 exact matches, 0 forgiving matches");
+                }
             }
             if (expectedError is null || !scenario.EndsWith("-mismatch", StringComparison.Ordinal))
                 Assert.IsEmpty(warnings, "Successful mapping and unrelated download errors must not emit mapping warnings.");
