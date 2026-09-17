@@ -33,8 +33,6 @@ namespace Apps.XTM.Actions;
 [ActionList]
 public class FileActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) : XtmInvocable(invocationContext)
 {
-    private readonly IFileManagementClient _fileManagementClient = fileManagementClient;
-
     [Action("Generate files", Description = "Generate files for a project")]
     public async Task<ListGeneratedFilesResponse> GenerateFiles(
         [ActionParameter] ProjectRequest project,
@@ -148,7 +146,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         using var stream = new MemoryStream(zip);
 
         var fileName = $"Project-{project.ProjectId}-SourceFiles.zip";
-        var file = await _fileManagementClient.UploadAsync(stream, MimeTypes.GetMimeType(fileName), fileName);
+        var file = await fileManagementClient.UploadAsync(stream, MimeTypes.GetMimeType(fileName), fileName);
 
         return new(file);
     }
@@ -196,7 +194,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
             foreach (var file in files)
             {
-                var fileReference = await _fileManagementClient.UploadAsync(
+                var fileReference = await fileManagementClient.UploadAsync(
                         file.FileStream,
                         MimeTypes.GetMimeType(file.UploadName),
                         file.UploadName);
@@ -300,7 +298,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
             }
         }
 
-        var uploadedFile = await _fileManagementClient.UploadAsync(
+        var uploadedFile = await fileManagementClient.UploadAsync(
             file.FileStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
 
         return new FileWithData<XtmProjectFileDescription>
@@ -368,7 +366,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         var result = new List<FileWithData<XtmProjectFileDescription>>();
         foreach (var file in files)
         {
-            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
+            var uploadedFile = await fileManagementClient.UploadAsync(file.FileStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
 
             XtmProjectFileDescription description=null;
             if (xtmFileDescriptions != null)
@@ -461,7 +459,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
             var targetBytes = await file.FileStream.GetByteData();
             var restoredBytes = XliffSourceSelection.RemoveBlackbirdExclusions(targetBytes);
             await using var restoredStream = new MemoryStream(restoredBytes);
-            var uploadedFile = await _fileManagementClient.UploadAsync(restoredStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
+            var uploadedFile = await fileManagementClient.UploadAsync(restoredStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
 
             var description = xtmFileDescriptions?.FirstOrDefault(d => (d.TargetLanguage + "_" + d.FileName) == file.UploadName);
 
@@ -529,7 +527,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
         foreach (var file in files)
         {
-            var uploadedFile = await _fileManagementClient.UploadAsync(
+            var uploadedFile = await fileManagementClient.UploadAsync(
                 file.FileStream,
                 MimeTypes.GetMimeType(file.UploadName),
                 file.UploadName
@@ -558,7 +556,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         var fileName = input.Name?.Trim() ?? input.File.Name ??
             throw new PluginMisconfigurationException("File name is required");
 
-        await using var fileStream = await _fileManagementClient.DownloadAsync(input.File);
+        await using var fileStream = await fileManagementClient.DownloadAsync(input.File);
         var fileBytes = await fileStream.GetByteData();
         using var seekableStream = new MemoryStream(fileBytes);
 
@@ -672,7 +670,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
         string fileName = input.Name?.Trim() ?? input.File.Name;
         request.AddParameter("referenceMaterialsFiles[0].name", fileName);
-        var fileStream = await _fileManagementClient.DownloadAsync(input.File);
+        var fileStream = await fileManagementClient.DownloadAsync(input.File);
         var fileBytes = await fileStream.GetByteData();
 
         request.AddFile("referenceMaterialsFiles[0].file", fileBytes, fileName);
@@ -743,7 +741,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
         parameters.ToList().ForEach(x => request.AddParameter(x.Key, x.Value, encode: false));
 
-        var inputFileStream = await _fileManagementClient.DownloadAsync(input.File);
+        var inputFileStream = await fileManagementClient.DownloadAsync(input.File);
         byte[] fileBytes;
 
         if (estimatesRequest.LockSegmentsAboveThreshold == true || 
