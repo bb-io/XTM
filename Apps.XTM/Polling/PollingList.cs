@@ -383,10 +383,11 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
                 Memory = memory
             };
         }
-        
+
         return new()
         {
-            FlyBird = isFinishedUploading && !uploadedStatuses.Contains(request.Memory.FileStatus),
+            FlyBird = isFinishedUploading &&
+                      (request.Memory.FileId != projectFileInput.ProjectFileId || !uploadedStatuses.Contains(request.Memory.FileStatus)),
             Result = response,
             Memory = memory
         };
