@@ -361,7 +361,10 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
     {
         var uploadedStatuses = new[] { "FINISHED", "ERROR" };
         
-        string endpoint = $"{ApiEndpoints.Projects}/{projectInput.ProjectId}/files/translations/{projectFileInput.ProjectFileId}/status";
+        string endpoint = 
+            $"{ApiEndpoints.Projects}/{projectInput.ProjectId}/files" +
+            $"/translations/{projectFileInput.ProjectFileId}/status?fileType=XLIFF";
+        
         var response = await Client.ExecuteXtmWithJson<UploadStatusResponse>(endpoint, Method.Get, null, Creds);
         bool isFinishedUploading = uploadedStatuses.Contains(response.Status);
         

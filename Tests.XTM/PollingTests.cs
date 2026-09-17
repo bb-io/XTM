@@ -6,6 +6,7 @@ using Apps.XTM.Models.Request.Projects;
 using Blackbird.Applications.Sdk.Common.Polling;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Apps.XTM.Models.Request;
+using Apps.XTM.Models.Request.Files;
 
 namespace Tests.XTM;
 
@@ -108,5 +109,25 @@ public class PollingTests : TestBaseMultipleConnections
         // Assert
         PrintResult(result);
         Assert.IsTrue(result.FlyBird);
+    }
+
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
+    public async Task OnTranslationFileUploaded_IsSuccess(InvocationContext context)
+    {
+        // Arrange
+        var polling = new PollingList(context);
+        var project = new ProjectRequest { ProjectId = "2858629" };
+        var file = new ProjectFileRequest { ProjectFileId = "2858668" };
+        var request = new PollingEventRequest<TranslationFileUploadMemory>
+        {
+            Memory = new TranslationFileUploadMemory()
+        };
+
+        // Act
+        var result = await polling.OnTranslationFileUploaded(request, project, file);
+
+        // Assert
+        PrintResult(result);
+        Assert.IsNotNull(result.Memory);
     }
 }
