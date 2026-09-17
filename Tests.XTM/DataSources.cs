@@ -184,4 +184,22 @@ public class DataSources : TestBaseMultipleConnections
         PrintDataHandlerResult(response);
         Assert.IsNotNull(response);
     }
+
+    [ContextDataSource(ConnectionTypes.Credentials), TestMethod]
+    public async Task ProjectFileDataHandler_ReturnsProjectFiles(InvocationContext invocationContext)
+    {
+        // Arrange
+        var projectRequest = new ProjectRequest
+        {
+            ProjectId = "2858145"
+        };
+        var handler = new ProjectFileDataHandler(invocationContext, projectRequest);
+
+        // Act
+        var response = await handler.GetDataAsync(new() { SearchString = "" }, CancellationToken.None);
+
+        // Assert
+        PrintDataHandlerResult(response);
+        Assert.IsNotNull(response);
+    }
 }

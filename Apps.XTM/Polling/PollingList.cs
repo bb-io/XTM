@@ -4,7 +4,9 @@ using Apps.XTM.DataSourceHandlers.EnumHandlers;
 using Apps.XTM.Extensions;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request;
+using Apps.XTM.Models.Request.Files;
 using Apps.XTM.Models.Request.Projects;
+using Apps.XTM.Models.Response.Files;
 using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.Polling.Models.Memory;
 using Apps.XTM.Polling.Models.Response;
@@ -347,6 +349,47 @@ public class PollingList(InvocationContext invocationContext) : XtmInvocable(inv
                     JobIds = i.Value
                 })
             }
+        };
+    }
+
+    [PollingEvent("On background translation file upload finished (polling)", 
+        Description = "Triggers when a translation file is finished uploading")]
+    public async Task<PollingEventResponse<TranslationFileUploadMemory, UploadStatusResponse>> OnTranslationFileUploaded(
+        PollingEventRequest<TranslationFileUploadMemory> request,
+        [PollingEventParameter] ProjectRequest projectInput,
+        [PollingEventParameter] ProjectFileRequest projectFileInput)
+    {
+        var uploadedStatuses = new[] { "FINISHED", "ERROR" };
+        
+        string endpoint = 
+            $"{ApiEndpoints.Projects}/{projectInput.ProjectId}/files" +
+            $"/translations/{projectFileInput.ProjectFileId}/status?fileType=XLIFF";
+        
+        var response = await Client.ExecuteXtmWithJson<UploadStatusResponse>(endpoint, Method.Get, null, Creds);
+        bool isFinishedUploading = uploadedStatuses.Contains(response.Status);
+        
+        var memory = new TranslationFileUploadMemory
+        {
+            FileId = projectFileInput.ProjectFileId, 
+            FileStatus = response.Status
+        };
+        
+        if (request.Memory is null)
+        {
+            return new()
+            {
+                FlyBird = isFinishedUploading,
+                Result = response,
+                Memory = memory
+            };
+        }
+
+        return new()
+        {
+            FlyBird = isFinishedUploading &&
+                      (request.Memory.FileId != projectFileInput.ProjectFileId || !uploadedStatuses.Contains(request.Memory.FileStatus)),
+            Result = response,
+            Memory = memory
         };
     }
 

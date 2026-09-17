@@ -4,7 +4,6 @@ using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request;
 using Apps.XTM.Models.Request.Files;
 using Apps.XTM.Models.Request.Projects;
-using Apps.XTM.Models.Response;
 using Apps.XTM.Models.Response.Files;
 using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.RestUtilities;
@@ -12,7 +11,6 @@ using Apps.XTM.Utils;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
-using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.Sdk.Utils.Extensions.String;
@@ -23,7 +21,6 @@ using Blackbird.Filters.Bilingual.Xliff2;
 using Blackbird.Filters.Enums;
 using Blackbird.Filters.Extensions;
 using Blackbird.Filters.Transformations;
-using DocumentFormat.OpenXml.Drawing.Diagrams;
 using Microsoft.AspNetCore.WebUtilities;
 using MoreLinq;
 using Newtonsoft.Json;
@@ -36,8 +33,6 @@ namespace Apps.XTM.Actions;
 [ActionList]
 public class FileActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) : XtmInvocable(invocationContext)
 {
-    private readonly IFileManagementClient _fileManagementClient = fileManagementClient;
-
     [Action("Generate files", Description = "Generate files for a project")]
     public async Task<ListGeneratedFilesResponse> GenerateFiles(
         [ActionParameter] ProjectRequest project,
@@ -151,7 +146,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         using var stream = new MemoryStream(zip);
 
         var fileName = $"Project-{project.ProjectId}-SourceFiles.zip";
-        var file = await _fileManagementClient.UploadAsync(stream, MimeTypes.GetMimeType(fileName), fileName);
+        var file = await fileManagementClient.UploadAsync(stream, MimeTypes.GetMimeType(fileName), fileName);
 
         return new(file);
     }
@@ -199,7 +194,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
             foreach (var file in files)
             {
-                var fileReference = await _fileManagementClient.UploadAsync(
+                var fileReference = await fileManagementClient.UploadAsync(
                         file.FileStream,
                         MimeTypes.GetMimeType(file.UploadName),
                         file.UploadName);
@@ -303,7 +298,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
             }
         }
 
-        var uploadedFile = await _fileManagementClient.UploadAsync(
+        var uploadedFile = await fileManagementClient.UploadAsync(
             file.FileStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
 
         return new FileWithData<XtmProjectFileDescription>
@@ -371,7 +366,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         var result = new List<FileWithData<XtmProjectFileDescription>>();
         foreach (var file in files)
         {
-            var uploadedFile = await _fileManagementClient.UploadAsync(file.FileStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
+            var uploadedFile = await fileManagementClient.UploadAsync(file.FileStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
 
             XtmProjectFileDescription description=null;
             if (xtmFileDescriptions != null)
@@ -464,7 +459,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
             var targetBytes = await file.FileStream.GetByteData();
             var restoredBytes = XliffSourceSelection.RemoveBlackbirdExclusions(targetBytes);
             await using var restoredStream = new MemoryStream(restoredBytes);
-            var uploadedFile = await _fileManagementClient.UploadAsync(restoredStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
+            var uploadedFile = await fileManagementClient.UploadAsync(restoredStream, MimeTypes.GetMimeType(file.UploadName), file.UploadName);
 
             var description = xtmFileDescriptions?.FirstOrDefault(d => (d.TargetLanguage + "_" + d.FileName) == file.UploadName);
 
@@ -532,7 +527,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
         foreach (var file in files)
         {
-            var uploadedFile = await _fileManagementClient.UploadAsync(
+            var uploadedFile = await fileManagementClient.UploadAsync(
                 file.FileStream,
                 MimeTypes.GetMimeType(file.UploadName),
                 file.UploadName
@@ -561,7 +556,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         var fileName = input.Name?.Trim() ?? input.File.Name ??
             throw new PluginMisconfigurationException("File name is required");
 
-        await using var fileStream = await _fileManagementClient.DownloadAsync(input.File);
+        await using var fileStream = await fileManagementClient.DownloadAsync(input.File);
         var fileBytes = await fileStream.GetByteData();
         using var seekableStream = new MemoryStream(fileBytes);
 
@@ -675,7 +670,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
         string fileName = input.Name?.Trim() ?? input.File.Name;
         request.AddParameter("referenceMaterialsFiles[0].name", fileName);
-        var fileStream = await _fileManagementClient.DownloadAsync(input.File);
+        var fileStream = await fileManagementClient.DownloadAsync(input.File);
         var fileBytes = await fileStream.GetByteData();
 
         request.AddFile("referenceMaterialsFiles[0].file", fileBytes, fileName);
@@ -698,11 +693,39 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         [ActionParameter] UploadTranslationFileRequest input,
         [ActionParameter] UploadTranslationFileEstimatesRequest estimatesRequest)
     {
-        var request = new XTMRequest(new()
+        var uploadedFile = await ProcessUploadTranslationFile(project.ProjectId, input, estimatesRequest);
+        var uploadStatusResponse = await PollFileStatusAsync(project.ProjectId, uploadedFile.FileId, input.FileType);
+        return new()
         {
-            Url = Creds.Get(CredsNames.Url) + $"{ApiEndpoints.Projects}/{project.ProjectId}/files/translations/upload",
+            FileId = uploadedFile.FileId,
+            JobId = uploadedFile.JobId,
+            Status = uploadStatusResponse.Status
+        };
+    }
+
+    [Action("Upload translation file in background", 
+        Description = 
+            "Start a background process of uploading a translation file to a project. " +
+            "Use the 'On background translation file upload finished (polling)' event to monitor the upload status.")]
+    public Task<FileJobResponse> UploadTranslationFileInBackground(
+        [ActionParameter] ProjectRequest project,
+        [ActionParameter] UploadTranslationFileRequest input,
+        [ActionParameter] UploadTranslationFileEstimatesRequest estimatesRequest)
+    {
+        return ProcessUploadTranslationFile(project.ProjectId, input, estimatesRequest);
+    }
+
+    private async Task<FileJobResponse> ProcessUploadTranslationFile(
+        string projectId,
+        UploadTranslationFileRequest input,
+        UploadTranslationFileEstimatesRequest estimatesRequest)
+    {
+        var requestParams = new XtmRequestParameters
+        {
+            Url = Creds.Get(CredsNames.Url) + $"{ApiEndpoints.Projects}/{projectId}/files/translations/upload",
             Method = Method.Post,
-        }, await Client.GetToken(Creds));
+        };
+        var request = new XTMRequest(requestParams, await Client.GetToken(Creds));
 
         var parameters = new Dictionary<string, string>
         {
@@ -718,11 +741,11 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
         parameters.ToList().ForEach(x => request.AddParameter(x.Key, x.Value, encode: false));
 
-        var inputFileStream = await _fileManagementClient.DownloadAsync(input.File);
-        byte[] fileBytes = [];
+        var inputFileStream = await fileManagementClient.DownloadAsync(input.File);
+        byte[] fileBytes;
 
-        if (estimatesRequest.LockSegmentsAboveThreshold == true
-            || estimatesRequest.MarkSegmentsUnderThresholdAsNotCompleted == true)
+        if (estimatesRequest.LockSegmentsAboveThreshold == true || 
+            estimatesRequest.MarkSegmentsUnderThresholdAsNotCompleted == true)
         {
             // 2026-06-19 This branch is deprecated in favour of updating by segment state
             var loadResult = Transformation.Load(inputFileStream, input.File.Name);
@@ -759,27 +782,13 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
                 }
             }
 
-            foreach (var unit in transformation.GetUnits())
-            {
-                if (estimatesRequest.MarkSegmentStateQualifiersAsNotCompleted is not null)
-                {
-                    foreach (var segment in unit.Segments)
-                    {
-                        var stateQualifier = segment.TargetAttributes.FirstOrDefault(a => a.Name == "state-qualifier");
-                        var sholdMarkAsNonCompleted = estimatesRequest
-                            .MarkSegmentStateQualifiersAsNotCompleted
-                            .Contains(stateQualifier?.Value ?? string.Empty, StringComparer.OrdinalIgnoreCase);
-                        if (sholdMarkAsNonCompleted)
-                            segment.State = null;
-                        continue;
-                    }
-                }
-            }
+            transformation.MarkNotCompletedByStateQualifiers(estimatesRequest.MarkSegmentStateQualifiersAsNotCompleted);
 
             var xliffV12 = Xliff1Serializer.Serialize(transformation);
             fileBytes = Encoding.UTF8.GetBytes(xliffV12);
-        } else if (estimatesRequest.LockSegmentByStates?.Any() == true
-            || estimatesRequest.MarkSegmentsAsNotCompletedByStates?.Any() == true)
+        } 
+        else if (estimatesRequest.LockSegmentByStates?.Any() == true || 
+                 estimatesRequest.MarkSegmentsAsNotCompletedByStates?.Any() == true)
         {
             var lockSegmentsByStates = estimatesRequest.LockSegmentByStates?
                 .Select(SegmentStateHelper.ToSegmentState)
@@ -818,23 +827,8 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
                     }
                 }
             }
-
-            foreach (var unit in transformation.GetUnits())
-            {
-                if (estimatesRequest.MarkSegmentStateQualifiersAsNotCompleted is not null)
-                {
-                    foreach (var segment in unit.Segments)
-                    {
-                        var stateQualifier = segment.TargetAttributes.FirstOrDefault(a => a.Name == "state-qualifier");
-                        var sholdMarkAsNonCompleted = estimatesRequest
-                            .MarkSegmentStateQualifiersAsNotCompleted
-                            .Contains(stateQualifier?.Value ?? string.Empty, StringComparer.OrdinalIgnoreCase);
-                        if (sholdMarkAsNonCompleted)
-                            segment.State = null;
-                        continue;
-                    }
-                }
-            }
+            
+            transformation.MarkNotCompletedByStateQualifiers(estimatesRequest.MarkSegmentStateQualifiersAsNotCompleted);
 
             var xliffV12 = Xliff1Serializer.Serialize(transformation);
             fileBytes = Encoding.UTF8.GetBytes(xliffV12);
@@ -856,23 +850,10 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         request.AddFile("translationFile.file", fileBytes, input.Name ?? input.File.Name);
         request.AlwaysMultipartFormData = true;
 
-        try
-        {
-            var fileUploadResponse = await Client.ExecuteXtm<FileUploadResponse>(request);
-            var uploadStatusResponse = await PollFileStatusAsync(project.ProjectId, fileUploadResponse.File.FileId, input.FileType);
-            return new()
-            {
-                FileId = fileUploadResponse.File.FileId,
-                JobId = fileUploadResponse.File.JobId,
-                Status = uploadStatusResponse.Status
-            };
-        }
-        catch (Exception ex)
-        {
-            throw new PluginApplicationException(ex.Message);
-        }
+        var uploadResponse = await Client.ExecuteXtm<FileUploadResponse>(request);
+        return uploadResponse.File;
     }
-
+    
     private async Task<UploadStatusResponse> PollFileStatusAsync(string projectId, string fileId, string fileType)
     {
         var statusUrl = $"{ApiEndpoints.Projects}/{projectId}/files/translations/{fileId}/status?fileType={fileType}";
@@ -889,8 +870,10 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
 
             if (uploadStatusResponse.Status == "ERROR")
             {
-                throw new Exception(
-                    $"Failed to upload translation file. Status: {uploadStatusResponse.Status}, Error description: {uploadStatusResponse.ErrorDescription}");
+                throw new PluginApplicationException(
+                    $"Failed to upload translation file. " +
+                    $"Status: {uploadStatusResponse.Status}, " +
+                    $"Error description: {uploadStatusResponse.ErrorDescription}");
             }
 
             if (uploadStatusResponse.Status != "FINISHED")
