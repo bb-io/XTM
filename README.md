@@ -155,6 +155,8 @@ Before you can connect you need to make sure that:
     - **Workflow step name**: Specify the workflow step when autopopulation is disabled.
     - **Lock segments above threshold**: Lock segments whose quality score meets or exceeds the threshold.
     - **Mark segments under threshold as not completed**: Mark low-scoring segments as not completed before upload.
+- **Upload translation file in background** Start a background process of uploading a translation file to a project. 
+Use the 'On background translation file upload finished (polling)' event to monitor the upload status.
 
 ### Translation memories
 
@@ -283,6 +285,7 @@ Before you can connect you need to make sure that:
     Advanced settings:
     - **Customer IDs**: Monitor active projects for the selected customers.
     - **Project IDs**: Monitor the selected active projects.
+- **On background translation file upload finished (polling)** Triggers when a translation file is finished uploading.
 
 > Note: "On workflow transition" and "On workflow transition (manual)" events have to add numbers without spaces when filtering by workflow step. For example, when step in XTM project workflow is named "Translate 1" then filter value should be "Translate1". This filter is not case-sensitive.
 
