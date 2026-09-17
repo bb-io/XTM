@@ -706,7 +706,9 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
     }
 
     [Action("Upload translation file in background", 
-        Description = "Start a background process of uploading a translation file to a project.")]
+        Description = 
+            "Start a background process of uploading a translation file to a project. " +
+            "Use the 'On background translation file upload finished (polling)' event to monitor the upload status.")]
     public Task<FileJobResponse> UploadTranslationFileInBackground(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] UploadTranslationFileRequest input,
