@@ -211,6 +211,12 @@ Use the 'On background translation file upload finished (polling)' event to moni
 
 ### Workflows
 
+- **Update due dates** Set one date using **Project ID**, **Type**, and **Date**. Dates use UTC.
+    - **Type**: Project due date, Preprocessing due date, Workflow start date, Workflow due date, Step due date, Job due date, or Target language due date.
+    - **Target identifier**: Required for a step (reference name, such as `correct1`), job (numeric ID), or target language (code, such as `fr_FR`). Leave empty for project, preprocessing, and workflow dates.
+    - Project due dates also update all jobs' last workflow steps. Job and target language due dates update their corresponding last workflow steps. Step dates apply to the named step across the project.
+    - Each call sets one date; clearing dates is not supported.
+    - Workflow start date must be strictly earlier than the preprocessing due date when that date is set. XTM rejects equal or later start dates with `Incorrect parameters were passed: date.`
 - **Search workflows** Search workflows.
 - **Search workflow steps** Search workflow steps.
 - **Get workflow by ID** Get workflow details by ID.
