@@ -19,6 +19,48 @@ namespace Apps.XTM.Actions;
 [ActionList("Workflows")]
 public class WorkflowActions(InvocationContext invocationContext) : XtmInvocable(invocationContext)
 {
+    [Action("Update due dates", Description = "Set a project, workflow, step, job, or target language date")]
+    public async Task<UpdateDueDatesResponse> UpdateDueDates(
+        [ActionParameter] ProjectRequest project,
+        [ActionParameter] UpdateDueDatesRequest input)
+    {
+        if (!long.TryParse(project.ProjectId, out var projectId) || projectId <= 0)
+            throw new PluginMisconfigurationException("Project ID must be a positive integer.");
+
+        if (input.Date == default)
+            throw new PluginMisconfigurationException("Date is required.");
+
+        var requiresTarget = input.Type is "steps" or "jobs" or "targetLanguages";
+        if (!requiresTarget && input.Type is not ("projectDueDate" or "newSourceDueDate" or "workflowStartDate" or "workflowDueDate"))
+            throw new PluginMisconfigurationException("Select a valid date type.");
+
+        var target = input.TargetIdentifier?.Trim();
+        if (requiresTarget && string.IsNullOrEmpty(target))
+            throw new PluginMisconfigurationException("Target identifier is required for step, job, and target language dates.");
+        if (!requiresTarget && !string.IsNullOrEmpty(target))
+            throw new PluginMisconfigurationException("Leave Target identifier empty for project and workflow dates.");
+
+        long jobId = 0;
+        if (input.Type == "jobs" && (!long.TryParse(target, out jobId) || jobId <= 0))
+            throw new PluginMisconfigurationException("Job ID must be a positive integer.");
+
+        var utcDate = input.Date.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(input.Date, DateTimeKind.Utc)
+            : input.Date.ToUniversalTime();
+        var date = utcDate.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture);
+        object value = input.Type switch
+        {
+            "steps" => new[] { new { referenceStepName = target, dueDate = date } },
+            "jobs" => new[] { new { id = jobId, dueDate = date } },
+            "targetLanguages" => new[] { new { languageCode = target, dueDate = date } },
+            _ => date
+        };
+
+        return await Client.ExecuteXtmWithJson<UpdateDueDatesResponse>(
+            $"{ApiEndpoints.Projects}/{projectId}/due-dates", Method.Put,
+            new Dictionary<string, object> { [input.Type] = value }, Creds);
+    }
+
     [Action("Search workflows", Description = "Search workflows")]
     public async Task<AllWorkflowsResponse> ListWorkflows()
     {
