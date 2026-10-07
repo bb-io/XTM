@@ -10,12 +10,35 @@ using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Utils.Extensions.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Polly;
+using Polly.Retry;
 using RestSharp;
 
 namespace Apps.XTM.RestUtilities;
 
 public class XTMClient : RestClient
 {
+    private const int RetryCount = 4;
+    private const int MaxBackoffSeconds = 16;
+    private const int MaxRetryAfterSeconds = 60;
+
+    private static readonly HttpStatusCode[] TransientGatewayStatusCodes =
+    [
+        HttpStatusCode.BadGateway,
+        HttpStatusCode.ServiceUnavailable,
+        HttpStatusCode.GatewayTimeout
+    ];
+
+    private static readonly AsyncRetryPolicy<RestResponse> RateLimitRetryPolicy = Policy
+        .HandleResult<RestResponse>(IsRateLimited)
+        .WaitAndRetryAsync(RetryCount, (attempt, result, _) => GetRetryDelay(attempt, result.Result),
+            (_, _, _, _) => Task.CompletedTask);
+
+    private static readonly AsyncRetryPolicy<RestResponse> ReadRetryPolicy = Policy
+        .HandleResult<RestResponse>(response => IsRateLimited(response) || IsTransientFailure(response))
+        .WaitAndRetryAsync(RetryCount, (attempt, result, _) => GetRetryDelay(attempt, result.Result),
+            (_, _, _, _) => Task.CompletedTask);
+
     #region Common Actions
 
     public async Task<RestResponse> ExecuteXtmWithJson(string endpoint, Method method, object? bodyObj,
@@ -45,10 +68,14 @@ public class XTMClient : RestClient
 
     public async Task<RestResponse> ExecuteXtm(XTMRequest request)
     {
-        var response = await ExecuteAsync(request);
+        var retryPolicy = request.Method == Method.Get ? ReadRetryPolicy : RateLimitRetryPolicy;
+        var response = await retryPolicy.ExecuteAsync(() => ExecuteAsync(request));
 
         if (response.RawBytes != null && Encoding.UTF8.GetString(response.RawBytes).Contains("CANNOT_FIND_THE_FILE"))
             throw new PluginApplicationException("The file was not found, please check your input and try again");
+
+        if (IsTransportFailure(response))
+            throw new PluginApplicationException(GetTransportErrorMessage(request, response));
 
         if (!response.IsSuccessStatusCode)
             throw new PluginApplicationException(GetXtmError(response).Message);
@@ -121,10 +148,43 @@ public class XTMClient : RestClient
             return creds.Get(CredsNames.Token);
     }
 
+    private static bool IsRateLimited(RestResponse response) =>
+        response.StatusCode == HttpStatusCode.TooManyRequests;
+
+    private static bool IsTransportFailure(RestResponse response) =>
+        response.StatusCode == 0 && response.ResponseStatus != ResponseStatus.Completed;
+
+    private static bool IsTransientFailure(RestResponse response) =>
+        IsTransportFailure(response) || TransientGatewayStatusCodes.Contains(response.StatusCode);
+
+    private static TimeSpan GetRetryDelay(int retryAttempt, RestResponse response)
+    {
+        var retryAfter = response.Headers?
+            .FirstOrDefault(h => string.Equals(h.Name, "Retry-After", StringComparison.OrdinalIgnoreCase))?
+            .Value?.ToString();
+
+        if (int.TryParse(retryAfter, out var seconds) && seconds > 0)
+            return TimeSpan.FromSeconds(Math.Min(seconds, MaxRetryAfterSeconds));
+
+        var backoffSeconds = Math.Min(Math.Pow(2, retryAttempt), MaxBackoffSeconds);
+        return TimeSpan.FromSeconds(backoffSeconds) + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 500));
+    }
+
+    private static string GetTransportErrorMessage(RestRequest request, RestResponse response)
+    {
+        var path = Uri.TryCreate(request.Resource, UriKind.Absolute, out var uri) ? uri.AbsolutePath : request.Resource;
+        var target = $"{request.Method.ToString().ToUpperInvariant()} {path}";
+
+        return response.ResponseStatus == ResponseStatus.TimedOut
+            ? $"XTM did not respond in time to {target}. The XTM server may be busy, please try again later."
+            : $"Could not reach XTM for {target}: {response.ErrorMessage ?? response.ResponseStatus.ToString()}";
+    }
+
     private static Exception GetXtmError(RestResponse response)
     {
-        if (response.Content == null)
-            throw new PluginApplicationException("Error - Server returned no content");
+        if (string.IsNullOrWhiteSpace(response.Content))
+            throw new PluginApplicationException(
+                $"XTM returned {(int)response.StatusCode} ({response.StatusCode}) without an error description.");
 
         if (response.ContentType?.Contains("html") == true)
             throw new PluginApplicationException(ExtractHtmlErrorMessage(response.Content));
