@@ -80,24 +80,16 @@ public static partial class XliffSourceSelection
             var unitSegmentCount = segments.Length;
             total += unitSegmentCount;
             var alreadyExcluded = !translate;
-            var selectedSegments = segments.Where(segment =>
+            var allSegmentsExcluded = segments.All(segment =>
             {
                 var state = (segment.State ?? SegmentState.Initial).Serialize();
                 return states.Contains(state)
                     || (sourceIsXliff1
                         && segment.State == SegmentState.Reviewed
                         && states.Contains(SegmentState.Final.Serialize()));
-            }).ToArray();
+            });
 
-            if (!alreadyExcluded && selectedSegments.Length > 0 && selectedSegments.Length != segments.Length)
-            {
-                var unitId = unit.Id ?? "(missing ID)";
-                throw new PluginMisconfigurationException(
-                    $"XLIFF unit '{unitId}' contains both excluded and translatable segments. " +
-                    "XLIFF translate='no' applies to the whole unit, so this file cannot be filtered safely.");
-            }
-
-            var excludeUnit = alreadyExcluded || selectedSegments.Length == segments.Length;
+            var excludeUnit = alreadyExcluded || allSegmentsExcluded;
             if (excludeUnit)
             {
                 if (!alreadyExcluded)
