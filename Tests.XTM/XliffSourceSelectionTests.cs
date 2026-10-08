@@ -1,5 +1,4 @@
 using Apps.XTM.Utils;
-using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Filters.Transformations;
 using System.Text;
 using System.Xml.Linq;
@@ -302,7 +301,7 @@ public class XliffSourceSelectionTests
     }
 
     [TestMethod]
-    public void Prepare_MixedStateUnit_ThrowsInsteadOfExcludingWantedSegment()
+    public void Prepare_MixedStateUnit_KeepsWholeUnitTranslatable()
     {
         var input = """
             <xliff srcLang="en-US" trgLang="fr-CA" version="2.1" xmlns="urn:oasis:names:tc:xliff:document:2.0">
@@ -311,14 +310,73 @@ public class XliffSourceSelectionTests
                   <segment state="final"><source>Completed text</source><target>Texte terminé</target></segment>
                   <segment><source>New text</source><target /></segment>
                 </unit>
+                <unit id="u2"><segment><source>Draft text</source><target /></segment></unit>
               </file>
             </xliff>
             """;
 
-        var exception = Assert.ThrowsExactly<PluginMisconfigurationException>(() =>
-            XliffSourceSelection.Prepare(Encoding.UTF8.GetBytes(input), ["final"]));
+        var result = XliffSourceSelection.Prepare(Encoding.UTF8.GetBytes(input), ["final"]);
+        var units = XDocument.Parse(Encoding.UTF8.GetString(result.Content)).Descendants()
+            .Where(x => x.Name.LocalName == "unit").ToDictionary(x => x.Attribute("id")!.Value);
 
-        StringAssert.Contains(exception.Message, "both excluded and translatable segments");
+        Assert.AreEqual(3, result.SegmentsTotal);
+        Assert.AreEqual(0, result.SegmentsExcluded);
+        Assert.AreEqual(3, result.SegmentsLeft);
+        Assert.AreEqual(6, result.ApproximateWordCount);
+        Assert.IsNull(units["u1"].Attribute("translate"));
+        Assert.IsFalse(units["u1"].Attributes().Any(x => x.Name.LocalName == "excluded"));
+        Assert.IsNull(units["u2"].Attribute("translate"));
+    }
+
+    [TestMethod]
+    public void Prepare_PartiallyLeveragedPluralUnit_KeepsWholeUnitTranslatableWithLeveragedForms()
+    {
+        var input = """
+            <xliff xmlns="urn:oasis:names:tc:xliff:document:2.2" xmlns:mda="urn:oasis:names:tc:xliff:metadata:2.0" xmlns:pgs="urn:oasis:names:tc:xliff:pgs:1.0" version="2.2" srcLang="en" trgLang="es-MX">
+              <file id="f1" original="en.po">
+                <unit id="u201" name="Average">
+                  <segment state="final"><source>Average</source><target>Promedio</target></segment>
+                </unit>
+                <unit id="u202" name="{0} salary reported" pgs:switch="plural:n">
+                  <mda:metadata>
+                    <mda:metaGroup category="blackbird">
+                      <mda:meta type="key">po:W251bU9mU2FsYXJpZXNSZXBvcnRlZF0gc2FsYXJpZXMgcmVwb3J0ZWQ=:ezB9IHNhbGFyeSByZXBvcnRlZA==</mda:meta>
+                    </mda:metaGroup>
+                  </mda:metadata>
+                  <notes><note>Context: [numOfSalariesReported] salaries reported</note></notes>
+                  <segment state="final" pgs:case="one"><source>{0} salary reported</source><target>{0} salario reportado</target></segment>
+                  <segment pgs:case="many"><source>{0} salaries reported</source></segment>
+                  <segment state="final" pgs:case="other"><source>{0} salaries reported</source><target>{0} salarios reportados</target></segment>
+                </unit>
+                <unit id="u203" name="Average Salary">
+                  <segment><source>Average Salary</source></segment>
+                </unit>
+              </file>
+            </xliff>
+            """;
+        XNamespace pgs = "urn:oasis:names:tc:xliff:pgs:1.0";
+
+        var prepared = XliffSourceSelection.Prepare(Encoding.UTF8.GetBytes(input),
+            ["final", "reviewed", "translated"], "en.po.xlf");
+        var preparedUnits = XDocument.Parse(Encoding.UTF8.GetString(prepared.Content)).Descendants()
+            .Where(x => x.Name.LocalName == "unit").ToDictionary(x => x.Attribute("id")!.Value);
+        var pluralSegments = preparedUnits["u202"].Elements().Where(x => x.Name.LocalName == "segment").ToArray();
+
+        Assert.AreEqual(5, prepared.SegmentsTotal);
+        Assert.AreEqual(1, prepared.SegmentsExcluded);
+        Assert.AreEqual(4, prepared.SegmentsLeft);
+        Assert.AreEqual(11, prepared.ApproximateWordCount);
+        Assert.AreEqual("no", preparedUnits["u201"].Attribute("translate")?.Value);
+        Assert.IsNull(preparedUnits["u202"].Attribute("translate"));
+        Assert.IsFalse(preparedUnits["u202"].Attributes().Any(x => x.Name.LocalName == "excluded"));
+        Assert.AreEqual("plural:n", preparedUnits["u202"].Attribute(pgs + "switch")?.Value);
+        CollectionAssert.AreEqual(new[] { "one", "many", "other" },
+            pluralSegments.Select(x => x.Attribute(pgs + "case")?.Value).ToArray());
+        CollectionAssert.AreEqual(new[] { "final", null, "final" },
+            pluralSegments.Select(x => x.Attribute("state")?.Value).ToArray());
+        CollectionAssert.AreEqual(new[] { "{0} salario reportado", null, "{0} salarios reportados" },
+            pluralSegments.Select(x => x.Elements().SingleOrDefault(e => e.Name.LocalName == "target")?.Value).ToArray());
+        Assert.IsNull(preparedUnits["u203"].Attribute("translate"));
     }
 
     [TestMethod]
