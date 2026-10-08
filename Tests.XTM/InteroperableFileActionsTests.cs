@@ -186,6 +186,7 @@ public class InteroperableFileActionsTests : TestBaseMultipleConnections
                     new DownloadTranslatedInteroperableFileRequest { JobId = jobId });
                 var downloadedPath = Path.Combine(outputDirectory, downloaded.File.Name);
                 localFiles.Add(downloadedPath);
+                localFiles.Add(Path.Combine(outputDirectory, downloaded.TranslationFile.Name));
                 AssertMatchesFixture(expected["Downloaded"]!, ReadXliffOutput(XDocument.Load(downloadedPath), format == "xliff"),
                     $"{format}: Downloaded");
                 XNamespace its = "http://www.w3.org/2005/11/its";

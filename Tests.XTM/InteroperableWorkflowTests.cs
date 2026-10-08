@@ -218,7 +218,8 @@ public class InteroperableWorkflowTests
             {
                 using var copy = new MemoryStream();
                 await stream.CopyToAsync(copy);
-                uploaded = copy.ToArray();
+                if (name == "translated.xlf")
+                    uploaded = copy.ToArray();
                 return new FileReference { Name = name, ContentType = contentType };
             });
         var invocation = new InvocationContext

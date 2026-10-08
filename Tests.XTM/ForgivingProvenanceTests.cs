@@ -10,9 +10,9 @@ namespace Tests.XTM;
 [TestClass]
 public class ForgivingProvenanceTests
 {
-    private static readonly Func<byte[], byte[], string, string, IReadOnlyList<WorkflowAssignmentBundleResponse>, Action<string>?, byte[]> Apply =
+    private static readonly Func<byte[], byte[], string, string, IReadOnlyList<WorkflowAssignmentBundleResponse>, Action<string>?, (byte[] Target, byte[] Translation)> Apply =
         typeof(InteroperableActions).GetMethod("ApplyProvenanceWithDiagnostics", BindingFlags.NonPublic | BindingFlags.Static)!
-            .CreateDelegate<Func<byte[], byte[], string, string, IReadOnlyList<WorkflowAssignmentBundleResponse>, Action<string>?, byte[]>>();
+            .CreateDelegate<Func<byte[], byte[], string, string, IReadOnlyList<WorkflowAssignmentBundleResponse>, Action<string>?, (byte[] Target, byte[] Translation)>>();
 
     [TestMethod]
     [DataRow("&amp;lt;a href=\"{0}\"&amp;gt;Help&amp;lt;/a&amp;gt;", "<x id=\"1\"/>Help<x id=\"2\"/>", true)]
@@ -31,7 +31,7 @@ public class ForgivingProvenanceTests
         var offline = Offline($"<trans-unit id=\"t1\"><source xml:space=\"preserve\">{offlineSource}</source><target>Different target</target></trans-unit>");
         var messages = new List<string>();
         byte[] Run() => Apply(Encoding.UTF8.GetBytes(target), Encoding.UTF8.GetBytes(offline), "all", "translation",
-            [new() { From = 1, To = 1, UserId = "1", UserName = "Translator" }], messages.Add);
+            [new() { From = 1, To = 1, UserId = "1", UserName = "Translator" }], messages.Add).Target;
         if (!succeeds)
         {
             var exception = Assert.Throws<PluginApplicationException>(() => Run());
@@ -71,7 +71,7 @@ public class ForgivingProvenanceTests
             """);
         byte[] Run() => Apply(Encoding.UTF8.GetBytes(target), Encoding.UTF8.GetBytes(offline), "only_confirmed", "translation",
             [new() { From = 1, To = 2, UserId = "1", UserName = "First" },
-             new() { From = 3, To = 3, UserId = "2", UserName = "Second" }], null);
+             new() { From = 3, To = 3, UserId = "2", UserName = "Second" }], null).Target;
         if (ambiguous)
         {
             var exception = Assert.Throws<PluginApplicationException>(() => Run());
@@ -99,7 +99,7 @@ public class ForgivingProvenanceTests
             """);
         var output = XDocument.Parse(Encoding.UTF8.GetString(Apply(Encoding.UTF8.GetBytes(target), Encoding.UTF8.GetBytes(offline), "all", "review",
             [new() { From = 9, To = 9, UserId = "9", UserName = "First" },
-             new() { From = 3, To = 3, UserId = "3", UserName = "Second" }], null)));
+             new() { From = 3, To = 3, UserId = "3", UserName = "Second" }], null).Target));
         XNamespace x = "urn:oasis:names:tc:xliff:document:2.0";
         XNamespace its = "http://www.w3.org/2005/11/its";
         var units = output.Descendants(x + "unit").ToArray();

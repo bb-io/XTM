@@ -1,6 +1,6 @@
 # Blackbird.io XTM
 
-Blackbird is the new automation backbone for the language technology industry. Blackbird provides enterprise-scale automation and orchestration with a simple no-code/low-code platform. Blackbird enables ambitious organizations to identify, vet and automate as many processes as possible. Not just localization workflows, but any business and IT process. This repository represents an application that is deployable on Blackbird and usable inside the workflow editor.
+Blackbird is the new automation backbone for the language technology industry. Blackbird provides enterprise-scale automation and orchestration with a simple no-code/low-code platform. Blackbird enables ambitious organizations to identify, vet and automate as many processes as possible. Not just localization workflows, but any business and IT process. This repository represents an application that is deployable on Blackbird and usable inside the workflow editor. 
 
 ## Introduction
 
@@ -122,7 +122,7 @@ Before you can connect you need to make sure that:
 - **Download all project files** Download project files.
 - **Download reference files** Download reference files from a project.
 - **Download translated files** Download translated files from a project.
-- **Download translated interoperable file** Generate and download translated XLIFF 2.1 with unit-level translation or review provenance for a single job created by **Upload interoperable source file**. Starts TARGET and offline XLIFF generation together, waits for both, and uses the freshly generated offline segment statuses and suggestions for attribution. Removes exclusions added during upload while preserving original `translate="no"` settings, groups, inline content, and interoperability metadata. Use the job ID for the desired target language. The output remains XLIFF, including when the original source was another file format. This action replaces **Add provenance metadata**; a separate provenance action or manual XLIFF generation is no longer needed.
+- **Download translated interoperable file** Generate and download two XLIFF files for a single job created by **Upload interoperable source file**. **File** contains the complete translated interoperable content with unit-level translation or review provenance, including excluded strings. **Translation file** contains XTM's offline XLIFF 1.2 with references to the full file's original file, unit, and segment IDs (or segment positions when IDs are absent), while retaining native XTM upload IDs and metadata. Starts TARGET and offline XLIFF generation together, waits for both, and uses the freshly generated offline segment statuses and suggestions for attribution. Removes exclusions added during upload while preserving original `translate="no"` settings, groups, inline content, and interoperability metadata. Use the job ID for the desired target language. Both outputs remain XLIFF, including when the original source was another file format.
     - **Segment mapping**: Matches sources in job order, tolerating entity escaping, embedded markup, inline placeholders, and whitespace differences. Target differences do not block provenance mapping or change the returned content. Split segments require a unique complete alignment within offline groups. Genuine source-text differences and unmatched units still cause an error. This relies on XTM preserving job order; reordered segments with identical normalized sources cannot be distinguished. Logs summarize exact and forgiving matches.
     Advanced settings:
     - **Attribute segments to user**: Choose all segments, only confirmed segments, only changed segments, or no segments. Defaults to only confirmed segments (`signed-off` in offline XLIFF). **All segments** credits the selected workflow assignee even when they accepted an unchanged MT suggestion. **Only changed segments** compares the target with one matching exported suggestion; missing or ambiguous baselines remain unattributed. This comparison does not establish who edited the text or which workflow step changed it. Person provenance describes the selected workflow assignment, not XTM editor history. A unit with mixed eligibility or assignees receives tool provenance without a single person claim.
@@ -144,6 +144,7 @@ Before you can connect you need to make sure that:
     - **Translation type**: Set the translation type for the uploaded file.
     - **Metadata in JSON format**: Attach metadata to the uploaded file.
     - **Reanalyse project**: Choose whether to reanalyze the project after upload. Defaults to **No** (`NO`).
+- **Copy segment statuses to translation file** Copy segment statuses from a reviewed full interoperable XLIFF (**Target file**) into the mapped offline XLIFF (**Translation file**) returned by **Download translated interoperable file**. Returns the updated translation file without uploading it. Preserves translations, native XTM IDs, inline tags, and metadata. Matches by original file/unit/segment references; segments without IDs use their original position within the unit. Split XTM segments receive the original segment's status. Extra full-file strings are allowed; missing or ambiguous references and unsupported states cause an error. Missing status removes the offline target's `state`; `initial` becomes `new`, `translated` stays `translated`, `reviewed` becomes `signed-off`, and `final` stays `final`.
 - **Upload reference file** Upload a reference file to a project.
     Advanced settings:
     - **Override file name**: Use a custom name for the uploaded file.
@@ -153,8 +154,8 @@ Before you can connect you need to make sure that:
     - **Segment status approving**: Control how segment statuses are updated.
     - **Enable autopopulation?**: Enable or disable autopopulation during import.
     - **Workflow step name**: Specify the workflow step when autopopulation is disabled.
-    - **Lock segments above threshold**: Lock segments whose quality score meets or exceeds the threshold.
-    - **Mark segments under threshold as not completed**: Mark low-scoring segments as not completed before upload.
+    - **Lock segments by state**: Lock segments matching the selected states, for example **Reviewed** and **Final** after copying reviewed statuses.
+    - **Mark segments as not completed by state**: Mark segments matching the selected states as not completed.
 - **Upload translation file in background** Start a background process of uploading a translation file to a project. 
 Use the 'On background translation file upload finished (polling)' event to monitor the upload status.
 
