@@ -36,6 +36,7 @@ namespace Apps.XTM.Actions;
 public class InteroperableActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
     : XtmInvocable(invocationContext)
 {
+    private static readonly XNamespace SegmentMappingNamespace = "https://blackbird.io/xliff/xtm-segment-mapping";
     private readonly FileActions _fileActions = new(invocationContext, fileManagementClient);
 
     [Action("Upload interoperable source file", Description = "Convert a file to XLIFF 2.1 and upload it as a source file, excluding segments in selected states from translation")]
@@ -90,8 +91,8 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
         };
     }
 
-    [Action("Download translated interoperable file", Description = "Generate and download a translated file with unit provenance from XTM's offline XLIFF, restoring segments excluded by Upload interoperable source file")]
-    public async Task<FileResponse> DownloadTranslatedInteroperableFile(
+    [Action("Download translated interoperable file", Description = "Generate and download full translated interoperable content with provenance and a mapped XTM translation XLIFF, restoring excluded segments in the full file")]
+    public async Task<DownloadTranslatedInteroperableFileResponse> DownloadTranslatedInteroperableFile(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] DownloadTranslatedInteroperableFileRequest input)
     {
@@ -134,9 +135,10 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
 
         var target = downloadedFiles["TARGET"].Bytes;
         byte[] withProvenance;
+        byte[] mappedTranslation;
         try
         {
-            withProvenance = ApplyProvenanceWithDiagnostics(target, downloadedFiles["XLIFF"].Bytes,
+            (withProvenance, mappedTranslation) = ApplyProvenanceWithDiagnostics(target, downloadedFiles["XLIFF"].Bytes,
                 attributionMode, provenanceType, assignments, message => InvocationContext.Logger?.LogInformation?.Invoke(
                     $"[XTM_DownloadTranslatedInteroperableFile] Project {project.ProjectId}, job {input.JobId}: {message}", []));
         }
@@ -151,8 +153,93 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
 
         await using var stream = new MemoryStream(restored);
         var fileReference = await fileManagementClient.UploadAsync(stream, "application/xliff+xml", downloadedFiles["TARGET"].Name);
+        await using var translationStream = new MemoryStream(mappedTranslation);
+        var translationName = downloadedFiles["XLIFF"].Name;
+        if (string.Equals(translationName, downloadedFiles["TARGET"].Name, StringComparison.OrdinalIgnoreCase))
+            translationName = $"translation-{translationName}";
+        var translationReference = await fileManagementClient.UploadAsync(translationStream, "application/xliff+xml", translationName);
 
-        return new(fileReference);
+        return new() { File = fileReference, TranslationFile = translationReference };
+    }
+
+    [Action("Copy segment statuses to translation file", Description = "Copy segment statuses from a full interoperable XLIFF into its mapped XTM translation XLIFF for upload and locking")]
+    public async Task<FileResponse> CopySegmentStatusesToTranslationFile(
+        [ActionParameter] CopySegmentStatusesRequest input)
+    {
+        if (input.TranslationFile is null || input.TargetFile is null)
+            throw new PluginMisconfigurationException("Provide the translation file and target file.");
+
+        await using var translationStream = await fileManagementClient.DownloadAsync(input.TranslationFile);
+        await using var targetStream = await fileManagementClient.DownloadAsync(input.TargetFile);
+        var isTranslationXliff = Xliff1Serializer.IsXliff1(translationStream, out var translationRoot);
+        var isTargetXliff = Xliff2Serializer.IsXliff2(targetStream, out var targetRoot);
+        if (translationRoot is null || targetRoot is null)
+            throw new PluginMisconfigurationException("Provide valid XLIFF files.");
+        if (!isTranslationXliff || translationRoot.Name != Xliff1Serializer.XliffNs + "xliff"
+            || (string?)translationRoot.Attribute("version") != "1.2")
+            throw new PluginMisconfigurationException("The translation file must be mapped XTM XLIFF 1.2 from Download translated interoperable file.");
+        if (!isTargetXliff
+            || targetRoot.Name.NamespaceName is not ("urn:oasis:names:tc:xliff:document:2.0" or "urn:oasis:names:tc:xliff:document:2.2")
+            || (string?)targetRoot.Attribute("version") is not ("2.0" or "2.1" or "2.2"))
+            throw new PluginMisconfigurationException("The target file must be a full interoperable XLIFF 2 file.");
+
+        // Filters normalizes unsupported state values to null and reads only the first target.
+        // Validate those inputs without modifying the XML; matching and updates use its model.
+        foreach (var nativeUnit in translationRoot.Descendants(Xliff1Serializer.XliffNs + "trans-unit"))
+            if (nativeUnit.Elements(Xliff1Serializer.XliffNs + "target").Count() != 1)
+                throw new PluginMisconfigurationException($"Translation unit '{nativeUnit.Attribute("id")?.Value}' must contain exactly one target element.");
+        foreach (var targetSegment in targetRoot.Descendants(targetRoot.Name.Namespace + "segment"))
+        {
+            var state = (string?)targetSegment.Attribute("state");
+            if (state is not null && SegmentStateHelper.ToSegmentState(state) is null)
+                throw new PluginMisconfigurationException($"Target segment has unsupported state '{state}'.");
+        }
+
+        var translationLoad = Transformation.Load(translationStream, input.TranslationFile.Name, input.TranslationFile.ContentType);
+        var targetLoad = Transformation.Load(targetStream, input.TargetFile.Name, input.TargetFile.ContentType);
+        if (!translationLoad.Success || !translationLoad.WasBilingual || !targetLoad.Success || !targetLoad.WasBilingual)
+            throw new PluginMisconfigurationException($"Provide valid XLIFF files. {translationLoad.Error} {targetLoad.Error}");
+
+        var target = targetLoad.Value;
+        var targetFiles = target.Children.OfType<Transformation>().ToArray();
+        if (targetFiles.Length == 0)
+            targetFiles = [target];
+        var targetUnits = targetFiles.SelectMany(file => file.GetUnits().Select(unit => (FileId: file.Id, Unit: unit)))
+            .ToLookup(item => (item.FileId, item.Unit.Id), item => item.Unit);
+        var translation = translationLoad.Value;
+        var translationUnits = translation.GetUnits().ToArray();
+        if (translationUnits.Length == 0)
+            throw new PluginMisconfigurationException("The translation file does not contain any translation units.");
+
+        foreach (var unit in translationUnits)
+        {
+            var mapping = unit.Other.OfType<XAttribute>().Where(attribute => attribute.Name.Namespace == SegmentMappingNamespace)
+                .ToDictionary(attribute => attribute.Name.LocalName, attribute => attribute.Value);
+            var fileId = mapping.GetValueOrDefault("file-id");
+            var unitId = mapping.GetValueOrDefault("unit-id");
+            var segmentId = mapping.GetValueOrDefault("segment-id");
+            if (string.IsNullOrWhiteSpace(fileId) || string.IsNullOrWhiteSpace(unitId)
+                || !int.TryParse(mapping.GetValueOrDefault("segment-index"), out var position) || position < 1)
+                throw new PluginMisconfigurationException($"Translation unit '{unit.Id}' is missing valid segment mapping. Use the translation file from Download translated interoperable file.");
+
+            var matches = targetUnits[(fileId, unitId)].ToArray();
+            if (matches.Length != 1)
+                throw new PluginMisconfigurationException($"Translation unit '{unit.Id}' maps to {matches.Length} target units for file '{fileId}', unit '{unitId}'. Exactly one match is required.");
+
+            var segments = matches[0].Segments.Where(segment => !segment.IsIgnorbale).ToArray();
+            var matchedSegments = !string.IsNullOrWhiteSpace(segmentId)
+                ? segments.Where(segment => segment.Id == segmentId).ToArray()
+                : segments.Skip(position - 1).Take(1).Where(segment => string.IsNullOrWhiteSpace(segment.Id)).ToArray();
+            if (matchedSegments.Length != 1)
+                throw new PluginMisconfigurationException($"Translation unit '{unit.Id}' does not map to exactly one target segment in file '{fileId}', unit '{unitId}'.");
+
+            foreach (var segment in unit.Segments)
+                segment.State = matchedSegments[0].State;
+        }
+
+        var serialized = Xliff1Serializer.Serialize(translation);
+        await using var output = new MemoryStream(Encoding.UTF8.GetBytes(serialized));
+        return new(await fileManagementClient.UploadAsync(output, "application/xliff+xml", input.TranslationFile.Name));
     }
 
     private async Task<Dictionary<string, GeneratedFileResponse>> GenerateJobFiles(ProjectRequest project, string jobId)
@@ -360,9 +447,9 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
 
     private static byte[] ApplyProvenance(byte[] translated, byte[] offline, string attributionMode,
         string provenanceType, IReadOnlyList<WorkflowAssignmentBundleResponse> assignedBundles)
-        => ApplyProvenanceWithDiagnostics(translated, offline, attributionMode, provenanceType, assignedBundles, null);
+        => ApplyProvenanceWithDiagnostics(translated, offline, attributionMode, provenanceType, assignedBundles, null).Target;
 
-    private static byte[] ApplyProvenanceWithDiagnostics(byte[] translated, byte[] offline, string attributionMode,
+    private static (byte[] Target, byte[] Translation) ApplyProvenanceWithDiagnostics(byte[] translated, byte[] offline, string attributionMode,
         string provenanceType, IReadOnlyList<WorkflowAssignmentBundleResponse> assignedBundles, Action<string>? log)
     {
         // XTM replaces original IDs with t1, t2, ... in offline XLIFF. Flatten the TARGET's
@@ -389,7 +476,8 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
         // Filters' model cannot retain original node order, all whitespace, or exact native suggestions.
         // Keep XML through its parser only for those preservation and attribution gaps.
         var targetDocument = targetStream.ParseXmlWithBomFallback(LoadOptions.PreserveWhitespace)!;
-        var offlineRoot = offlineStream.ParseXmlWithBomFallback(LoadOptions.PreserveWhitespace)!.Root!;
+        var offlineDocument = offlineStream.ParseXmlWithBomFallback(LoadOptions.PreserveWhitespace)!;
+        var offlineRoot = offlineDocument.Root!;
         var xliff = targetDocument.Root!.Name.Namespace;
         var xtm = Xliff1Serializer.XliffNs;
 
@@ -397,8 +485,9 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
         // default namespace declaration and reload; this is a reader workaround, not format validation.
         if (offlineRoot.GetDefaultNamespace() != offlineRoot.Name.Namespace)
         {
-            offlineRoot.SetAttributeValue("xmlns", offlineRoot.Name.NamespaceName);
-            using var normalizedStream = new MemoryStream(Encoding.UTF8.GetBytes(offlineRoot.ToString(SaveOptions.DisableFormatting)));
+            var normalizedRoot = new XElement(offlineRoot);
+            normalizedRoot.SetAttributeValue("xmlns", offlineRoot.Name.NamespaceName);
+            using var normalizedStream = new MemoryStream(Encoding.UTF8.GetBytes(normalizedRoot.ToString(SaveOptions.DisableFormatting)));
             offlineLoad = Transformation.Load(normalizedStream, "offline.xlf");
             if (!offlineLoad.Success || !offlineLoad.WasBilingual)
                 throw new PluginApplicationException($"XTM returned invalid XLIFF for the offline file. {offlineLoad.Error}");
@@ -445,6 +534,17 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
             var segment = mappedSegments.Segments[index];
             var exported = offlineSegments[index];
             var originalExport = originalOfflineUnits[index];
+            var originalUnit = segment.Parent!;
+            var originalFile = originalUnit.Ancestors(xliff + "file").First();
+            var originalFileId = (string?)originalFile.Attribute("id");
+            var originalUnitId = (string?)originalUnit.Attribute("id");
+            if (string.IsNullOrWhiteSpace(originalFileId) || string.IsNullOrWhiteSpace(originalUnitId))
+                throw new PluginApplicationException("The translated XLIFF must contain file and unit IDs to map the translation file safely.");
+            originalExport.SetAttributeValue(SegmentMappingNamespace + "file-id", originalFileId);
+            originalExport.SetAttributeValue(SegmentMappingNamespace + "unit-id", originalUnitId);
+            originalExport.SetAttributeValue(SegmentMappingNamespace + "segment-id", (string?)segment.Attribute("id"));
+            originalExport.SetAttributeValue(SegmentMappingNamespace + "segment-index",
+                originalUnit.Elements(xliff + "segment").TakeWhile(candidate => candidate != segment).Count() + 1);
             var offlineSegment = originalExport.Element(xtm + "seg-source") is null
                 ? exported.Unit.Segments.Single() : null;
             var offlineTarget = originalExport.Element(xtm + "target");
@@ -533,7 +633,14 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
             OmitXmlDeclaration = targetDocument.Declaration is null,
         }))
             targetDocument.Save(writer);
-        return output.ToArray();
+        using var translationOutput = new MemoryStream();
+        using (var writer = XmlWriter.Create(translationOutput, new XmlWriterSettings
+        {
+            Encoding = new UTF8Encoding(false),
+            OmitXmlDeclaration = offlineDocument.Declaration is null,
+        }))
+            offlineDocument.Save(writer);
+        return (output.ToArray(), translationOutput.ToArray());
     }
 
     private static (XElement[] Segments, string Summary) MapOfflineSegments(XElement[] segments, XElement[] offlineUnits,

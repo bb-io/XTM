@@ -30,11 +30,11 @@ public class InteroperableSuppliedFilesDebugTests
         var offlineBytes = File.ReadAllBytes(offlinePath);
         var messages = new List<string>();
         var apply = typeof(InteroperableActions).GetMethod("ApplyProvenanceWithDiagnostics", BindingFlags.NonPublic | BindingFlags.Static)!
-            .CreateDelegate<Func<byte[], byte[], string, string, IReadOnlyList<WorkflowAssignmentBundleResponse>, Action<string>?, byte[]>>();
+            .CreateDelegate<Func<byte[], byte[], string, string, IReadOnlyList<WorkflowAssignmentBundleResponse>, Action<string>?, (byte[] Target, byte[] Translation)>>();
         var result = apply(targetBytes, offlineBytes, mode, role,
             [new() { From = 1, To = 21, UserId = "42", UserName = "Local reviewer" }], messages.Add);
         var original = XDocument.Parse(Encoding.UTF8.GetString(targetBytes), LoadOptions.PreserveWhitespace);
-        var output = XDocument.Parse(Encoding.UTF8.GetString(result), LoadOptions.PreserveWhitespace);
+        var output = XDocument.Parse(Encoding.UTF8.GetString(result.Target), LoadOptions.PreserveWhitespace);
         XNamespace x = "urn:oasis:names:tc:xliff:document:2.0";
         XNamespace its = "http://www.w3.org/2005/11/its";
         Assert.HasCount(740, output.Descendants(x + "segment"));

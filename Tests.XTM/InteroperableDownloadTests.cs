@@ -37,6 +37,8 @@ public class InteroperableDownloadTests
     [DataRow("warning-xliff", "XTM could not generate the XLIFF file: WARNING. Fixture generation failed.")]
     [DataRow("source-mismatch", "target unit 'u1', offline unit 't1'")]
     [DataRow("target-mismatch", null)]
+    [DataRow("same-filename", null)]
+    [DataRow("prefixed-offline", null)]
     [DataRow("language-mismatch", null)]
     [DataRow("count-mismatch", "The translated XLIFF contains 1 translatable segments, but XTM's offline XLIFF contains 0.")]
     [Timeout(30000)]
@@ -66,6 +68,13 @@ public class InteroperableDownloadTests
                 + offline[(offline.IndexOf("</trans-unit>", StringComparison.Ordinal) + "</trans-unit>".Length)..],
             _ => offline,
         };
+        if (scenario == "prefixed-offline")
+        {
+            var prefixed = XDocument.Parse(offline);
+            prefixed.Root!.SetAttributeValue("xmlns", null);
+            prefixed.Root.SetAttributeValue(XNamespace.Xmlns + "x", prefixed.Root.Name.NamespaceName);
+            offline = prefixed.ToString();
+        }
         var archives = new Dictionary<string, byte[]>();
         foreach (var fileType in new[] { "TARGET", "XLIFF" })
         {
@@ -76,7 +85,7 @@ public class InteroperableDownloadTests
                     : scenario == "multiple-xliff-zip" && fileType == "XLIFF" ? 2 : 1;
                 for (var index = 0; index < count; index++)
                 {
-                    var entry = archive.CreateEntry(fileType == "TARGET" ? "translated.xlf" : $"offline-{index}.xlf");
+                    var entry = archive.CreateEntry(fileType == "TARGET" || scenario == "same-filename" ? "translated.xlf" : $"offline-{index}.xlf");
                     await using var entryStream = entry.Open();
                     await entryStream.WriteAsync(Encoding.UTF8.GetBytes(fileType == "TARGET" ? target : offline));
                 }
@@ -178,14 +187,14 @@ public class InteroperableDownloadTests
             {
             }
         });
-        byte[]? uploadedBytes = null;
+        var uploadedFiles = new Dictionary<string, byte[]>();
         var fileManager = new Mock<IFileManagementClient>(MockBehavior.Strict);
         fileManager.Setup(x => x.UploadAsync(It.IsAny<Stream>(), It.IsAny<string>(), It.IsAny<string>()))
             .Returns(async (Stream stream, string contentType, string fileName) =>
             {
                 using var copy = new MemoryStream();
                 await stream.CopyToAsync(copy);
-                uploadedBytes = copy.ToArray();
+                uploadedFiles[fileName] = copy.ToArray();
                 return new FileReference { Name = fileName, ContentType = contentType };
             });
         var warnings = new List<string?>();
@@ -235,10 +244,23 @@ public class InteroperableDownloadTests
                 var result = await action.WaitAsync(TimeSpan.FromSeconds(20));
                 Assert.AreEqual("translated.xlf", result.File.Name);
                 Assert.AreEqual("application/xliff+xml", result.File.ContentType);
-                Assert.IsNotNull(uploadedBytes);
+                Assert.AreEqual(scenario == "same-filename" ? "translation-translated.xlf" : "offline-0.xlf", result.TranslationFile.Name);
+                Assert.HasCount(2, uploadedFiles);
+                var uploadedBytes = uploadedFiles[result.File.Name];
                 using var output = new MemoryStream(uploadedBytes);
                 var loaded = Transformation.Load(output, result.File.Name, result.File.ContentType);
                 Assert.IsTrue(loaded.Success, loaded.Error);
+                var mapped = XDocument.Parse(Encoding.UTF8.GetString(uploadedFiles[result.TranslationFile.Name]));
+                XNamespace bb = "https://blackbird.io/xliff/xtm-segment-mapping";
+                var nativeUnit = mapped.Descendants().Single(x => x.Name.LocalName == "trans-unit");
+                Assert.AreEqual("t1", nativeUnit.Attribute("id")?.Value);
+                Assert.AreEqual("f1", nativeUnit.Attribute(bb + "file-id")?.Value);
+                Assert.AreEqual("u1", nativeUnit.Attribute(bb + "unit-id")?.Value);
+                Assert.AreEqual("s1", nativeUnit.Attribute(bb + "segment-id")?.Value);
+                Assert.AreEqual("1", nativeUnit.Attribute(bb + "segment-index")?.Value);
+                nativeUnit.Attributes().Where(a => a.Name.Namespace == bb || (a.IsNamespaceDeclaration && a.Value == bb.NamespaceName)).Remove();
+                var originalOffline = XDocument.Parse(offline);
+                Assert.IsTrue(XNode.DeepEquals(originalOffline, mapped), "Native offline XML must remain unchanged apart from mapping attributes.");
                 var unit = loaded.Value!.GetUnits().Single();
                 Assert.AreEqual("XTM", unit.Provenance.Translation.Tool);
                 Assert.IsNull(unit.Provenance.Translation.Person, "The no-attribution mode must not include an assigned person.");
