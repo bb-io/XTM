@@ -89,7 +89,7 @@ public class InteroperableSegmentStatusTests
                 return new FileReference { Name = name, ContentType = contentType };
             });
         var result = await new InteroperableActions(new InvocationContext(), manager.Object)
-            .CopySegmentStatusesToTranslationFile(new()
+            .CopySegmentStatusesToXtmXliff(new()
             {
                 TranslationFile = new() { Name = "native.xlf" },
                 TargetFile = new() { Name = "reviewed.xlf" },
@@ -187,7 +187,7 @@ public class InteroperableSegmentStatusTests
                 scenario == $"malformed-{(file.Name == "translation.xlf" ? "translation" : "target")}" ? "<invalid" :
                     (file.Name == "translation.xlf" ? translation : target).ToString()))));
         var error = await Assert.ThrowsAsync<PluginMisconfigurationException>(() =>
-            new InteroperableActions(new InvocationContext(), manager.Object).CopySegmentStatusesToTranslationFile(new()
+            new InteroperableActions(new InvocationContext(), manager.Object).CopySegmentStatusesToXtmXliff(new()
             {
                 TranslationFile = new() { Name = "translation.xlf" },
                 TargetFile = new() { Name = "target.xlf" },
@@ -322,7 +322,7 @@ public class InteroperableSegmentStatusTests
                 output = copy.ToArray();
                 return new FileReference { Name = name, ContentType = type };
             });
-        await new InteroperableActions(new InvocationContext(), manager.Object).CopySegmentStatusesToTranslationFile(new()
+        await new InteroperableActions(new InvocationContext(), manager.Object).CopySegmentStatusesToXtmXliff(new()
         {
             TranslationFile = new() { Name = "native.xlf" },
             TargetFile = new() { Name = "sample-interoperable.xliff" },

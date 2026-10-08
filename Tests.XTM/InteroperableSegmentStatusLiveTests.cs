@@ -163,7 +163,7 @@ public class InteroperableSegmentStatusLiveTests : TestBaseMultipleConnections
                 for (var index = 0; index < fullSegments.Length; index++)
                     fullSegments[index].SetAttributeValue("state", states[index]);
                 files["reviewed.xlf"] = Encoding.UTF8.GetBytes(full.ToString());
-                var copied = await interoperable.CopySegmentStatusesToTranslationFile(new()
+                var copied = await interoperable.CopySegmentStatusesToXtmXliff(new()
                 {
                     TranslationFile = downloaded.TranslationFile,
                     TargetFile = new() { Name = "reviewed.xlf" },

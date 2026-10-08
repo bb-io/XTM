@@ -162,8 +162,8 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
         return new() { File = fileReference, TranslationFile = translationReference };
     }
 
-     [Action("Copy segment statuses to translation file", Description = "Copy segment statuses from a full interoperable XLIFF into its mapped XTM translation XLIFF for upload and locking")]
-    public async Task<CopySegmentStatusesToTranslationFileResponse> CopySegmentStatusesToTranslationFile(
+    [Action("Copy segment statuses", Description = "Copy segment statuses from a full interoperable XLIFF into its mapped XTM translation XLIFF for locking segments")]
+    public async Task<CopySegmentStatusesToXtmXliffResponse> CopySegmentStatusesToXtmXliff(
         [ActionParameter] CopySegmentStatusesRequest input)
     {
         if (input.TranslationFile is null || input.TargetFile is null)
