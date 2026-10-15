@@ -9,6 +9,7 @@ using Apps.XTM.Models.Response.Projects;
 using Apps.XTM.Webhooks.Handlers;
 using Apps.XTM.Webhooks.Models.Payload;
 using Apps.XTM.Webhooks.Models.Response;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Common.Webhooks;
 using Newtonsoft.Json;
@@ -605,7 +606,17 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
         if (String.IsNullOrEmpty(projectNameContains) && String.IsNullOrEmpty(CustomerNameContains))
             return true;
 
-        var projectInfo = Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{projectId}", Method.Get, null, Creds).Result;
+        FullProject projectInfo;
+        try
+        {
+            projectInfo = Client.ExecuteXtmWithJson<FullProject>(
+                $"{ApiEndpoints.Projects}/{projectId}", Method.Get, null, Creds).GetAwaiter().GetResult();
+        }
+        catch (PluginApplicationException exception) when (
+            exception.Message.Contains("Project not found", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
 
         if (!String.IsNullOrEmpty(projectNameContains) && !projectInfo.Name.Contains(projectNameContains))
             return false;
