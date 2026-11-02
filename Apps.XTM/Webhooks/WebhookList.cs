@@ -58,7 +58,9 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
                 return GetPreflightResponse<WorkflowTransitionResponse>();
             }
 
-            var flightOnEventTypes = new List<string> { "OPENED", "ACTIVE" };
+            var flightOnEventTypes = workflowOptionalRequest.IgnoreReopenedSteps == true
+                ? new List<string> { "ACTIVE" }
+                : new List<string> { "OPENED", "ACTIVE" };
 
             BridgeWebhookPayload<WorkflowTransitionPayload> data = new();
 
@@ -321,7 +323,9 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
         [WebhookParameter] CustomerOptionalRequest customerOptionalRequest,
         [WebhookParameter] WorkflowStepOptionalRequest workflowOptionalRequest)
     {
-        var flightOnEventTypes = new List<string> { "OPENED", "ACTIVE" };
+        var flightOnEventTypes = workflowOptionalRequest.IgnoreReopenedSteps == true
+            ? new List<string> { "ACTIVE" }
+            : new List<string> { "OPENED", "ACTIVE" };
         var data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
         var result = new WorkflowTransitionResponse(data.Payload!);
 
