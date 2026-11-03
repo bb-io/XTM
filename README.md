@@ -263,17 +263,17 @@ Use the 'On background translation file upload finished (polling)' event to moni
 
 ### Project activity
 
-- **On workflow transition** Triggers when jobs move into active workflow steps.
+- **On workflow transition** Triggers when jobs move into active workflow steps or finish a selected step.
     Advanced settings:
     - **Project ID**: Limit the event to a specific project.
     - **Project name contains**: Limit the event to projects whose name contains this text.
     - **Customer name contains**: Limit the event to projects whose customer name contains this text.
     - **Customer ID**: Limit the event to a specific customer.
-    - **Workflow step**: Trigger only when jobs move into the selected workflow step.
-    - **Ignore reopened steps**: Trigger only for task activation notifications (`ACTIVE`), including the first workflow step, and ignore reopening notifications (`OPENED`). Defaults to off. Applies with or without a workflow step filter.
-- **On workflow transition (manual)** Triggers when jobs move into active workflow steps.
+    - **Workflow step**: Limit the event to the selected workflow step.
+    - **Trigger when workflow step is finished**: Match the selected step when it finishes instead of when it becomes active or is reopened. Defaults to off.
+- **On workflow transition (manual)** Triggers when jobs move into active workflow steps or finish a selected step.
     Advanced settings:
-    - Supports the same filters and **Ignore reopened steps** setting as **On workflow transition**.
+    - Supports the same filters as **On workflow transition**.
 - **On analysis finished** Triggers when project analysis is finished.
 - **On job finished** Triggers when a job is finished.
     Advanced settings:

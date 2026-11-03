@@ -44,7 +44,7 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
     //    });
     //}
 
-    [Webhook("On workflow transition (manual)", Description = "Triggers when jobs move into active workflow steps")]
+    [Webhook("On workflow transition (manual)", Description = "Triggers when jobs move into active workflow steps or finish a selected step")]
     public Task<WebhookResponse<WorkflowTransitionResponse>> OnWorkflowTransitionManual(WebhookRequest request,
         [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
         [WebhookParameter] CustomerOptionalRequest customerOptionalRequest,
@@ -58,8 +58,8 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
                 return GetPreflightResponse<WorkflowTransitionResponse>();
             }
 
-            var flightOnEventTypes = workflowOptionalRequest.IgnoreReopenedSteps == true
-                ? new List<string> { "ACTIVE" }
+            var flightOnEventTypes = workflowOptionalRequest.TriggerWhenStepFinished == true
+                ? new List<string> { "FINISHED" }
                 : new List<string> { "OPENED", "ACTIVE" };
 
             BridgeWebhookPayload<WorkflowTransitionPayload> data = new();
@@ -317,14 +317,14 @@ public class WebhookList(InvocationContext invocationContext) : XtmInvocable(inv
     }
     
     [Webhook("On workflow transition", typeof(WorkflowTransitionedWebhookHandler), 
-        Description = "Triggers when jobs move into active workflow steps")]
+        Description = "Triggers when jobs move into active workflow steps or finish a selected step")]
     public Task<WebhookResponse<WorkflowTransitionResponse>> OnWorkflowTransition(WebhookRequest request,
         [WebhookParameter] ProjectOptionalRequest projectOptionalRequest,
         [WebhookParameter] CustomerOptionalRequest customerOptionalRequest,
         [WebhookParameter] WorkflowStepOptionalRequest workflowOptionalRequest)
     {
-        var flightOnEventTypes = workflowOptionalRequest.IgnoreReopenedSteps == true
-            ? new List<string> { "ACTIVE" }
+        var flightOnEventTypes = workflowOptionalRequest.TriggerWhenStepFinished == true
+            ? new List<string> { "FINISHED" }
             : new List<string> { "OPENED", "ACTIVE" };
         var data = HandleBridgeWebhookRequest<WorkflowTransitionPayload>(request);
         var result = new WorkflowTransitionResponse(data.Payload!);

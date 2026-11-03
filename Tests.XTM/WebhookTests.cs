@@ -14,7 +14,7 @@ namespace Tests.XTM;
 public class WebhookTests : TestBaseMultipleConnections
 {
     [ContextDataSource, TestMethod]
-    public async Task OnWorkflowTransition_ShouldNotFlight(InvocationContext context)
+    public async Task OnWorkflowTransition_WhenStepIsActiveAndFinishedOptionIsEnabled_ShouldNotFlight(InvocationContext context)
     {
         // Arrange
         var webhookList = new WebhookList(context);
@@ -53,7 +53,7 @@ public class WebhookTests : TestBaseMultipleConnections
         };
         var projectOptionalRequest = new ProjectOptionalRequest();
         var customerOptionalRequest = new CustomerOptionalRequest();
-        var workflowOptionalRequest = new WorkflowStepOptionalRequest() { WorkflowStep = "Automated post-editing1" };
+        var workflowOptionalRequest = new WorkflowStepOptionalRequest() { WorkflowStep = "translate1", TriggerWhenStepFinished = true };
 
         // Act
         var result = await webhookList.OnWorkflowTransition(
@@ -206,7 +206,7 @@ public class WebhookTests : TestBaseMultipleConnections
     }
 
     [ContextDataSource, TestMethod]
-    public async Task OnWorkflowTransition_WhenEventIsFinished_ShouldNotFlight(InvocationContext context)
+    public async Task OnWorkflowTransition_WhenEventIsFinished_ShouldFlightWhenEnabled(InvocationContext context)
     {
         // Arrange
         var webhookList = new WebhookList(context);
@@ -260,7 +260,7 @@ public class WebhookTests : TestBaseMultipleConnections
         };
         var projectOptionalRequest = new ProjectOptionalRequest();
         var customerOptionalRequest = new CustomerOptionalRequest();
-        var workflowOptionalRequest = new WorkflowStepOptionalRequest() { WorkflowStep = "Automated post-editing1" };
+        var workflowOptionalRequest = new WorkflowStepOptionalRequest() { WorkflowStep = "Automated post-editing1", TriggerWhenStepFinished = true };
 
         // Act
         var result = await webhookList.OnWorkflowTransition(
@@ -271,11 +271,11 @@ public class WebhookTests : TestBaseMultipleConnections
 
         // Assert
         PrintResult(result);
-        Assert.AreEqual(WebhookRequestType.Preflight, result.ReceivedWebhookRequestType);
+        Assert.AreEqual(WebhookRequestType.Default, result.ReceivedWebhookRequestType);
     }
 
     [ContextDataSource, TestMethod]
-    public async Task OnWorkflowTransitionManual_ShouldNotFlight(InvocationContext context)
+    public async Task OnWorkflowTransitionManual_WhenStepIsActiveAndFinishedOptionIsEnabled_ShouldNotFlight(InvocationContext context)
     {
         // Arrange
         var webhookList = new WebhookList(context);
@@ -314,7 +314,7 @@ public class WebhookTests : TestBaseMultipleConnections
         };
         var projectOptionalRequest = new ProjectOptionalRequest();
         var customerOptionalRequest = new CustomerOptionalRequest();
-        var workflowOptionalRequest = new WorkflowStepOptionalRequest() { WorkflowStep = "Automated post-editing1" };
+        var workflowOptionalRequest = new WorkflowStepOptionalRequest() { WorkflowStep = "translate1", TriggerWhenStepFinished = true };
 
         // Act
         var result = await webhookList.OnWorkflowTransitionManual(
@@ -467,7 +467,7 @@ public class WebhookTests : TestBaseMultipleConnections
     }
 
     [ContextDataSource, TestMethod]
-    public async Task OnWorkflowTransitionManual_WhenEventIsFinished_ShouldNotFlight(InvocationContext context)
+    public async Task OnWorkflowTransitionManual_WhenEventIsFinished_ShouldFlightWhenEnabled(InvocationContext context)
     {
         // Arrange
         var webhookList = new WebhookList(context);
@@ -521,7 +521,7 @@ public class WebhookTests : TestBaseMultipleConnections
         };
         var projectOptionalRequest = new ProjectOptionalRequest();
         var customerOptionalRequest = new CustomerOptionalRequest();
-        var workflowOptionalRequest = new WorkflowStepOptionalRequest() { WorkflowStep = "Automated post-editing1" };
+        var workflowOptionalRequest = new WorkflowStepOptionalRequest() { WorkflowStep = "Automated post-editing1", TriggerWhenStepFinished = true };
 
         // Act
         var result = await webhookList.OnWorkflowTransitionManual(
@@ -532,7 +532,7 @@ public class WebhookTests : TestBaseMultipleConnections
 
         // Assert
         PrintResult(result);
-        Assert.AreEqual(WebhookRequestType.Preflight, result.ReceivedWebhookRequestType);
+        Assert.AreEqual(WebhookRequestType.Default, result.ReceivedWebhookRequestType);
     }
 
     [ContextDataSource, TestMethod]
