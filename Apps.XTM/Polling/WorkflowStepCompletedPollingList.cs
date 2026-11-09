@@ -64,6 +64,8 @@ public class WorkflowStepCompletedPollingList(InvocationContext invocationContex
         };
         var isBaseline = request.Memory?.Configuration != memory.Configuration;
         var previousMemory = isBaseline ? null : request.Memory;
+        var projectsToRetry = new HashSet<string>(StringComparer.Ordinal);
+        var projectsToBaseline = new HashSet<string>(StringComparer.Ordinal);
         var results = new List<WorkflowStepCompletedResponse>();
         if (previousMemory is not null)
         {
@@ -108,16 +110,17 @@ public class WorkflowStepCompletedPollingList(InvocationContext invocationContex
                 if (memory.CompletedGroups.ContainsKey(project.Id))
                     continue;
 
-                HashSet<string>? previousGroups = null;
-                previousMemory?.CompletedGroups.TryGetValue(project.Id, out previousGroups);
-                memory.CompletedGroups.Add(project.Id, previousGroups is null ? [] : new(previousGroups));
+                List<string>? previousCompletedGroups = null;
+                previousMemory?.CompletedGroups.TryGetValue(project.Id, out previousCompletedGroups);
+                var previousGroups = previousCompletedGroups?.ToHashSet(StringComparer.Ordinal);
+                memory.CompletedGroups.Add(project.Id, previousGroups?.ToList() ?? []);
                 if (previousMemory?.ProjectsToRetry.Contains(project.Id) == true)
-                    memory.ProjectsToRetry.Add(project.Id);
+                    projectsToRetry.Add(project.Id);
                 if (isBaseline || previousMemory?.ProjectsToBaseline.Contains(project.Id) == true)
-                    memory.ProjectsToBaseline.Add(project.Id);
+                    projectsToBaseline.Add(project.Id);
 
                 var projectId = ParseId(project.Id);
-                if (projectId <= resumeAfter && !memory.ProjectsToRetry.Contains(project.Id))
+                if (projectId <= resumeAfter && !projectsToRetry.Contains(project.Id))
                     continue;
                 if (results.Count >= MaxEventsPerPoll)
                 {
@@ -139,7 +142,7 @@ public class WorkflowStepCompletedPollingList(InvocationContext invocationContex
                         if (!group.IsComplete)
                             continue;
 
-                        if (!memory.ProjectsToBaseline.Contains(project.Id) && previousGroups?.Contains(groupKey) != true)
+                        if (!projectsToBaseline.Contains(project.Id) && previousGroups?.Contains(groupKey) != true)
                         {
                             var completion = new WorkflowStepCompletedResponse
                             {
@@ -156,13 +159,13 @@ public class WorkflowStepCompletedPollingList(InvocationContext invocationContex
                         handledGroups.Add(groupKey);
                     }
 
-                    memory.CompletedGroups[project.Id] = handledGroups;
-                    memory.ProjectsToRetry.Remove(project.Id);
-                    memory.ProjectsToBaseline.Remove(project.Id);
+                    memory.CompletedGroups[project.Id] = handledGroups.ToList();
+                    projectsToRetry.Remove(project.Id);
+                    projectsToBaseline.Remove(project.Id);
                 }
                 catch (Exception ex) when (ex is PluginApplicationException or JsonException or HttpRequestException)
                 {
-                    memory.ProjectsToRetry.Add(project.Id);
+                    projectsToRetry.Add(project.Id);
                     InvocationContext.Logger?.LogWarning($"Could not check workflow completion for project {project.Id}: {ex.Message}", []);
                 }
 
@@ -171,6 +174,8 @@ public class WorkflowStepCompletedPollingList(InvocationContext invocationContex
         }
 
         memory.LastScannedProjectId = scanDeferred ? lastScannedProjectId : null;
+        memory.ProjectsToRetry = projectsToRetry.ToList();
+        memory.ProjectsToBaseline = projectsToBaseline.ToList();
         return new()
         {
             Memory = memory,
