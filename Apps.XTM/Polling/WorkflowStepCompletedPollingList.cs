@@ -25,7 +25,7 @@ public class WorkflowStepCompletedPollingList(InvocationContext invocationContex
     private const int PageSize = 100;
     private const int MaxEventsPerPoll = 100;
 
-    [PollingEvent("On workflow step completed (polling)",
+    [PollingEvent("On workflow steps completed (polling)",
         "Triggers when all jobs in an active project, or all jobs for a target language, have finished the selected step"),
      MultipleEvents]
     public async Task<PollingEventResponse<WorkflowStepCompletedMemory, List<WorkflowStepCompletedResponse>>> OnWorkflowStepCompleted(
@@ -63,7 +63,22 @@ public class WorkflowStepCompletedPollingList(InvocationContext invocationContex
             Configuration = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(configuration)))
         };
         var isBaseline = request.Memory?.Configuration != memory.Configuration;
+        var previousMemory = isBaseline ? null : request.Memory;
         var results = new List<WorkflowStepCompletedResponse>();
+        if (previousMemory is not null)
+        {
+            foreach (var pending in previousMemory.PendingCompletions)
+            {
+                if (results.Count < MaxEventsPerPoll)
+                    results.Add(pending);
+                else
+                    memory.PendingCompletions.Add(pending);
+            }
+        }
+
+        var resumeAfter = previousMemory?.LastScannedProjectId;
+        var lastScannedProjectId = resumeAfter;
+        var scanDeferred = false;
         var token = await Client.GetToken(Creds);
         var query = new Dictionary<string, string?>
         {
@@ -93,43 +108,69 @@ public class WorkflowStepCompletedPollingList(InvocationContext invocationContex
                 if (memory.CompletedGroups.ContainsKey(project.Id))
                     continue;
 
-                var statusEndpoint = $"{ApiEndpoints.Projects}/{Uri.EscapeDataString(project.Id)}/status?fetchLevel=STEPS";
-                var status = await GetResponse<ProjectDetailedStatusResponse>(statusEndpoint, token);
-                if (status.Jobs is null)
-                    throw new PluginApplicationException("XTM returned no job collection for a project status.");
-
-                var handledGroups = new HashSet<string>(StringComparer.Ordinal);
-                memory.CompletedGroups.Add(project.Id, handledGroups);
                 HashSet<string>? previousGroups = null;
-                request.Memory?.CompletedGroups.TryGetValue(project.Id, out previousGroups);
+                previousMemory?.CompletedGroups.TryGetValue(project.Id, out previousGroups);
+                memory.CompletedGroups.Add(project.Id, previousGroups is null ? [] : new(previousGroups));
+                if (previousMemory?.ProjectsToRetry.Contains(project.Id) == true)
+                    memory.ProjectsToRetry.Add(project.Id);
+                if (isBaseline || previousMemory?.ProjectsToBaseline.Contains(project.Id) == true)
+                    memory.ProjectsToBaseline.Add(project.Id);
 
-                foreach (var (groupKey, group) in GetGroups(status.Jobs, scope, step))
+                var projectId = ParseId(project.Id);
+                if (projectId <= resumeAfter && !memory.ProjectsToRetry.Contains(project.Id))
+                    continue;
+                if (results.Count >= MaxEventsPerPoll)
                 {
-                    if (!group.IsComplete)
-                        continue;
+                    scanDeferred = true;
+                    continue;
+                }
 
-                    if (isBaseline || previousGroups?.Contains(groupKey) == true)
+                try
+                {
+                    var statusEndpoint = $"{ApiEndpoints.Projects}/{Uri.EscapeDataString(project.Id)}/status?fetchLevel=STEPS";
+                    var status = await GetResponse<ProjectDetailedStatusResponse>(statusEndpoint, token);
+                    if (status.Jobs is null)
+                        throw new PluginApplicationException("XTM returned no job collection for a project status.");
+
+                    var groups = GetGroups(status.Jobs, scope, step);
+                    var handledGroups = new HashSet<string>(StringComparer.Ordinal);
+                    foreach (var (groupKey, group) in groups)
                     {
+                        if (!group.IsComplete)
+                            continue;
+
+                        if (!memory.ProjectsToBaseline.Contains(project.Id) && previousGroups?.Contains(groupKey) != true)
+                        {
+                            var completion = new WorkflowStepCompletedResponse
+                            {
+                                ProjectId = project.Id,
+                                WorkflowStep = input.WorkflowStep.Trim(),
+                                TargetLanguage = scope == CompletionScopeDataHandler.TargetLanguage ? groupKey : null,
+                                JobIds = group.JobIds.ToArray()
+                            };
+                            if (results.Count < MaxEventsPerPoll)
+                                results.Add(completion);
+                            else
+                                memory.PendingCompletions.Add(completion);
+                        }
                         handledGroups.Add(groupKey);
-                        continue;
                     }
 
-                    if (results.Count >= MaxEventsPerPoll)
-                        continue; // Not handled yet: retry this completion on the next poll.
-
-                    results.Add(new WorkflowStepCompletedResponse
-                    {
-                        ProjectId = project.Id,
-                        WorkflowStep = input.WorkflowStep.Trim(),
-                        TargetLanguage = scope == CompletionScopeDataHandler.TargetLanguage ? groupKey : null,
-                        JobIds = group.JobIds.ToArray()
-                    });
-
-                    handledGroups.Add(groupKey);
+                    memory.CompletedGroups[project.Id] = handledGroups;
+                    memory.ProjectsToRetry.Remove(project.Id);
+                    memory.ProjectsToBaseline.Remove(project.Id);
                 }
+                catch (Exception ex) when (ex is PluginApplicationException or JsonException or HttpRequestException)
+                {
+                    memory.ProjectsToRetry.Add(project.Id);
+                    InvocationContext.Logger?.LogWarning($"Could not check workflow completion for project {project.Id}: {ex.Message}", []);
+                }
+
+                lastScannedProjectId = Math.Max(lastScannedProjectId ?? projectId, projectId);
             }
         }
 
+        memory.LastScannedProjectId = scanDeferred ? lastScannedProjectId : null;
         return new()
         {
             Memory = memory,

@@ -487,6 +487,9 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             endpoint = QueryHelpers.AddQueryString(endpoint, "targetLanguages", string.Join(",", targetLanguages));
 
         var response = await Client.ExecuteXtmWithJson<ProjectDetailedStatusResponse>(endpoint, Method.Get, null, Creds);
+        if (response is null)
+            throw new PluginApplicationException("XTM returned an empty project status response.");
+
         var completedSteps = input.CompletedSteps?.ToArray() ?? [];
 
         return new SearchProjectJobsResponse
@@ -517,6 +520,8 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             $"{ApiEndpoints.Projects}/{Uri.EscapeDataString(project.ProjectId.Trim())}{ApiEndpoints.Status}?fetchLevel=STEPS",
             "jobIds", jobId);
         var response = await Client.ExecuteXtmWithJson<ProjectCompletionResponse>(endpoint, Method.Get, null, Creds);
+        if (response is null)
+            throw new PluginApplicationException("XTM returned an empty project status response.");
 
         return response.Jobs?.FirstOrDefault(job => job.JobId == jobId)
             ?? throw new PluginMisconfigurationException($"Job with ID {jobId} was not found in project {project.ProjectId.Trim()}.");
