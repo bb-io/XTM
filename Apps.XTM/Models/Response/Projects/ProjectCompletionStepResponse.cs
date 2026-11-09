@@ -14,4 +14,12 @@ public class ProjectCompletionStepResponse
 
     [Display("Due to date")]
     public DateTime DueToDate { get; set; }
+
+    [JsonProperty("dueDate")]
+    private long? DueDate
+    {
+        set => DueToDate = value.HasValue
+            ? DateTimeOffset.FromUnixTimeMilliseconds(value.Value).UtcDateTime
+            : default;
+    }
 }

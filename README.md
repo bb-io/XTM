@@ -88,6 +88,11 @@ Before you can connect you need to make sure that:
     Advanced settings:
     - **Target languages**: Limit metrics to specific target languages.
 - **Get project completion** Get completion details for a project.
+- **Search jobs in a project** Get Job IDs for a project. Only Project ID is required; no matches return an empty list.
+    Advanced settings:
+    - **Completed steps**: Only include jobs that have finished every selected workflow step. Select steps from the project's workflow; the picker falls back to global steps when no project steps are available.
+    - **Target languages**: Limit jobs to any of the selected project target languages. When combined with completed steps, jobs must satisfy both filters.
+- **Get project job** Get completion details for a specific Project ID and Job ID: file name, source file ID, target language, join files type, and workflow steps with status, name, and due date.
 - **Get project status** Get the current status of a project.
 - **Get project users** Get users assigned to a project.
 - **Get project details** Get completion, status, and estimate details for a project.
@@ -295,6 +300,14 @@ Use the 'On background translation file upload finished (polling)' event to moni
     Advanced settings:
     - **Customer IDs**: Monitor active projects for the selected customers.
     - **Project IDs**: Monitor the selected active projects.
+- **On workflow step completed (polling)** Triggers once when every job in an active project has finished the required **Workflow step**. Cancelled and deleted jobs are excluded; empty groups, jobs in error, and jobs missing the step do not trigger.
+    Advanced settings:
+    - **Project IDs**: Monitor the selected active projects. Leave empty to monitor all active projects.
+    - **Project name contains**: Only monitor projects whose names contain this text (case-sensitive).
+    - **Completion scope**: Defaults to **Entire project**. Select **Each target language** to start a separate Flight when all jobs for that language finish the step.
+    - The first poll establishes a baseline without starting Flights. Subsequent polls remember handled completions, so an unchanged completed group does not trigger again. A group can trigger again after a poll observes it incomplete and then complete. Reopening and finishing entirely between polls is not detected.
+    - Memory retains only active projects matching the filters. Projects removed from the results are forgotten and can trigger again when they return. Changing the event settings establishes a new baseline.
+    - Each Flight receives **Project ID**, **Workflow step**, **Target language** (for language scope), and **Job IDs** for the completed group. Up to 100 groups trigger per poll; remaining completed groups are checked again on the next poll.
 - **On background translation file upload finished (polling)** Triggers when a translation file is finished uploading.
 
 > Note: "On workflow transition" and "On workflow transition (manual)" events have to add numbers without spaces when filtering by workflow step. For example, when step in XTM project workflow is named "Translate 1" then filter value should be "Translate1". This filter is not case-sensitive.

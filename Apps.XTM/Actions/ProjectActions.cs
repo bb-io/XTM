@@ -2,6 +2,7 @@
 using Apps.XTM.Extensions;
 using Apps.XTM.Invocables;
 using Apps.XTM.Models.Request.Customers;
+using Apps.XTM.Models.Request.Jobs;
 using Apps.XTM.Models.Request.Projects;
 using Apps.XTM.Models.Response;
 using Apps.XTM.Models.Response.Files;
@@ -20,6 +21,7 @@ using System.Text;
 using Blackbird.Filters.Analysis.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Microsoft.AspNetCore.WebUtilities;
 
 namespace Apps.XTM.Actions;
 
@@ -469,6 +471,55 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             }
         }
 
+    }
+
+    [Action("Search jobs in a project", Description = "Search project jobs by completed workflow steps and target languages")]
+    public async Task<SearchProjectJobsResponse> SearchProjectJobs(
+        [ActionParameter] ProjectRequest project,
+        [ActionParameter] SearchProjectJobsRequest input)
+    {
+        if (string.IsNullOrWhiteSpace(project.ProjectId))
+            throw new PluginMisconfigurationException("Project ID is required.");
+
+        var endpoint = $"{ApiEndpoints.Projects}/{Uri.EscapeDataString(project.ProjectId.Trim())}{ApiEndpoints.Status}?fetchLevel=STEPS";
+        var targetLanguages = input.TargetLanguages?.ToArray() ?? [];
+        if (targetLanguages.Length > 0)
+            endpoint = QueryHelpers.AddQueryString(endpoint, "targetLanguages", string.Join(",", targetLanguages));
+
+        var response = await Client.ExecuteXtmWithJson<ProjectDetailedStatusResponse>(endpoint, Method.Get, null, Creds);
+        var completedSteps = input.CompletedSteps?.ToArray() ?? [];
+
+        return new SearchProjectJobsResponse
+        {
+            JobIds = (response.Jobs ?? [])
+                .Where(job => completedSteps.All(selectedStep => job.Steps?.Any(step =>
+                    string.Equals(step.Status, "FINISHED", StringComparison.OrdinalIgnoreCase)
+                    && new[] { step.StepReferenceName, step.WorkflowStepName, step.DisplayStepName }
+                        .Any(name => string.Equals(name, selectedStep, StringComparison.OrdinalIgnoreCase))) == true))
+                .Select(job => job.JobId)
+                .Distinct()
+                .ToArray()
+        };
+    }
+
+    [Action("Get project job", Description = "Get completion details for a specific job in a project")]
+    public async Task<ProjectCompletionJobResponse> GetProjectJob(
+        [ActionParameter] ProjectRequest project,
+        [ActionParameter] JobRequest input)
+    {
+        if (string.IsNullOrWhiteSpace(project.ProjectId))
+            throw new PluginMisconfigurationException("Project ID is required.");
+        if (string.IsNullOrWhiteSpace(input.JobId))
+            throw new PluginMisconfigurationException("Job ID is required.");
+
+        var jobId = input.JobId.Trim();
+        var endpoint = QueryHelpers.AddQueryString(
+            $"{ApiEndpoints.Projects}/{Uri.EscapeDataString(project.ProjectId.Trim())}{ApiEndpoints.Status}?fetchLevel=STEPS",
+            "jobIds", jobId);
+        var response = await Client.ExecuteXtmWithJson<ProjectCompletionResponse>(endpoint, Method.Get, null, Creds);
+
+        return response.Jobs?.FirstOrDefault(job => job.JobId == jobId)
+            ?? throw new PluginMisconfigurationException($"Job with ID {jobId} was not found in project {project.ProjectId.Trim()}.");
     }
 
     [Action("Get project completion", Description = "Get completion details for a project")]
