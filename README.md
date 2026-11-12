@@ -139,6 +139,7 @@ Before you can connect you need to make sure that:
     - **Translation type**: Set the translation type for the uploaded file.
     - **Metadata in JSON format**: Attach metadata to the uploaded file.
     - **Reanalyse project**: Choose whether to reanalyze the project after upload.
+    - **Replace existing file with same name**: Replace a source file with the same name already uploaded to the project (`MATCH_NAMES`). When disabled, the file is added and renamed if the name already exists (`NO_MATCH`). When not set, XTM's default (`NO_MATCH`) applies.
 - **Upload interoperable source file** Accept any file supported by Blackbird filters and convert it to XLIFF 2.1 before uploading it as a source file to XTM. Units in selected states receive temporary `translate="no"` exclusions, so XTM processes only the remaining segments. Original exclusions and interoperability metadata are preserved. Files without a source language use the project's source language; non-XLIFF filenames receive an `.xlf` suffix. If no segments remain, the XTM upload is skipped. The action returns the prepared file, whether it was uploaded, segment totals, excluded and remaining segment counts, and an approximate source word count for the remaining segments. Units containing both excluded and translatable segments must be split into separate units before upload because XLIFF applies `translate` to the whole unit.
     Advanced settings:
     - **Exclude segments with states**: Select the segment states to exclude from translation. Defaults to **Final**.

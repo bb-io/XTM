@@ -33,6 +33,8 @@ namespace Apps.XTM.Actions;
 [ActionList]
 public class FileActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) : XtmInvocable(invocationContext)
 {
+    private const string OnlySupportedMetadataType = "JSON";
+
     [Action("Generate files", Description = "Generate files for a project")]
     public async Task<ListGeneratedFilesResponse> GenerateFiles(
         [ActionParameter] ProjectRequest project,
@@ -551,7 +553,8 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
     [Action("Upload source file", Description = "Upload a source file to a project")]
     public async Task<CreateProjectResponse> UploadSourceFile(
         [ActionParameter] ProjectRequest project,
-        [ActionParameter] UploadSourceFileRequest input)
+        [ActionParameter] UploadSourceFileRequest input,
+        [ActionParameter] UploadSourceFileMatchRequest matchInput)
     {
         var fileName = input.Name?.Trim() ?? input.File.Name ??
             throw new PluginMisconfigurationException("File name is required");
@@ -567,7 +570,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
             fileBytes = Encoding.UTF8.GetBytes(xliffV12);
         }
 
-        return await UploadSourceFileBytes(project, input, fileBytes, fileName);
+        return await UploadSourceFileBytes(project, input, fileBytes, fileName, matchInput.GetMatchType());
     }
 
     internal async Task<CreateProjectResponse> UploadSourceFileBytes(
@@ -600,7 +603,7 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         if (input.Metadata != null)
         {
             parameters.Add("files[0].metadata", input.Metadata);
-            parameters.Add("files[0].metadataType", "JSON"); // JSON is the only available type of metadata
+            parameters.Add("files[0].metadataType", OnlySupportedMetadataType);
         }
 
         if (input.TagIds is not null)
