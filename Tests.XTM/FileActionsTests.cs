@@ -83,7 +83,7 @@ public class FileActionsTests : TestBaseMultipleConnections
         };
 
         // Act
-        var response = await actions.UploadSourceFile(projectRequest, fileRequest);
+        var response = await actions.UploadSourceFile(projectRequest, fileRequest, new UploadSourceFileMatchRequest());
 
         // Assert
         PrintResult(response);
@@ -106,7 +106,8 @@ public class FileActionsTests : TestBaseMultipleConnections
             };
             await actions.UploadSourceFile(
                 projectRequest,
-                fileRequest);
+                fileRequest,
+                new UploadSourceFileMatchRequest());
 
             await Task.Delay(4000);
         }
