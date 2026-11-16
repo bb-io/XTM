@@ -68,19 +68,27 @@ public class XTMClient : RestClient
 
     public async Task<RestResponse> ExecuteXtm(XTMRequest request)
     {
-        var retryPolicy = request.Method == Method.Get ? ReadRetryPolicy : RateLimitRetryPolicy;
-        var response = await retryPolicy.ExecuteAsync(() => ExecuteAsync(request));
-
-        if (response.RawBytes != null && Encoding.UTF8.GetString(response.RawBytes).Contains("CANNOT_FIND_THE_FILE"))
-            throw new PluginApplicationException("The file was not found, please check your input and try again");
-
-        if (IsTransportFailure(response))
-            throw new PluginApplicationException(GetTransportErrorMessage(request, response));
-
-        if (!response.IsSuccessStatusCode)
-            throw new PluginApplicationException(GetXtmError(response).Message);
-
+        var response = await SendWithRetry(request);
+        EnsureSuccess(request, response);
         return response;
+    }
+
+    public async Task<T?> GetXtmOrDefaultWhenUnavailable<T>(string endpoint, AuthenticationCredentialsProvider[] creds)
+        where T : class
+    {
+        var token = await GetToken(creds);
+        var request = new XTMRequest(new()
+        {
+            Url = creds.Get(CredsNames.Url) + endpoint,
+            Method = Method.Get
+        }, token);
+
+        var response = await SendWithRetry(request);
+        if (IsResourceUnavailable(response))
+            return null;
+
+        EnsureSuccess(request, response);
+        return JsonConvert.DeserializeObject<T>(response.Content ?? string.Empty);
     }
 
     #endregion
@@ -147,6 +155,29 @@ public class XTMClient : RestClient
         else
             return creds.Get(CredsNames.Token);
     }
+
+    private Task<RestResponse> SendWithRetry(XTMRequest request)
+    {
+        var retryPolicy = request.Method == Method.Get ? ReadRetryPolicy : RateLimitRetryPolicy;
+        return retryPolicy.ExecuteAsync(() => ExecuteAsync(request));
+    }
+
+    private static void EnsureSuccess(XTMRequest request, RestResponse response)
+    {
+        if (response.RawBytes != null && Encoding.UTF8.GetString(response.RawBytes).Contains("CANNOT_FIND_THE_FILE"))
+            throw new PluginApplicationException("The file was not found, please check your input and try again");
+
+        if (IsTransportFailure(response))
+            throw new PluginApplicationException(GetTransportErrorMessage(request, response));
+
+        if (!response.IsSuccessStatusCode)
+            throw new PluginApplicationException(GetXtmError(response).Message);
+    }
+
+    private static bool IsResourceUnavailable(RestResponse response) =>
+        response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Forbidden
+        || (response.StatusCode == HttpStatusCode.BadRequest
+            && response.Content?.Contains("not found", StringComparison.OrdinalIgnoreCase) == true);
 
     private static bool IsRateLimited(RestResponse response) =>
         response.StatusCode == HttpStatusCode.TooManyRequests;
