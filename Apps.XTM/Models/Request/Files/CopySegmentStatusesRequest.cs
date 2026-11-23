@@ -10,4 +10,7 @@ public class CopySegmentStatusesRequest
 
     [Display("Target file", Description = "Full interoperable XLIFF containing the segment statuses to apply.")]
     public FileReference TargetFile { get; set; } = default!;
+
+    [Display("Copy missing notes", Description = "Also copy notes from each matched target-file unit if their text is missing from the translation unit. Defaults to false.")]
+    public bool? CopyMissingNotes { get; set; }
 }

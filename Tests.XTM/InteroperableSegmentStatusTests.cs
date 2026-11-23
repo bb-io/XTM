@@ -116,6 +116,80 @@ public class InteroperableSegmentStatusTests
     }
 
     [TestMethod]
+    [DataRow(null, DisplayName = "Copy missing notes omitted")]
+    [DataRow(false, DisplayName = "Copy missing notes disabled")]
+    [DataRow(true, DisplayName = "Copy missing notes enabled")]
+    public async Task Copy_MergesOnlyMissingNotesWhenEnabled(bool? copyMissingNotes)
+    {
+        const string target = """
+            <xliff xmlns="urn:oasis:names:tc:xliff:document:2.2" version="2.2" srcLang="en" trgLang="sv">
+              <file id="f1">
+                <unit id="u1">
+                  <notes><note>Context: low score</note><note>Quality score: 0.800
+            </note><note>Quality score: 0.800</note></notes>
+                  <segment><source>First</source><target>Första</target></segment>
+                </unit>
+                <unit id="u2">
+                  <notes><note>Quality score: 0.000</note></notes>
+                  <segment id="s2" state="reviewed"><source>Second</source><target>Andra</target></segment>
+                </unit>
+              </file>
+            </xliff>
+            """;
+        const string translation = """
+            <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:map="https://blackbird.io/xliff/xtm-segment-mapping" version="1.2">
+              <file original="native" source-language="en-US" target-language="sv-SE"><body>
+                <trans-unit id="t2" map:file-id="f1" map:unit-id="u2" map:segment-index="1" map:segment-id="s2">
+                  <source>Second</source><target state="translated">Befintlig</target>
+                </trans-unit>
+                <trans-unit id="t1" map:file-id="f1" map:unit-id="u1" map:segment-index="1">
+                  <source>First</source><target state="translated">Första</target>
+                  <note from="">Context: low score</note><note from="Reviewer">XTM-only note</note>
+                </trans-unit>
+              </body></file>
+            </xliff>
+            """;
+        string? output = null;
+        var manager = new Mock<IFileManagementClient>(MockBehavior.Strict);
+        manager.Setup(x => x.DownloadAsync(It.IsAny<FileReference>()))
+            .Returns((FileReference file) => Task.FromResult<Stream>(new MemoryStream(Encoding.UTF8.GetBytes(
+                file.Name == "native.xlf" ? output ?? translation : target))));
+        manager.Setup(x => x.UploadAsync(It.IsAny<Stream>(), "application/xliff+xml", "native.xlf"))
+            .Returns(async (Stream stream, string contentType, string name) =>
+            {
+                using var reader = new StreamReader(stream);
+                output = await reader.ReadToEndAsync();
+                return new FileReference { Name = name, ContentType = contentType };
+            });
+        var action = new InteroperableActions(new InvocationContext(), manager.Object);
+        var request = new CopySegmentStatusesRequest
+        {
+            TranslationFile = new() { Name = "native.xlf" },
+            TargetFile = new() { Name = "reviewed.xlf" },
+            CopyMissingNotes = copyMissingNotes,
+        };
+
+        await action.CopySegmentStatusesToXtmXliff(request);
+        var updated = XDocument.Parse(output!);
+        var units = updated.Descendants(Native + "trans-unit").ToDictionary(unit => (string)unit.Attribute("id")!);
+        var firstNotes = units["t1"].Elements(Native + "note").ToArray();
+        CollectionAssert.AreEqual(copyMissingNotes == true
+                ? new[] { "Context: low score", "XTM-only note", "Quality score: 0.800" }
+                : new[] { "Context: low score", "XTM-only note" },
+            firstNotes.Select(note => note.Value).ToArray());
+        Assert.AreEqual(string.Empty, (string?)firstNotes[0].Attribute("from"));
+        Assert.AreEqual("Reviewer", (string?)firstNotes[1].Attribute("from"));
+        CollectionAssert.AreEqual(copyMissingNotes == true ? new[] { "Quality score: 0.000" } : Array.Empty<string>(),
+            units["t2"].Elements(Native + "note").Select(note => note.Value).ToArray());
+        Assert.IsNull(units["t1"].Element(Native + "target")!.Attribute("state"));
+        Assert.AreEqual("signed-off", (string?)units["t2"].Element(Native + "target")!.Attribute("state"));
+        Assert.AreEqual("Befintlig", units["t2"].Element(Native + "target")!.Value);
+
+        await action.CopySegmentStatusesToXtmXliff(request);
+        Assert.IsTrue(XNode.DeepEquals(updated, XDocument.Parse(output!)), "Reapplying the action must preserve the result.");
+    }
+
+    [TestMethod]
     [DataRow("missing-mapping", "missing valid segment mapping")]
     [DataRow("missing-file", "maps to 0 target units")]
     [DataRow("missing-unit", "maps to 0 target units")]

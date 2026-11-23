@@ -163,7 +163,7 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
         return new() { File = fileReference, TranslationFile = translationReference };
     }
 
-    [Action("Copy segment statuses", Description = "Copy segment statuses from a full interoperable XLIFF into its mapped XTM translation XLIFF for locking segments")]
+    [Action("Copy segment statuses", Description = "Copy segment statuses and optionally missing notes from a full interoperable XLIFF into its mapped XTM translation XLIFF")]
     public async Task<CopySegmentStatusesToXtmXliffResponse> CopySegmentStatusesToXtmXliff(
         [ActionParameter] CopySegmentStatusesRequest input)
     {
@@ -227,7 +227,8 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
             if (matches.Length != 1)
                 throw new PluginMisconfigurationException($"Translation unit '{unit.Id}' maps to {matches.Length} target units for file '{fileId}', unit '{unitId}'. Exactly one match is required.");
 
-            var segments = matches[0].Segments.Where(segment => !segment.IsIgnorbale).ToArray();
+            var matchedUnit = matches[0];
+            var segments = matchedUnit.Segments.Where(segment => !segment.IsIgnorbale).ToArray();
             var matchedSegments = !string.IsNullOrWhiteSpace(segmentId)
                 ? segments.Where(segment => segment.Id == segmentId).ToArray()
                 : segments.Skip(position - 1).Take(1).Where(segment => string.IsNullOrWhiteSpace(segment.Id)).ToArray();
@@ -236,6 +237,12 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
 
             foreach (var segment in unit.Segments)
                 segment.State = matchedSegments[0].State;
+
+            if (input.CopyMissingNotes == true && matchedUnit.Notes.Count > 0)
+            {
+                var existingNoteTexts = unit.Notes.Select(note => note.Text.Trim()).ToHashSet(StringComparer.Ordinal);
+                unit.Notes.AddRange(matchedUnit.Notes.Where(note => existingNoteTexts.Add(note.Text.Trim())));
+            }
         }
 
         var serialized = Xliff1Serializer.Serialize(translation);
