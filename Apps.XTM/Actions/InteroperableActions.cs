@@ -11,6 +11,7 @@ using Apps.XTM.Webhooks.Models.Response;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Exceptions;
+using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.Sdk.Utils.Models;
@@ -169,8 +170,8 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
         if (input.TranslationFile is null || input.TargetFile is null)
             throw new PluginMisconfigurationException("Provide the translation file and target file.");
 
-        await using var translationStream = await fileManagementClient.DownloadAsync(input.TranslationFile);
-        await using var targetStream = await fileManagementClient.DownloadAsync(input.TargetFile);
+        await using var translationStream = await DownloadSeekableXliff(input.TranslationFile);
+        await using var targetStream = await DownloadSeekableXliff(input.TargetFile);
         var isTranslationXliff = Xliff1Serializer.IsXliff1(translationStream, out var translationRoot);
         var isTargetXliff = Xliff2Serializer.IsXliff2(targetStream, out var targetRoot);
         if (translationRoot is null || targetRoot is null)
@@ -243,6 +244,31 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
         {
             File = await fileManagementClient.UploadAsync(output, "application/xliff+xml", input.TranslationFile.Name),
         };
+    }
+
+    private async Task<Stream> DownloadSeekableXliff(FileReference file)
+    {
+        var stream = await fileManagementClient.DownloadAsync(file);
+        if (stream.CanSeek)
+            return stream;
+
+        // XLIFF detection rewinds the stream before parsing.
+        var buffer = new MemoryStream();
+        try
+        {
+            await using (stream)
+            {
+                await stream.CopyToAsync(buffer);
+            }
+
+            buffer.Position = 0;
+            return buffer;
+        }
+        catch
+        {
+            await buffer.DisposeAsync();
+            throw;
+        }
     }
 
     private async Task<Dictionary<string, GeneratedFileResponse>> GenerateJobFiles(ProjectRequest project, string jobId)
