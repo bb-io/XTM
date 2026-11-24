@@ -121,12 +121,28 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
     }
 
     [Action("Get project", Description = "Get details for a project")]
-    public Task<FullProject> GetProject([ActionParameter] ProjectRequest project)
+    public async Task<FullProject> GetProject([ActionParameter] ProjectRequest project)
     {
-        return Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.ProjectId}",
+        var response = await Client.ExecuteXtmWithJson<FullProject>($"{ApiEndpoints.Projects}/{project.ProjectId}",
             Method.Get,
             null,
             Creds);
+
+        var client = Creds.Get(CredsNames.ConnectionType) == ConnectionTypes.Credentials
+            ? Creds.Get(CredsNames.Client)
+            : null;
+        if (!string.IsNullOrWhiteSpace(client))
+        {
+            var instance = new Uri(Creds.Get(CredsNames.Url));
+            var editorUrl = new Uri(instance, "/project-manager-gui/external-open-project-editor.action");
+            response.ProjectUrl = QueryHelpers.AddQueryString(editorUrl.AbsoluteUri, new Dictionary<string, string?>
+            {
+                ["pid"] = project.ProjectId,
+                ["client"] = client
+            });
+        }
+
+        return response;
     }
 
     [Action("Create project", Description = "Create new project")]

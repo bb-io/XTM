@@ -24,4 +24,6 @@ public class FullProject
     [Display("Template ID")] public string TemplateId { get; set; }
     
     public string Status { get; set; }
+
+    [Display("Project URL")] public string? ProjectUrl { get; set; }
 }
