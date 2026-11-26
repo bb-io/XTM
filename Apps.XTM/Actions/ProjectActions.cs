@@ -489,7 +489,7 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
 
     }
 
-    [Action("Search jobs in a project", Description = "Search project jobs by completed workflow steps and target languages")]
+    [Action("Search jobs in a project", Description = "Search project jobs by file name, completed workflow steps, and target languages")]
     public async Task<SearchProjectJobsResponse> SearchProjectJobs(
         [ActionParameter] ProjectRequest project,
         [ActionParameter] SearchProjectJobsRequest input)
@@ -507,10 +507,13 @@ public class ProjectActions(InvocationContext invocationContext, IFileManagement
             throw new PluginApplicationException("XTM returned an empty project status response.");
 
         var completedSteps = input.CompletedSteps?.ToArray() ?? [];
+        var fileNameContains = input.FileNameContains?.Trim();
 
         return new SearchProjectJobsResponse
         {
             JobIds = (response.Jobs ?? [])
+                .Where(job => string.IsNullOrEmpty(fileNameContains)
+                    || job.FileName?.Contains(fileNameContains, StringComparison.OrdinalIgnoreCase) == true)
                 .Where(job => completedSteps.All(selectedStep => job.Steps?.Any(step =>
                     string.Equals(step.Status, "FINISHED", StringComparison.OrdinalIgnoreCase)
                     && new[] { step.StepReferenceName, step.WorkflowStepName, step.DisplayStepName }
