@@ -13,4 +13,7 @@ public class SearchProjectJobsRequest
     [Display("Target languages")]
     [DataSource(typeof(ProjectTargetLanguageDataSourceHandler))]
     public IEnumerable<string>? TargetLanguages { get; set; }
+
+    [Display("File name contains", Description = "Only include jobs whose file name contains this text. Matching ignores case.")]
+    public string? FileNameContains { get; set; }
 }

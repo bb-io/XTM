@@ -91,7 +91,8 @@ Before you can connect you need to make sure that:
 - **Search jobs in a project** Get Job IDs for a project. Only Project ID is required; no matches return an empty list.
     Advanced settings:
     - **Completed steps**: Only include jobs that have finished every selected workflow step. Select steps from the project's workflow; the picker uses global steps when no project ID is available or XTM returns no workflows for the project.
-    - **Target languages**: Limit jobs to any of the selected project target languages. When combined with completed steps, jobs must satisfy both filters.
+    - **Target languages**: Limit jobs to any of the selected project target languages.
+    - **File name contains** Match any part of the file name, including the extension. Matching ignores case, and jobs must satisfy all filters you set.
 - **Get project job** Get completion details for a specific Project ID and Job ID: file name, source file ID, target language, join files type, and workflow steps with status, name, and due date.
 - **Get project status** Get the current status of a project.
 - **Get project users** Get users assigned to a project.
