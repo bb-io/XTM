@@ -696,8 +696,9 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         [ActionParameter] UploadTranslationFileRequest input,
         [ActionParameter] UploadTranslationFileEstimatesRequest estimatesRequest)
     {
+        var deadline = DateTime.UtcNow + TimeSpan.FromMinutes(19);
         var uploadedFile = await ProcessUploadTranslationFile(project.ProjectId, input, estimatesRequest);
-        var uploadStatusResponse = await PollFileStatusAsync(project.ProjectId, uploadedFile.FileId, input.FileType);
+        var uploadStatusResponse = await PollFileStatus(project.ProjectId, uploadedFile.FileId, input.FileType, deadline);
         return new()
         {
             FileId = uploadedFile.FileId,
@@ -857,35 +858,38 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
         return uploadResponse.File;
     }
     
-    private async Task<UploadStatusResponse> PollFileStatusAsync(string projectId, string fileId, string fileType)
+    private async Task<UploadStatusResponse> PollFileStatus(string projectId, string fileId, string fileType, DateTime pollingDeadline)
     {
         var statusUrl = $"{ApiEndpoints.Projects}/{projectId}/files/translations/{fileId}/status?fileType={fileType}";
-        UploadStatusResponse uploadStatusResponse;
-
+        UploadStatusResponse response;
+        
         do
         {
-            uploadStatusResponse = await Client.ExecuteXtmWithJson<UploadStatusResponse>(
-                statusUrl,
-                Method.Get,
-                null,
-                Creds
-            );
+            response = await Client.ExecuteXtmWithJson<UploadStatusResponse>(statusUrl, Method.Get, null, Creds);
 
-            if (uploadStatusResponse.Status == "ERROR")
+            if (response.Status == "ERROR")
             {
                 throw new PluginApplicationException(
                     $"Failed to upload translation file. " +
-                    $"Status: {uploadStatusResponse.Status}, " +
-                    $"Error description: {uploadStatusResponse.ErrorDescription}");
+                    $"Status: {response.Status}, " +
+                    $"Error description: {response.ErrorDescription}");
             }
 
-            if (uploadStatusResponse.Status != "FINISHED")
+            if (response.Status == "FINISHED") 
+                break;
+            
+            if (DateTime.UtcNow > pollingDeadline)
             {
-                await Task.Delay(5000);
+                throw new PluginApplicationException(
+                    "XTM couldn't process the file within within the platform time limit. " +
+                    "Use the 'Upload translation file in background' action with " +
+                    "the 'On background translation file upload finished (polling)' instead");
             }
-        } while (uploadStatusResponse.Status != "FINISHED");
+                
+            await Task.Delay(5000);
+        } while (true);
 
-        return uploadStatusResponse;
+        return response;
     }
 
     private async Task<byte[]> DownloadSourceFilesZip(string projectId, IEnumerable<string>? jobIds)
