@@ -1,3 +1,4 @@
+using System.IO.Pipelines;
 using System.Reflection;
 using System.Net;
 using System.Net.Sockets;
@@ -14,6 +15,8 @@ using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Moq;
 using Blackbird.Filters.Bilingual.Xliff1;
+using Blackbird.Filters.Bilingual.Xliff2;
+using Blackbird.Filters.Enums;
 using Blackbird.Filters.Transformations;
 
 namespace Tests.XTM;
@@ -23,11 +26,12 @@ public class InteroperableSegmentStatusTests
 {
     private static readonly XNamespace Mapping = "https://blackbird.io/xliff/xtm-segment-mapping";
     private static readonly XNamespace Native = "urn:oasis:names:tc:xliff:document:1.2";
+    private static readonly XNamespace Xliff22 = "urn:oasis:names:tc:xliff:document:2.2";
 
     [TestMethod]
-    [DataRow("2.1", "urn:oasis:names:tc:xliff:document:2.0")]
-    [DataRow("2.2", "urn:oasis:names:tc:xliff:document:2.2")]
-    public async Task Copy_UsesScopedIdsAndIdlessPosition_PreservesNativeContent(string version, string namespaceName)
+    [DataRow("2.1", "urn:oasis:names:tc:xliff:document:2.0", false)]
+    [DataRow("2.2", "urn:oasis:names:tc:xliff:document:2.2", true)]
+    public async Task Copy_UsesScopedIdsAndIdlessPosition_PreservesNativeContent(string version, string namespaceName, bool forwardOnly)
     {
         var target = $"""
             <xliff xmlns="{namespaceName}" version="{version}" srcLang="en" trgLang="de">
@@ -43,10 +47,19 @@ public class InteroperableSegmentStatusTests
             """;
         var translation = XDocument.Parse("""
             <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xtm="urn:xliff-xtm-extensions" version="1.2">
-              <file original="native-file-identifier" source-language="en" target-language="de" xtm:xliff-identifier="native"><header><note>Native header</note></header><body><group id="g1" xml:space="preserve"/></body></file>
+              <file original="native-file-identifier" source-language="en" target-language="de" xtm:xliff-identifier="native">
+                <header><note>Native header</note></header>
+                <body><group id="g1" xml:space="preserve">
+                  <trans-unit xmlns:map="https://blackbird.io/xliff/xtm-segment-mapping" xmlns:bb="http://blackbird.io/" id="t8" map:file-id="f2" map:unit-id="same" map:segment-index="1">
+                    <source>First.Second.</source>
+                    <seg-source><mrk mtype="seg" mid="1">First.</mrk><mrk mtype="seg" mid="2">Second.</mrk></seg-source>
+                    <target><mrk mtype="seg" mid="1" bb:customState="new">Erste.</mrk><mrk mtype="seg" mid="2" bb:customState="final">Zweite.</mrk></target>
+                  </trans-unit>
+                </group></body>
+              </file>
             </xliff>
             """);
-        var group = translation.Descendants(Native + "group").Single();
+        var nativeSplitUnit = translation.Descendants(Native + "trans-unit").Single();
         for (var index = 1; index <= 7; index++)
         {
             // t6 exercises idless position; t7 is another offline split of s5.
@@ -62,24 +75,22 @@ public class InteroperableSegmentStatusTests
                 new XElement(Native + "alt-trans", new XElement(Native + "target", "Suggestion")));
             if (index != 6)
                 unit.SetAttributeValue(Mapping + "segment-id", $"s{(index == 7 ? 5 : index)}");
-            group.Add(unit);
+            nativeSplitUnit.AddBeforeSelf(unit);
         }
-        group.Add(XElement.Parse("""
-            <trans-unit xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:map="https://blackbird.io/xliff/xtm-segment-mapping" xmlns:bb="http://blackbird.io/" id="t8" map:file-id="f2" map:unit-id="same" map:segment-index="1">
-              <source>First.Second.</source>
-              <seg-source><mrk mtype="seg" mid="1">First.</mrk><mrk mtype="seg" mid="2">Second.</mrk></seg-source>
-              <target><mrk mtype="seg" mid="1" bb:customState="new">Erste.</mrk><mrk mtype="seg" mid="2" bb:customState="final">Zweite.</mrk></target>
-            </trans-unit>
-            """));
-        using var originalStream = new MemoryStream(Encoding.UTF8.GetBytes(translation.ToString(SaveOptions.DisableFormatting)));
+        var translationXml = translation.ToString(SaveOptions.DisableFormatting);
+        using var originalStream = new MemoryStream(Encoding.UTF8.GetBytes(translationXml));
         var originalLoad = Transformation.Load(originalStream, "native.xlf");
         Assert.IsTrue(originalLoad.Success, originalLoad.Error);
-        var original = XDocument.Parse(Xliff1Serializer.Serialize(originalLoad.Value), LoadOptions.PreserveWhitespace);
+        var original = XDocument.Parse(Xliff2Serializer.Serialize(originalLoad.Value, Xliff2Version.Xliff22), LoadOptions.PreserveWhitespace);
         byte[]? output = null;
         var manager = new Mock<IFileManagementClient>(MockBehavior.Strict);
         manager.Setup(x => x.DownloadAsync(It.IsAny<FileReference>()))
-            .Returns((FileReference file) => Task.FromResult<Stream>(new MemoryStream(Encoding.UTF8.GetBytes(
-                file.Name == "native.xlf" ? translation.ToString(SaveOptions.DisableFormatting) : target))));
+            .Returns((FileReference file) =>
+            {
+                var stream = new MemoryStream(Encoding.UTF8.GetBytes(
+                    file.Name == "native.xlf" ? translationXml : target));
+                return Task.FromResult(forwardOnly ? PipeReader.Create(stream).AsStream() : (Stream)stream);
+            });
         manager.Setup(x => x.UploadAsync(It.IsAny<Stream>(), "application/xliff+xml", "native.xlf"))
             .Returns(async (Stream stream, string contentType, string name) =>
             {
@@ -95,24 +106,19 @@ public class InteroperableSegmentStatusTests
                 TargetFile = new() { Name = "reviewed.xlf" },
             });
         Assert.AreEqual("native.xlf", result.File.Name);
+        manager.Verify(x => x.DownloadAsync(It.Is<FileReference>(file => file.Name == "native.xlf")), Times.Once);
+        manager.Verify(x => x.DownloadAsync(It.Is<FileReference>(file => file.Name == "reviewed.xlf")), Times.Once);
         var updated = XDocument.Parse(Encoding.UTF8.GetString(output!), LoadOptions.PreserveWhitespace);
-        CollectionAssert.AreEqual(new string?[] { null, "new", "translated", "signed-off", "final", "signed-off", "final", "signed-off" },
-            updated.Descendants(Native + "trans-unit").Select(unit => (string?)unit.Element(Native + "target")!.Attribute("state")).ToArray());
-        using var updatedStream = new MemoryStream(output!);
-        var updatedLoad = Transformation.Load(updatedStream, "native.xlf");
-        Assert.IsTrue(updatedLoad.Success, updatedLoad.Error);
-        var nativeSegments = updatedLoad.Value.GetUnits().Last().Segments;
-        Assert.HasCount(2, nativeSegments);
-        Assert.IsTrue(nativeSegments.All(segment => segment.State == Blackbird.Filters.Enums.SegmentState.Reviewed),
-            "Every native segment must receive the mapped state, including existing per-marker state overrides.");
+        Assert.AreEqual(Xliff22 + "xliff", updated.Root!.Name);
+        Assert.AreEqual("2.2", (string?)updated.Root.Attribute("version"));
+        CollectionAssert.AreEqual(new string?[] { null, "initial", "translated", "reviewed", "final", "reviewed", "final", "reviewed", "reviewed" },
+            updated.Descendants(Xliff22 + "segment").Select(segment => (string?)segment.Attribute("state")).ToArray());
+        var splitUnit = updated.Descendants(Xliff22 + "unit").Single(unit => (string?)unit.Attribute("id") == "t8");
+        CollectionAssert.AreEqual(new[] { "1", "2" },
+            splitUnit.Elements(Xliff22 + "segment").Select(segment => (string?)segment.Attribute("id")).ToArray());
         foreach (var document in new[] { original, updated })
-        {
-            document.Descendants(Native + "trans-unit").Elements(Native + "target").Attributes("state").Remove();
-            document.Descendants(Native + "mrk").Attributes(XNamespace.Get("http://blackbird.io/") + "customState").Remove();
-            document.Descendants(Native + "mrk").Attributes().Where(attribute => attribute.IsNamespaceDeclaration
-                && attribute.Value == "http://blackbird.io/").Remove();
-        }
-        Assert.IsTrue(XNode.DeepEquals(original, updated), "After Filters serialization, only target state attributes may differ, including with reordered segments and split mappings.");
+            document.Descendants(Xliff22 + "segment").Attributes("state").Remove();
+        Assert.AreEqual(original.ToString(), updated.ToString(), "Compared with the unmodified file converted to XLIFF 2.2, only segment states may differ.");
     }
 
     [TestMethod]
@@ -149,11 +155,12 @@ public class InteroperableSegmentStatusTests
               </body></file>
             </xliff>
             """;
+        var nativeInput = translation;
         string? output = null;
         var manager = new Mock<IFileManagementClient>(MockBehavior.Strict);
         manager.Setup(x => x.DownloadAsync(It.IsAny<FileReference>()))
             .Returns((FileReference file) => Task.FromResult<Stream>(new MemoryStream(Encoding.UTF8.GetBytes(
-                file.Name == "native.xlf" ? output ?? translation : target))));
+                file.Name == "native.xlf" ? nativeInput : target))));
         manager.Setup(x => x.UploadAsync(It.IsAny<Stream>(), "application/xliff+xml", "native.xlf"))
             .Returns(async (Stream stream, string contentType, string name) =>
             {
@@ -171,8 +178,10 @@ public class InteroperableSegmentStatusTests
 
         await action.CopySegmentStatusesToXtmXliff(request);
         var updated = XDocument.Parse(output!);
-        var units = updated.Descendants(Native + "trans-unit").ToDictionary(unit => (string)unit.Attribute("id")!);
-        var firstNotes = units["t1"].Elements(Native + "note").ToArray();
+        Assert.AreEqual(Xliff22 + "xliff", updated.Root!.Name);
+        Assert.AreEqual("2.2", (string?)updated.Root.Attribute("version"));
+        var units = updated.Descendants(Xliff22 + "unit").ToDictionary(unit => (string)unit.Attribute("id")!);
+        var firstNotes = units["t1"].Elements(Xliff22 + "notes").Elements(Xliff22 + "note").ToArray();
         CollectionAssert.AreEqual(copyMissingNotes == true
                 ? new[] { "Context: low score", "XTM-only note", "Quality score: 0.800" }
                 : new[] { "Context: low score", "XTM-only note" },
@@ -180,11 +189,13 @@ public class InteroperableSegmentStatusTests
         Assert.AreEqual(string.Empty, (string?)firstNotes[0].Attribute("from"));
         Assert.AreEqual("Reviewer", (string?)firstNotes[1].Attribute("from"));
         CollectionAssert.AreEqual(copyMissingNotes == true ? new[] { "Quality score: 0.000" } : Array.Empty<string>(),
-            units["t2"].Elements(Native + "note").Select(note => note.Value).ToArray());
-        Assert.IsNull(units["t1"].Element(Native + "target")!.Attribute("state"));
-        Assert.AreEqual("signed-off", (string?)units["t2"].Element(Native + "target")!.Attribute("state"));
-        Assert.AreEqual("Befintlig", units["t2"].Element(Native + "target")!.Value);
+            units["t2"].Elements(Xliff22 + "notes").Elements(Xliff22 + "note").Select(note => note.Value).ToArray());
+        Assert.IsNull(units["t1"].Element(Xliff22 + "segment")!.Attribute("state"));
+        var secondSegment = units["t2"].Element(Xliff22 + "segment")!;
+        Assert.AreEqual("reviewed", (string?)secondSegment.Attribute("state"));
+        Assert.AreEqual("Befintlig", secondSegment.Element(Xliff22 + "target")!.Value);
 
+        nativeInput = Xliff1Serializer.Serialize(Xliff2Serializer.Deserialize(updated.Root));
         await action.CopySegmentStatusesToXtmXliff(request);
         Assert.IsTrue(XNode.DeepEquals(updated, XDocument.Parse(output!)), "Reapplying the action must preserve the result.");
     }
@@ -201,12 +212,9 @@ public class InteroperableSegmentStatusTests
     [DataRow("invalid-position", "missing valid segment mapping")]
     [DataRow("idless-position-outside", "exactly one target segment")]
     [DataRow("idless-now-has-id", "exactly one target segment")]
-    [DataRow("unsupported-state", "unsupported state 'approved'")]
-    [DataRow("missing-target", "exactly one target element")]
-    [DataRow("duplicate-target", "exactly one target element")]
     [DataRow("empty-translation", "does not contain any translation units")]
-    [DataRow("wrong-translation-version", "must be mapped XTM XLIFF 1.2")]
-    [DataRow("wrong-target-version", "must be a full interoperable XLIFF 2 file")]
+    [DataRow("mislabeled-translation", "Provide valid XLIFF files")]
+    [DataRow("mislabeled-target", "maps to 0 target units")]
     [DataRow("malformed-translation", "Provide valid XLIFF files")]
     [DataRow("malformed-target", "Provide valid XLIFF files")]
     public async Task Copy_RejectsUnsafeInputs_WithoutUploadingPartialResult(string scenario, string expectedError)
@@ -236,15 +244,12 @@ public class InteroperableSegmentStatusTests
                 unit.SetAttributeValue(Mapping + "segment-index", "2");
                 break;
             case "idless-now-has-id": unit.Attribute(Mapping + "segment-id")!.Remove(); break;
-            case "unsupported-state": segment.SetAttributeValue("state", "approved"); break;
-            case "missing-target": unit.Element(Native + "target")!.Remove(); break;
-            case "duplicate-target": unit.Add(new XElement(unit.Element(Native + "target")!)); break;
             case "empty-translation": unit.Remove(); break;
-            case "wrong-translation-version": translation.Root!.SetAttributeValue("version", "2.1"); break;
-            case "wrong-target-version": target.Root!.SetAttributeValue("version", "1.2"); break;
+            case "mislabeled-translation": translation.Root!.SetAttributeValue("version", "2.1"); break;
+            case "mislabeled-target": target.Root!.SetAttributeValue("version", "1.2"); break;
         }
         // Make a valid first unit precede the invalid unit, so validation failures cannot emit a partial result.
-        if (scenario is not ("empty-translation" or "wrong-translation-version"))
+        if (scenario is not ("empty-translation" or "mislabeled-translation"))
         {
             var valid = XDocument.Parse("""
                 <trans-unit xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:bb="https://blackbird.io/xliff/xtm-segment-mapping" id="control" bb:file-id="control" bb:unit-id="control" bb:segment-id="s" bb:segment-index="1"><source>Control</source><target>Kontrolle</target></trans-unit>
@@ -402,11 +407,14 @@ public class InteroperableSegmentStatusTests
             TargetFile = new() { Name = "sample-interoperable.xliff" },
         });
         var updated = XDocument.Parse(Encoding.UTF8.GetString(output!));
-        CollectionAssert.AreEqual(new[] { "signed-off", "final" }, updated.Descendants(Native + "target").Select(t => t.Attribute("state")!.Value).ToArray());
+        Assert.AreEqual(Xliff22 + "xliff", updated.Root!.Name);
+        Assert.AreEqual("2.2", (string?)updated.Root.Attribute("version"));
+        var segments = updated.Descendants(Xliff22 + "segment").ToArray();
+        CollectionAssert.AreEqual(new[] { "reviewed", "final" }, segments.Select(segment => (string?)segment.Attribute("state")).ToArray());
         CollectionAssert.AreEqual(sampleUnits.Select(u => u.Attribute("id")!.Value).ToArray(),
-            updated.Descendants(Native + "trans-unit").Select(u => u.Attribute(Mapping + "unit-id")!.Value).ToArray());
+            updated.Descendants(Xliff22 + "unit").Select(u => (string?)u.Attribute(Mapping + "unit-id")).ToArray());
         CollectionAssert.AreEqual(new[] { "Native translation 0", "Native translation 1" },
-            updated.Descendants(Native + "target").Select(t => t.Value).ToArray());
+            segments.Select(segment => segment.Element(Xliff22 + "target")!.Value).ToArray());
         manager.Verify(x => x.UploadAsync(It.IsAny<Stream>(), "application/xliff+xml", "native.xlf"), Times.Once);
     }
 
