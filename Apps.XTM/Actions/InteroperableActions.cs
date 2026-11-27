@@ -163,51 +163,28 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
         return new() { File = fileReference, TranslationFile = translationReference };
     }
 
-    [Action("Copy segment statuses", Description = "Copy segment statuses and optionally missing notes from a full interoperable XLIFF into its mapped XTM translation XLIFF")]
+    [Action("Copy segment statuses", Description = "Copy segment statuses and optionally missing notes from a full interoperable XLIFF into its mapped XTM translation file and return it as XLIFF 2.2")]
     public async Task<CopySegmentStatusesToXtmXliffResponse> CopySegmentStatusesToXtmXliff(
         [ActionParameter] CopySegmentStatusesRequest input)
     {
         if (input.TranslationFile is null || input.TargetFile is null)
             throw new PluginMisconfigurationException("Provide the translation file and target file.");
 
-        await using var translationStream = await DownloadSeekableXliff(input.TranslationFile);
-        await using var targetStream = await DownloadSeekableXliff(input.TargetFile);
-        var isTranslationXliff = Xliff1Serializer.IsXliff1(translationStream, out var translationRoot);
-        var isTargetXliff = Xliff2Serializer.IsXliff2(targetStream, out var targetRoot);
-        if (translationRoot is null || targetRoot is null)
-            throw new PluginMisconfigurationException("Provide valid XLIFF files.");
-        if (!isTranslationXliff || translationRoot.Name != Xliff1Serializer.XliffNs + "xliff"
-            || (string?)translationRoot.Attribute("version") != "1.2")
-            throw new PluginMisconfigurationException("The translation file must be mapped XTM XLIFF 1.2 from Download translated interoperable file.");
-        if (!isTargetXliff
-            || targetRoot.Name.NamespaceName is not ("urn:oasis:names:tc:xliff:document:2.0" or "urn:oasis:names:tc:xliff:document:2.2")
-            || (string?)targetRoot.Attribute("version") is not ("2.0" or "2.1" or "2.2"))
-            throw new PluginMisconfigurationException("The target file must be a full interoperable XLIFF 2 file.");
-
-        // Filters normalizes unsupported state values to null and reads only the first target.
-        // Validate those inputs without modifying the XML; matching and updates use its model.
-        foreach (var nativeUnit in translationRoot.Descendants(Xliff1Serializer.XliffNs + "trans-unit"))
-            if (nativeUnit.Elements(Xliff1Serializer.XliffNs + "target").Count() != 1)
-                throw new PluginMisconfigurationException($"Translation unit '{nativeUnit.Attribute("id")?.Value}' must contain exactly one target element.");
-        foreach (var targetSegment in targetRoot.Descendants(targetRoot.Name.Namespace + "segment"))
-        {
-            var state = (string?)targetSegment.Attribute("state");
-            if (state is not null && SegmentStateHelper.ToSegmentState(state) is null)
-                throw new PluginMisconfigurationException($"Target segment has unsupported state '{state}'.");
-        }
-
+        await using var translationStream = await fileManagementClient.DownloadAsync(input.TranslationFile);
+        await using var targetStream = await fileManagementClient.DownloadAsync(input.TargetFile);
         var translationLoad = Transformation.Load(translationStream, input.TranslationFile.Name, input.TranslationFile.ContentType);
         var targetLoad = Transformation.Load(targetStream, input.TargetFile.Name, input.TargetFile.ContentType);
+
         if (!translationLoad.Success || !translationLoad.WasBilingual || !targetLoad.Success || !targetLoad.WasBilingual)
             throw new PluginMisconfigurationException($"Provide valid XLIFF files. {translationLoad.Error} {targetLoad.Error}");
 
+        var translation = translationLoad.Value;
         var target = targetLoad.Value;
         var targetFiles = target.Children.OfType<Transformation>().ToArray();
         if (targetFiles.Length == 0)
             targetFiles = [target];
         var targetUnits = targetFiles.SelectMany(file => file.GetUnits().Select(unit => (FileId: file.Id, Unit: unit)))
             .ToLookup(item => (item.FileId, item.Unit.Id), item => item.Unit);
-        var translation = translationLoad.Value;
         var translationUnits = translation.GetUnits().ToArray();
         if (translationUnits.Length == 0)
             throw new PluginMisconfigurationException("The translation file does not contain any translation units.");
@@ -245,37 +222,12 @@ public class InteroperableActions(InvocationContext invocationContext, IFileMana
             }
         }
 
-        var serialized = Xliff1Serializer.Serialize(translation);
+        var serialized = Xliff2Serializer.Serialize(translation, Xliff2Version.Xliff22);
         await using var output = new MemoryStream(Encoding.UTF8.GetBytes(serialized));
         return new()
         {
             File = await fileManagementClient.UploadAsync(output, "application/xliff+xml", input.TranslationFile.Name),
         };
-    }
-
-    private async Task<Stream> DownloadSeekableXliff(FileReference file)
-    {
-        var stream = await fileManagementClient.DownloadAsync(file);
-        if (stream.CanSeek)
-            return stream;
-
-        // XLIFF detection rewinds the stream before parsing.
-        var buffer = new MemoryStream();
-        try
-        {
-            await using (stream)
-            {
-                await stream.CopyToAsync(buffer);
-            }
-
-            buffer.Position = 0;
-            return buffer;
-        }
-        catch
-        {
-            await buffer.DisposeAsync();
-            throw;
-        }
     }
 
     private async Task<Dictionary<string, GeneratedFileResponse>> GenerateJobFiles(ProjectRequest project, string jobId)

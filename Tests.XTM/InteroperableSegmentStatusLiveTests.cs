@@ -33,6 +33,7 @@ public class InteroperableSegmentStatusLiveTests : TestBaseMultipleConnections
         using var client = new XTMClient();
         var credentials = context.AuthenticationCredentialsProviders.ToArray();
         XNamespace xliff = "urn:oasis:names:tc:xliff:document:2.0";
+        XNamespace xliff22 = "urn:oasis:names:tc:xliff:document:2.2";
         XNamespace native = "urn:oasis:names:tc:xliff:document:1.2";
         XNamespace xtm = "urn:xliff-xtm-extensions";
         XNamespace mapping = "https://blackbird.io/xliff/xtm-segment-mapping";
@@ -169,9 +170,11 @@ public class InteroperableSegmentStatusLiveTests : TestBaseMultipleConnections
                     TargetFile = new() { Name = "reviewed.xlf" },
                 });
                 var copiedDocument = XDocument.Parse(Encoding.UTF8.GetString(files[copied.File.Name]));
-                var expectedStates = excludeCompleted ? new string?[] { "translated", "signed-off", "final" } : [null, "new", "translated", "signed-off", "final"];
-                CollectionAssert.AreEqual(expectedStates, copiedDocument.Descendants(native + "trans-unit")
-                    .Select(unit => (string?)unit.Element(native + "target")!.Attribute("state")).ToArray());
+                Assert.AreEqual(xliff22 + "xliff", copiedDocument.Root!.Name);
+                Assert.AreEqual("2.2", (string?)copiedDocument.Root.Attribute("version"));
+                var expectedStates = excludeCompleted ? new string?[] { "translated", "reviewed", "final" } : [null, "initial", "translated", "reviewed", "final"];
+                CollectionAssert.AreEqual(expectedStates, copiedDocument.Descendants(xliff22 + "segment")
+                    .Select(segment => (string?)segment.Attribute("state")).ToArray());
                 await File.WriteAllBytesAsync(Path.Combine(artifactDirectory, "mapped-after-review.xlf"), files[copied.File.Name]);
                 var locked = await actions.UploadTranslationFile(project,
                     new() { JobId = jobId, FileType = "XLIFF", File = copied.File, SegmentStatusApproving = "ACCORDINGLY_TO_STATE" },
