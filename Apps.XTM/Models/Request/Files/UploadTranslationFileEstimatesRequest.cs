@@ -6,7 +6,7 @@ namespace Apps.XTM.Models.Request.Files;
 
 public class UploadTranslationFileEstimatesRequest
 {
-    [Display("Mark segments as not completed by state", Description = "Mark segments as not completed if they match one of the selected states.")]
+    [Display("Mark segments as not completed by state", Description = "Mark segments matching the selected states as not completed and all other segments as completed.")]
     [StaticDataSource(typeof(XliffV2StateDataSourceHandler))]
     public IEnumerable<string>? MarkSegmentsAsNotCompletedByStates { get; set; }
 

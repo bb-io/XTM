@@ -276,13 +276,17 @@ public class InteroperableSegmentStatusTests
     }
 
     [TestMethod]
+    [DataRow(true, false, DisplayName = "Upload locks segments by state")]
+    [DataRow(false, true, DisplayName = "Upload sets completion by state")]
+    [DataRow(true, true, DisplayName = "Upload locks by original state and sets completion")]
     [Timeout(30000)]
-    public async Task Upload_MappedNativeXliff_LocksSelectedStatesAndPreservesUploadIdentifiers()
+    public async Task Upload_MappedNativeXliff_AppliesStateOptionsAndPreservesUploadIdentifiers(bool lockByState, bool markByState)
     {
         var original = XDocument.Parse("""
             <xliff xmlns="urn:oasis:names:tc:xliff:document:1.2" xmlns:xtm="urn:xliff-xtm-extensions" xmlns:bb="https://blackbird.io/xliff/xtm-segment-mapping" version="1.2"><file original="native-upload-identifier" source-language="en" target-language="de" xtm:xliff-identifier="native"><body><group id="g1"/></body></file></xliff>
             """);
         var states = new string?[] { null, "new", "translated", "signed-off", "final" };
+        var expectedStates = markByState ? new string?[] { null, null, "signed-off", null, "signed-off" } : states;
         var group = original.Descendants(Native + "group").Single();
         for (var index = 0; index < states.Length; index++)
         {
@@ -346,7 +350,11 @@ public class InteroperableSegmentStatusTests
         {
             var result = await new FileActions(context, manager.Object).UploadTranslationFile(new() { ProjectId = "123" },
                 new() { JobId = "42", FileType = "XLIFF", File = new() { Name = "mapped.xlf" }, SegmentStatusApproving = "ACCORDINGLY_TO_STATE" },
-                new() { LockSegmentByStates = ["reviewed", "final"] }).WaitAsync(TimeSpan.FromSeconds(20));
+                new()
+                {
+                    LockSegmentByStates = lockByState ? ["reviewed", "final"] : null,
+                    MarkSegmentsAsNotCompletedByStates = markByState ? ["initial", "reviewed"] : null,
+                }).WaitAsync(TimeSpan.FromSeconds(20));
             await server.WaitAsync(TimeSpan.FromSeconds(2));
             Assert.AreEqual("FINISHED", result.Status);
             Assert.AreEqual("native-upload-identifier", received!.Descendants(Native + "file").Single().Attribute("original")?.Value);
@@ -358,8 +366,8 @@ public class InteroperableSegmentStatusTests
                 Assert.AreEqual($"crc-{index}", units[index].Attribute(XNamespace.Get("urn:xliff-xtm-extensions") + "x-previous-crc")?.Value);
                 Assert.AreEqual($"original-{index}", units[index].Attribute(Mapping + "unit-id")?.Value);
                 Assert.AreEqual($"Target {index}", units[index].Element(Native + "target")!.Value);
-                Assert.AreEqual(states[index], (string?)units[index].Element(Native + "target")!.Attribute("state"));
-                Assert.AreEqual(index >= 3 ? "yes" : null, units[index].Attribute(XNamespace.Get("urn:xliff-xtm-extensions") + "locked")?.Value);
+                Assert.AreEqual(expectedStates[index], (string?)units[index].Element(Native + "target")!.Attribute("state"), $"State of t{index + 1}");
+                Assert.AreEqual(lockByState && index >= 3 ? "yes" : null, units[index].Attribute(XNamespace.Get("urn:xliff-xtm-extensions") + "locked")?.Value, $"Lock of t{index + 1}");
             }
         }
         finally
