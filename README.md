@@ -162,7 +162,7 @@ Before you can connect you need to make sure that:
     - **Enable autopopulation?**: Enable or disable autopopulation during import.
     - **Workflow step name**: Specify the workflow step when autopopulation is disabled.
     - **Lock segments by state**: Lock segments matching the selected states, for example **Reviewed** and **Final** after copying reviewed statuses.
-    - **Mark segments as not completed by state**: Mark segments matching the selected states as not completed.
+    - **Mark segments as not completed by state**: Mark segments matching the selected states as not completed and set all other segments as completed.
 - **Upload translation file in background** Start a background process of uploading a translation file to a project. 
 Use the 'On background translation file upload finished (polling)' event to monitor the upload status.
 

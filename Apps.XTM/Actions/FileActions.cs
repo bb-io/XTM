@@ -821,13 +821,17 @@ public class FileActions(InvocationContext invocationContext, IFileManagementCli
             {
                 foreach (var segment in unit.Segments)
                 {
-                    if (lockSegmentsByStates.Contains(segment.State ?? SegmentState.Initial))
+                    var originalState = segment.State ?? SegmentState.Initial;
+                    if (lockSegmentsByStates.Contains(originalState))
                     {
                         unit.Other.Add(lockedAttribute);
                     }
-                    if (markSegmentsAsNotCompletedByStates.Contains(segment.State ?? SegmentState.Initial))
+
+                    if (markSegmentsAsNotCompletedByStates.Count > 0)
                     {
-                        segment.State = null;
+                        segment.State = markSegmentsAsNotCompletedByStates.Contains(originalState)
+                            ? null
+                            : SegmentState.Reviewed;
                     }
                 }
             }
